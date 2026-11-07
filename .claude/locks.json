@@ -246,6 +246,22 @@
           "sha256": "fe1061eac8ffef0ada2eb6e2a395fd3ae4e35c9663362bb86b16d4bace552832"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/handsfree-turn-taking-ui.md",
+      "sha256": "09f1d7053756c3a190803ac7de956c41d66ed6040b58ea5c2ff47548b0fcd558",
+      "state": "locked",
+      "reason": "contract \"handsfree-turn-taking-ui\" opened by the user: yes",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-07T06:22:45.906Z",
+      "history": [
+        {
+          "at": "2026-11-07T06:22:45.906Z",
+          "event": "lock",
+          "sha256": "09f1d7053756c3a190803ac7de956c41d66ed6040b58ea5c2ff47548b0fcd558"
+        }
+      ]
     }
   ]
 }

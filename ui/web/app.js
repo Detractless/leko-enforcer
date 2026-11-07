@@ -37,7 +37,8 @@ class CircleController {
 
     this.currentState = state;
     if (this.stageEl) {
-      this.stageEl.className = `circle-stage state-${state}`;
+      const isMuted = this.stageEl.classList && this.stageEl.classList.contains('is-muted');
+      this.stageEl.className = `circle-stage state-${state}${isMuted ? ' is-muted' : ''}`;
     }
 
     const defaultLabels = {
@@ -73,7 +74,7 @@ class CircleController {
 
   hideDraft() {
     this.currentDraft = null;
-    if (this.cardEl) {
+    if (this.cardEl && this.cardEl.classList) {
       this.cardEl.classList.remove('visible');
     }
   }
@@ -105,6 +106,7 @@ class LekoBridge {
   constructor(controller, backendUrl = 'http://127.0.0.1:18080') {
     this.controller = controller;
     this.backendUrl = backendUrl;
+    this.isMuted = false;
 
     // Attach global listener for native WebView IPC script evaluation
     if (typeof window !== 'undefined') {
@@ -118,6 +120,29 @@ class LekoBridge {
       window.ipc.postMessage(JSON.stringify(payload));
     }
     return payload;
+  }
+
+  toggleMute() {
+    this.isMuted = !this.isMuted;
+    if (this.controller.stageEl && this.controller.stageEl.classList) {
+      if (this.isMuted) {
+        this.controller.stageEl.classList.add('is-muted');
+      } else {
+        this.controller.stageEl.classList.remove('is-muted');
+      }
+    }
+    const btnMute = typeof document !== 'undefined' ? document.getElementById('btn-mute') : null;
+    if (btnMute) {
+      btnMute.classList.toggle('active', this.isMuted);
+      btnMute.textContent = this.isMuted ? 'Unmute' : 'Mute';
+    }
+    return this.sendIpcAction('mute', null, { muted: this.isMuted });
+  }
+
+  stop() {
+    this.controller.hideDraft();
+    this.controller.setState('idle');
+    return this.sendIpcAction('stop');
   }
 
   handleIncomingEvent(event) {

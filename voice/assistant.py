@@ -1,4 +1,4 @@
-"""Leko Voice Assistant: Full interactive loop combining STT, LLM Tool Calling, CLI execution, Maeve TTS, and Minimalist Circle UI IPC.
+"""Leko Voice Assistant: Full interactive loop combining Hands-Free STT, Turn-Taking VAD, LLM Tool Calling, CLI execution, Maeve TTS, and Minimalist Circle UI IPC.
 """
 from __future__ import annotations
 
@@ -16,7 +16,8 @@ TALK_VENV_PYTHON = Path("/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/py
 try:
     import ptts
     import mlx_audio
-    import sounddevice
+    import sounddevice as sd
+    import onnxruntime
 except ImportError:
     if TALK_VENV_PYTHON.exists() and sys.executable != str(TALK_VENV_PYTHON):
         os.execv(str(TALK_VENV_PYTHON), [str(TALK_VENV_PYTHON)] + sys.argv)
@@ -31,6 +32,7 @@ sys.path.insert(0, str(HERE))
 
 from llm_router import parse_user_intent, tool_to_cli_args, ensure_server
 from ui_bridge import UIPipelineBridge
+from turn_detector import TurnDetector
 
 LEKO_BIN = REPO_ROOT / "target/release/leko"
 PHONON_25_MODEL = Path("/Users/calibro/.t3/scratch/2026-11-05-can-you-review-this-project-4f6400cb/phonon-2.5-en-mlx")
@@ -38,51 +40,8 @@ VOICE_NAME = "Maeve"
 
 _tts_engine = None
 _stt_model = None
-
-class AudioRecorder:
-    def __init__(self, sample_rate: int = 16000):
-        self.sample_rate = sample_rate
-        self.stream = None
-        self.frames = []
-        self.is_recording = False
-        self._lock = threading.Lock()
-
-    def start(self):
-        import sounddevice as sd
-        with self._lock:
-            self.frames = []
-            self.is_recording = True
-
-            def callback(indata, frame_count, time_info, status):
-                if self.is_recording:
-                    self.frames.append(bytes(indata))
-
-            self.stream = sd.RawInputStream(
-                samplerate=self.sample_rate,
-                channels=1,
-                dtype="int16",
-                blocksize=1024,
-                callback=callback
-            )
-            self.stream.start()
-
-    def stop(self) -> np.ndarray:
-        with self._lock:
-            self.is_recording = False
-            if self.stream:
-                try:
-                    self.stream.stop()
-                    self.stream.close()
-                except Exception:
-                    pass
-                self.stream = None
-            if not self.frames:
-                return np.zeros(0, dtype=np.float32)
-            raw = b"".join(self.frames)
-            i16 = np.frombuffer(raw, dtype=np.int16)
-            return i16.astype(np.float32) / 32768.0
-
-_recorder = AudioRecorder()
+_is_speaking = False
+_is_muted = False
 
 def get_tts():
     global _tts_engine
@@ -96,17 +55,29 @@ def get_tts():
         )
     return _tts_engine
 
+def stop_playback():
+    """Interrupts any active audio playback immediately."""
+    global _is_speaking
+    try:
+        sd.stop()
+    except Exception:
+        pass
+    _is_speaking = False
+
 def speak(text: str):
-    """Speaks text using Maeve via sounddevice."""
+    """Speaks text using Maeve via sounddevice with interrupt support."""
+    global _is_speaking
     print(f"\n[Maeve speaking]: \"{text}\"", flush=True)
     try:
         tts = get_tts()
-        import sounddevice as sd
         pcm = tts.synth(text, voice=VOICE_NAME)
+        _is_speaking = True
         sd.play(pcm, samplerate=tts.sample_rate)
         sd.wait()
     except Exception as e:
         print(f"[Maeve audio error]: {e}", file=sys.stderr, flush=True)
+    finally:
+        _is_speaking = False
 
 def get_stt():
     global _stt_model
@@ -225,7 +196,60 @@ def process_query(query: str, settings_zip: str, auto_confirm: bool = False, bri
 
     return summary
 
+class HandsfreeTurnManager:
+    def __init__(self, on_turn_complete, sample_rate: int = 16000, chunk_size: int = 2560):
+        self.on_turn_complete = on_turn_complete
+        self.sample_rate = sample_rate
+        self.chunk_size = chunk_size
+        self.detector = TurnDetector()
+        self.stream = None
+        self.is_running = False
+        self._raw_buf = bytearray()
+        self._lock = threading.Lock()
+
+    def start(self):
+        with self._lock:
+            self.is_running = True
+            self.detector.reset()
+            self._raw_buf.clear()
+
+            def _audio_callback(indata, frames, time_info, status):
+                global _is_speaking, _is_muted
+                if not self.is_running or _is_muted or _is_speaking:
+                    return
+
+                self._raw_buf.extend(bytes(indata))
+                bytes_per_chunk = self.chunk_size * 2  # 16-bit
+                while len(self._raw_buf) >= bytes_per_chunk:
+                    chunk_bytes = bytes(self._raw_buf[:bytes_per_chunk])
+                    del self._raw_buf[:bytes_per_chunk]
+                    chunk = np.frombuffer(chunk_bytes, dtype=np.int16)
+                    ended, audio = self.detector.feed(chunk)
+                    if ended and len(audio) > 0:
+                        threading.Thread(target=self.on_turn_complete, args=(audio,), daemon=True).start()
+
+            self.stream = sd.RawInputStream(
+                samplerate=self.sample_rate,
+                channels=1,
+                dtype="int16",
+                blocksize=1024,
+                callback=_audio_callback
+            )
+            self.stream.start()
+
+    def stop(self):
+        with self._lock:
+            self.is_running = False
+            if self.stream:
+                try:
+                    self.stream.stop()
+                    self.stream.close()
+                except Exception:
+                    pass
+                self.stream = None
+
 def main():
+    global _is_muted
     parser = argparse.ArgumentParser(description="Leko Voice Assistant")
     parser.add_argument("--settings", default=str(REPO_ROOT / "settings.zip"), help="Path to settings.zip")
     parser.add_argument("--query", type=str, help="Single query to process")
@@ -234,26 +258,38 @@ def main():
     args = parser.parse_args()
 
     bridge = UIPipelineBridge()
-
     pending_draft: Dict[str, Any] = {}
 
+    def on_handsfree_speech(audio_f32: np.ndarray):
+        if bridge:
+            bridge.emit_state("thinking", "Transcribing...")
+        text = transcribe_audio(audio_f32)
+        print(f"\n[Transcribed]: \"{text}\"")
+        if text:
+            process_query(text, args.settings, auto_confirm=False, bridge=bridge)
+        else:
+            if bridge:
+                bridge.emit_idle()
+
+    turn_manager = HandsfreeTurnManager(on_turn_complete=on_handsfree_speech)
+
     def on_ui_action(action_data: Dict[str, Any]):
+        global _is_muted
         nonlocal pending_draft
         act = action_data.get("action")
         if act == "listen_start" or act == "listen":
-            print("\n[Microphone]: Recording started... (Speak now, then tap circle to end)")
-            _recorder.start()
-        elif act == "listen_stop":
-            print("\n[Microphone]: Recording stopped. Transcribing...")
-            audio = _recorder.stop()
-            transcription = transcribe_audio(audio)
-            print(f"[Transcription]: \"{transcription}\"")
-            if not transcription:
-                if bridge:
-                    bridge.emit_idle()
-                speak("I didn't catch that. Please tap the circle and try again.")
-            else:
-                process_query(transcription, args.settings, auto_confirm=False, bridge=bridge)
+            _is_muted = False
+            bridge.emit_state("listening", "Listening...")
+        elif act == "stop":
+            stop_playback()
+            turn_manager.detector.reset()
+            bridge.emit_idle()
+            speak("Stopped.")
+        elif act == "mute":
+            _is_muted = action_data.get("muted", True)
+            turn_manager.detector.reset()
+            status_text = "Muted" if _is_muted else "Ready"
+            bridge.emit_state("idle", status_text)
         elif act == "confirm":
             draft = action_data.get("draft") or pending_draft
             intent = draft.get("intent", {})
@@ -282,13 +318,17 @@ def main():
         time.sleep(0.5)
         bridge.emit_idle()
 
+    # Start hands-free continuous listening loop
+    turn_manager.start()
+
     # Ensure LFM3 server is alive
     ensure_server()
 
     if args.query:
         process_query(args.query, args.settings, auto_confirm=args.confirm, bridge=bridge)
     else:
-        print("Leko Voice Assistant ready. Tap the circle in the UI or type here (or 'exit' to quit):")
+        print("\nLeko Voice Assistant ready with hands-free turn detection.")
+        print("Speak naturally into your mic (or type below, 'exit' to quit):")
         while True:
             try:
                 line = input("\n> ").strip()
@@ -298,6 +338,7 @@ def main():
             except (KeyboardInterrupt, EOFError):
                 break
 
+    turn_manager.stop()
     if args.ui:
         bridge.close()
 

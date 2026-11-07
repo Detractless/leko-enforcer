@@ -13,9 +13,14 @@
       <div class="ripple ripple-2"></div>
       <div class="ripple ripple-3"></div>
       <div class="ring-core"></div>
+      <div id="status" class="status-pill">Ready</div>
     </div>
 
-    <div id="status" class="status-pill">Ready</div>
+    <!-- Minimalist Utility Controls -->
+    <div class="controls-bar">
+      <button id="btn-mute" class="ctrl-btn" title="Toggle microphone mute">Mute</button>
+      <button id="btn-stop" class="ctrl-btn" title="Interrupt speech or reset draft">Stop</button>
+    </div>
 
     <!-- Minimalist Plan Confirmation Card -->
     <div id="draft-card" class="draft-card">
@@ -44,15 +49,16 @@
 
     document.getElementById('btn-confirm').addEventListener('click', () => controller.confirmDraft());
     document.getElementById('btn-cancel').addEventListener('click', () => controller.cancelDraft());
+    document.getElementById('btn-mute').addEventListener('click', () => bridge.toggleMute());
+    document.getElementById('btn-stop').addEventListener('click', () => bridge.stop());
 
-    // Tap circle to start listening, tap again to finish and transcribe
+    // Tap circle to force start listening or cancel
     stageEl.addEventListener('click', () => {
       if (controller.currentState === 'idle') {
-        controller.setState('listening', 'Listening... Tap to finish');
+        controller.setState('listening', 'Listening...');
         bridge.sendIpcAction('listen_start');
       } else if (controller.currentState === 'listening') {
-        controller.setState('thinking', 'Processing speech...');
-        bridge.sendIpcAction('listen_stop');
+        bridge.stop();
       }
     });
   </script>

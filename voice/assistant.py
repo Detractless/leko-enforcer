@@ -8,6 +8,7 @@ import atexit
 import argparse
 import os
 import queue
+import re
 import signal
 import subprocess
 import sys
@@ -234,6 +235,25 @@ def transcribe_audio(audio_f32: np.ndarray) -> str:
     res = stt.generate(mx.array(audio_f32))
     return getattr(res, "text", str(res)).strip()
 
+def format_status_summary(raw_stdout: str, target_type: str = "", name: str = "") -> str:
+    """Formats raw CLI status output directly into a clean, natural spoken sentence."""
+    if not raw_stdout:
+        return f"{name} status is unavailable." if name else "Status check completed."
+
+    first_line = raw_stdout.strip().split("\n")[0].strip()
+    parts = re.split(r"\.\s+", first_line)
+    first_sentence = parts[0].strip()
+
+    if first_sentence.startswith("Site "):
+        first_sentence = first_sentence[5:]
+    elif first_sentence.startswith("App "):
+        first_sentence = first_sentence[4:]
+
+    if ", judged at" in first_sentence:
+        first_sentence = first_sentence.split(", judged at")[0].strip()
+
+    return f"{first_sentence}." 
+
 def process_query(
     query: str,
     settings_zip: str,
@@ -267,7 +287,7 @@ def process_query(
             return ""
         if bridge:
             bridge.emit_speaking(reply)
-        spk(reply, is_cancelled)
+        spk(verbalize_for_speech(reply), is_cancelled)
         if bridge and not (is_cancelled and is_cancelled()):
             bridge.emit_idle()
         return reply
@@ -327,10 +347,10 @@ def process_query(
         draft_kind = "Switch Off"
         draft_desc = f"Turns off rule {args.get('id')}."
     elif tool == "check_status":
-        summary = f"Status checked: {stdout.split('.')[0]}."
+        summary = format_status_summary(stdout, args.get("target_type", ""), args.get("name", ""))
         draft_name = "Status Report"
         draft_kind = "Status"
-        draft_desc = stdout.split('.')[0]
+        draft_desc = summary
     else:
         summary = "Action prepared."
         draft_name = "Action"
@@ -344,7 +364,7 @@ def process_query(
         bridge.emit_draft(draft_name, draft_kind, draft_desc, raw_intent=intent)
         bridge.emit_speaking(summary)
 
-    spk(summary, is_cancelled)
+    spk(verbalize_for_speech(summary), is_cancelled)
 
     # 4. If write is applicable and confirmed
     if auto_confirm and tool in ("add_block", "switch_off"):

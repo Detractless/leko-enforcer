@@ -358,6 +358,22 @@
           "sha256": "2a6dd3aa9f5c8234fde479a902b93de0516d3965b76f0b3f7a2aa7b2bec485ed"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/clean-source-summaries-and-phonetics.md",
+      "sha256": "f75c2082373ea5f5a715446278f72d9c80a2ac6e5a3b765b421ad6a313d98866",
+      "state": "locked",
+      "reason": "contract \"clean-source-summaries-and-phonetics\" opened by the user: That sounds great. Let's create the contract for that.",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-07T07:47:42.547Z",
+      "history": [
+        {
+          "at": "2026-11-07T07:47:42.547Z",
+          "event": "lock",
+          "sha256": "f75c2082373ea5f5a715446278f72d9c80a2ac6e5a3b765b421ad6a313d98866"
+        }
+      ]
     }
   ]
 }

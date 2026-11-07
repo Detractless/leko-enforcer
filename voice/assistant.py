@@ -11,6 +11,19 @@ import time
 from pathlib import Path
 from typing import Optional, Dict, Any
 
+# Ensure we use talk-venv if system python lacks ptts or mlx_audio
+TALK_VENV_PYTHON = Path("/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3")
+try:
+    import ptts
+    import mlx_audio
+    import sounddevice
+except ImportError:
+    if TALK_VENV_PYTHON.exists() and sys.executable != str(TALK_VENV_PYTHON):
+        os.execv(str(TALK_VENV_PYTHON), [str(TALK_VENV_PYTHON)] + sys.argv)
+
+import numpy as np
+import mlx.core as mx
+
 # Ensure voice package is importable
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
@@ -26,6 +39,51 @@ VOICE_NAME = "Maeve"
 _tts_engine = None
 _stt_model = None
 
+class AudioRecorder:
+    def __init__(self, sample_rate: int = 16000):
+        self.sample_rate = sample_rate
+        self.stream = None
+        self.frames = []
+        self.is_recording = False
+        self._lock = threading.Lock()
+
+    def start(self):
+        import sounddevice as sd
+        with self._lock:
+            self.frames = []
+            self.is_recording = True
+
+            def callback(indata, frame_count, time_info, status):
+                if self.is_recording:
+                    self.frames.append(bytes(indata))
+
+            self.stream = sd.RawInputStream(
+                samplerate=self.sample_rate,
+                channels=1,
+                dtype="int16",
+                blocksize=1024,
+                callback=callback
+            )
+            self.stream.start()
+
+    def stop(self) -> np.ndarray:
+        with self._lock:
+            self.is_recording = False
+            if self.stream:
+                try:
+                    self.stream.stop()
+                    self.stream.close()
+                except Exception:
+                    pass
+                self.stream = None
+            if not self.frames:
+                return np.zeros(0, dtype=np.float32)
+            raw = b"".join(self.frames)
+            i16 = np.frombuffer(raw, dtype=np.int16)
+            return i16.astype(np.float32) / 32768.0
+
+_recorder = AudioRecorder()
+
 def get_tts():
     global _tts_engine
     if _tts_engine is None:
@@ -39,7 +97,7 @@ def get_tts():
     return _tts_engine
 
 def speak(text: str):
-    """Speaks text using Maeve via sounddevice or logs if headless."""
+    """Speaks text using Maeve via sounddevice."""
     print(f"\n[Maeve speaking]: \"{text}\"", flush=True)
     try:
         tts = get_tts()
@@ -47,9 +105,8 @@ def speak(text: str):
         pcm = tts.synth(text, voice=VOICE_NAME)
         sd.play(pcm, samplerate=tts.sample_rate)
         sd.wait()
-    except Exception:
-        # Fallback if audio hardware device is unavailable
-        pass
+    except Exception as e:
+        print(f"[Maeve audio error]: {e}", file=sys.stderr, flush=True)
 
 def get_stt():
     global _stt_model
@@ -57,6 +114,14 @@ def get_stt():
         from mlx_audio.stt.utils import load_model
         _stt_model = load_model(str(PHONON_25_MODEL))
     return _stt_model
+
+def transcribe_audio(audio_f32: np.ndarray) -> str:
+    """Transcribes audio samples using local Phonon MLX model."""
+    if len(audio_f32) < 3200:  # < 0.2s
+        return ""
+    stt = get_stt()
+    res = stt.generate(mx.array(audio_f32))
+    return getattr(res, "text", str(res)).strip()
 
 def process_query(query: str, settings_zip: str, auto_confirm: bool = False, bridge: Optional[UIPipelineBridge] = None) -> str:
     """Processes a user command through LFM3, executes dry run on CLI, and updates UI bridge."""
@@ -175,7 +240,21 @@ def main():
     def on_ui_action(action_data: Dict[str, Any]):
         nonlocal pending_draft
         act = action_data.get("action")
-        if act == "confirm":
+        if act == "listen_start" or act == "listen":
+            print("\n[Microphone]: Recording started... (Speak now, then tap circle to end)")
+            _recorder.start()
+        elif act == "listen_stop":
+            print("\n[Microphone]: Recording stopped. Transcribing...")
+            audio = _recorder.stop()
+            transcription = transcribe_audio(audio)
+            print(f"[Transcription]: \"{transcription}\"")
+            if not transcription:
+                if bridge:
+                    bridge.emit_idle()
+                speak("I didn't catch that. Please tap the circle and try again.")
+            else:
+                process_query(transcription, args.settings, auto_confirm=False, bridge=bridge)
+        elif act == "confirm":
             draft = action_data.get("draft") or pending_draft
             intent = draft.get("intent", {})
             tool = intent.get("tool")
@@ -209,7 +288,7 @@ def main():
     if args.query:
         process_query(args.query, args.settings, auto_confirm=args.confirm, bridge=bridge)
     else:
-        print("Leko Voice Assistant ready. Type your command (or 'exit' to quit):")
+        print("Leko Voice Assistant ready. Tap the circle in the UI or type here (or 'exit' to quit):")
         while True:
             try:
                 line = input("\n> ").strip()

@@ -45,13 +45,14 @@
     document.getElementById('btn-confirm').addEventListener('click', () => controller.confirmDraft());
     document.getElementById('btn-cancel').addEventListener('click', () => controller.cancelDraft());
 
-    // Click/tap the circle to toggle listening state
+    // Tap circle to start listening, tap again to finish and transcribe
     stageEl.addEventListener('click', () => {
       if (controller.currentState === 'idle') {
-        controller.setState('listening');
-        bridge.sendIpcAction('listen');
+        controller.setState('listening', 'Listening... Tap to finish');
+        bridge.sendIpcAction('listen_start');
       } else if (controller.currentState === 'listening') {
-        bridge.sendVoiceTurn('Block Reddit and Twitter for 2 hours');
+        controller.setState('thinking', 'Processing speech...');
+        bridge.sendIpcAction('listen_stop');
       }
     });
   </script>

@@ -106,7 +106,17 @@ def verbalize_for_speech(text: str) -> str:
         return f"{n} second" if n == 1 else f"{n} seconds"
     t = re.sub(r"\b(\d+)\s*(?:s|sec|secs)\b", _seconds, t, flags=re.IGNORECASE)
 
-    # 7. Clean up whitespace and punctuation
+    # 7. Em-dashes and acoustic breathing pauses
+    t = re.sub(r"\s*[—–]\s*", "... ", t)
+    t = re.sub(r"\s*--\s*", "... ", t)
+
+    # 8. Strip emojis that confuse the acoustic vocoder
+    t = re.sub(r"[\U00010000-\U0010ffff]", "", t)
+
+    # 9. Cadence and sentence boundary spacing
+    t = re.sub(r"([!?,.:;])([A-Za-z])", r"\1 \2", t)
+
+    # 10. Clean up whitespace and punctuation
     t = re.sub(r"[ \t]+", " ", t)
     t = re.sub(r"\s+([.,;:!?])", r"\1", t)
     t = re.sub(r"\n+", " ", t)

@@ -374,6 +374,22 @@
           "sha256": "f75c2082373ea5f5a715446278f72d9c80a2ac6e5a3b765b421ad6a313d98866"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/speech-cadence-and-emdash-pauses.md",
+      "sha256": "cd5bb44c210f801b0069fb973d6fb28344c5af325d97f9ab9c0ed0f491c361b9",
+      "state": "locked",
+      "reason": "contract \"speech-cadence-and-emdash-pauses\" opened by the user: yes",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-07T08:27:04.908Z",
+      "history": [
+        {
+          "at": "2026-11-07T08:27:04.908Z",
+          "event": "lock",
+          "sha256": "cd5bb44c210f801b0069fb973d6fb28344c5af325d97f9ab9c0ed0f491c361b9"
+        }
+      ]
     }
   ]
 }

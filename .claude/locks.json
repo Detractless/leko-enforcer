@@ -1,0 +1,235 @@
+{
+  "locks": [
+    {
+      "path": ".agent/contracts/rust-config-core.md",
+      "sha256": "7bc2c0c1906806052139a6bba2e9043d31bde8f85cf9855a43238e74ae2d6b2e",
+      "state": "locked",
+      "reason": "contract \"rust-config-core\" opened by the user: /contract open rust-config-core",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-05T21:06:42.277Z",
+      "history": [
+        {
+          "at": "2026-11-05T21:06:42.277Z",
+          "event": "lock",
+          "sha256": "7bc2c0c1906806052139a6bba2e9043d31bde8f85cf9855a43238e74ae2d6b2e"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/site-coverage-and-sessions.md",
+      "sha256": "231b55fec977949e1a3353c3e98612056cb79fda3c6afac732c77bef49f01640",
+      "state": "locked",
+      "reason": "contract \"site-coverage-and-sessions\" opened by the user: /contract open site-coverage-and-sessions",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-05T22:50:03.698Z",
+      "history": [
+        {
+          "at": "2026-11-05T22:50:03.698Z",
+          "event": "lock",
+          "sha256": "231b55fec977949e1a3353c3e98612056cb79fda3c6afac732c77bef49f01640"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/session-command.md",
+      "sha256": "6a4145bc900f71c7c26e073139255060213ef50374839c87dbf2f491d8c9d94e",
+      "state": "locked",
+      "reason": "contract \"session-command\" opened by the user: /contract open session-command",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-05T23:42:20.562Z",
+      "history": [
+        {
+          "at": "2026-11-05T23:42:20.562Z",
+          "event": "lock",
+          "sha256": "6a4145bc900f71c7c26e073139255060213ef50374839c87dbf2f491d8c9d94e"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/block-decision.md",
+      "sha256": "e098ac570d575fc14fdfb914967cc10310cf66f0e5961b01adcaa00c192723fd",
+      "state": "locked",
+      "reason": "contract \"block-decision\" opened by the user: /contract open block-decision",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-06T00:47:58.131Z",
+      "history": [
+        {
+          "at": "2026-11-06T00:47:58.131Z",
+          "event": "lock",
+          "sha256": "e098ac570d575fc14fdfb914967cc10310cf66f0e5961b01adcaa00c192723fd"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/status-command.md",
+      "sha256": "4d7cbdd3d78d44f3d9f3e22a1e3090d89b035f7e4896681fa72ee28e63b53206",
+      "state": "locked",
+      "reason": "contract \"status-command\" opened by the user: /contract open status-command",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-06T02:21:16.943Z",
+      "history": [
+        {
+          "at": "2026-11-06T02:21:16.943Z",
+          "event": "lock",
+          "sha256": "4d7cbdd3d78d44f3d9f3e22a1e3090d89b035f7e4896681fa72ee28e63b53206"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/add-block-command.md",
+      "sha256": "20ca01afedb03079cd99474ea23b15f5f524ac0b72df733fb22f3f4885e25b51",
+      "state": "locked",
+      "reason": "contract \"add-block-command\" opened by the user: /contract open add-block-command",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-06T03:18:54.925Z",
+      "history": [
+        {
+          "at": "2026-11-06T03:18:54.925Z",
+          "event": "lock",
+          "sha256": "20ca01afedb03079cd99474ea23b15f5f524ac0b72df733fb22f3f4885e25b51"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/delay-block-change.md",
+      "sha256": "3418dd8fc739b4f10e6760ceebb25bf2d9c09fa80ea0a49852142ab862fc2a1a",
+      "state": "locked",
+      "reason": "contract \"delay-block-change\" opened by the user: /contract open delay-block-change",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-06T05:07:02.521Z",
+      "history": [
+        {
+          "at": "2026-11-06T05:07:02.521Z",
+          "event": "lock",
+          "sha256": "3418dd8fc739b4f10e6760ceebb25bf2d9c09fa80ea0a49852142ab862fc2a1a"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/waiting-list-and-cancel.md",
+      "sha256": "4d03fd2ec5fab1eca82cab181a0dfe45127d8e95830e9db071b2191219bea229",
+      "state": "locked",
+      "reason": "contract \"waiting-list-and-cancel\" opened by the user: /contract open waiting-list-and-cancel",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-06T06:11:15.674Z",
+      "history": [
+        {
+          "at": "2026-11-06T06:11:15.674Z",
+          "event": "lock",
+          "sha256": "4d03fd2ec5fab1eca82cab181a0dfe45127d8e95830e9db071b2191219bea229"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/switch-on.md",
+      "sha256": "d24de789ba562cee648bbf2254f3e76c0a23a169737c591ab0116a8e8c634eb7",
+      "state": "locked",
+      "reason": "contract \"switch-on\" opened by the user: /contract open switch-on",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-06T07:01:09.955Z",
+      "history": [
+        {
+          "at": "2026-11-06T07:01:09.955Z",
+          "event": "lock",
+          "sha256": "d24de789ba562cee648bbf2254f3e76c0a23a169737c591ab0116a8e8c634eb7"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/macos-app-enforcement.md",
+      "sha256": "2d8c5585a6bd70ccdd6e4bf0219348f5e2cdd0dcadf02e77acce2083c65a5d8f",
+      "state": "locked",
+      "reason": "Open contract with user-approved timing exception",
+      "evidence": "User accepted 900 ms target with reported overruns",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-06T21:33:15.822Z",
+      "history": [
+        {
+          "at": "2026-11-06T09:01:13.895Z",
+          "event": "lock",
+          "sha256": "7548145ad530c651db3d802c54431091262a83dee1cd71915354cf45e46e9c27"
+        },
+        {
+          "at": "2026-11-06T21:32:55.600Z",
+          "event": "unlock",
+          "authorizedBy": "yes",
+          "purpose": "Record the user-approved timing exception while preserving the original criterion",
+          "staleAtUnlock": false
+        },
+        {
+          "at": "2026-11-06T21:33:15.822Z",
+          "event": "relock",
+          "sha256": "2d8c5585a6bd70ccdd6e4bf0219348f5e2cdd0dcadf02e77acce2083c65a5d8f",
+          "command": "/Users/calibro/.cargo/bin/cargo test -p leko-cli --test enforcement_loop"
+        }
+      ],
+      "purpose": "Record the user-approved timing exception while preserving the original criterion",
+      "unlockedAt": "2026-11-06T21:32:55.600Z",
+      "unlockedFromSha256": "7548145ad530c651db3d802c54431091262a83dee1cd71915354cf45e46e9c27",
+      "staleAtUnlock": false,
+      "verified": {
+        "at": "2026-11-06T21:33:15.822Z",
+        "command": "/Users/calibro/.cargo/bin/cargo test -p leko-cli --test enforcement_loop",
+        "exitCode": 0,
+        "output": "...id_reload_keeps_last_valid_settings ... ok\ntest each_tick_uses_the_current_time_and_apps ... ok\ntest ticks_allow_for_processing_time ... ok\n\ntest result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.81s\n\n\n    Finished `test` profile [optimized + debuginfo] target(s) in 0.11s\n     Running tests/enforcement_loop.rs (target/debug/deps/enforcement_loop-79df4f5788178489)"
+      }
+    },
+    {
+      "path": ".agent/contracts/macos-launch-agent.md",
+      "sha256": "74491244f0d9193f2a4914163fec26fad78070f751d0da0b8a74164963d6542c",
+      "state": "locked",
+      "reason": "contract \"macos-launch-agent\" opened by the user: yes",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-07T00:20:12.547Z",
+      "history": [
+        {
+          "at": "2026-11-07T00:20:12.547Z",
+          "event": "lock",
+          "sha256": "74491244f0d9193f2a4914163fec26fad78070f751d0da0b8a74164963d6542c"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/edit-block-command.md",
+      "sha256": "58438c05cf7a019d89841fedb43c02acda7895a1a0401a0763828921a07dfcf9",
+      "state": "locked",
+      "reason": "contract \"edit-block-command\" opened by the user: yes",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-07T00:36:55.927Z",
+      "history": [
+        {
+          "at": "2026-11-07T00:36:55.927Z",
+          "event": "lock",
+          "sha256": "58438c05cf7a019d89841fedb43c02acda7895a1a0401a0763828921a07dfcf9"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/edit-block-schedule.md",
+      "sha256": "96c08cd5b8a8b14d768636c0d892dfd0afc14a3c51bde6ea5e49494487d403ce",
+      "state": "locked",
+      "reason": "contract \"edit-block-schedule\" opened by the user: yes",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-07T01:57:14.399Z",
+      "history": [
+        {
+          "at": "2026-11-07T01:57:14.399Z",
+          "event": "lock",
+          "sha256": "96c08cd5b8a8b14d768636c0d892dfd0afc14a3c51bde6ea5e49494487d403ce"
+        }
+      ]
+    }
+  ]
+}

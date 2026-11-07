@@ -1,0 +1,16 @@
+{
+  "description": "Packages Enforcer never blocks. A block's apps list may not name one of them, and an all-apps-except block never covers them. Read by the app and by the checker.",
+  "packages": [
+    "dev.enforcer",
+    "dev.enforcer.debug",
+    "com.android.systemui",
+    "com.android.settings",
+    "com.google.android.permissioncontroller",
+    "com.android.permissioncontroller",
+    "com.google.android.packageinstaller",
+    "com.android.packageinstaller",
+    "android",
+    "com.google.android.deskclock",
+    "com.android.deskclock"
+  ]
+}

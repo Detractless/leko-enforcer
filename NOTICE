@@ -1,0 +1,40 @@
+Leko Enforcer
+Copyright (C) 2026 Leko Enforcer contributors
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version. See LICENSE for the full text.
+
+================================================================================
+Third party and upstream notices
+================================================================================
+
+Enforcer (Android)
+    Copyright (C) 2026 Enforcer contributors
+    Licensed under the GNU General Public License v3.0 or later.
+
+    The settings format (format 2), its readers, the judge of what loosens and
+    what waits, and the shared test vectors in vectors/ are ported or copied
+    from Enforcer 0.3. The vectors are copied byte for byte; the Rust code is
+    a port of Enforcer's reference checker (tools/enforcer-setup/lib).
+
+Curbox (formerly Digipauwse)
+    https://github.com/curbox-app/curbox-android
+    Copyright (C) Curbox contributors
+    Licensed under the GNU General Public License v3.0 or later.
+
+    Enforcer is a fork of Curbox. Anything here that descends from Enforcer's
+    blocking and change-delay machinery is therefore also a derivative of
+    Curbox and stays under GPL-3.0-or-later.
+
+CTBL++
+    Copyright (c) 2025 CtblPlusPlus (CTBL++)
+    Licensed under the MIT License.
+
+    The queued-delay and tamper-resistance ideas come from CTBL++.
+
+================================================================================
+
+Leko Enforcer is not affiliated with or endorsed by Curbox, Cold Turkey or their
+authors.

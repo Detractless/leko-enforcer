@@ -1,0 +1,4 @@
+{
+  "_about": "Project policy. The 350-line cap for every code file (tests included) is built in and is not configurable: no key in this file changes it. Split a longer file by responsibility. Locks are recorded in .claude/locks.json.",
+  "lockRecords": ".claude/locks.json"
+}

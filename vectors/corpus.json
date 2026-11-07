@@ -1,0 +1,3550 @@
+{
+ "description": "Valid and broken settings zips, each with the verdict an import must give. An entry is {name, text}, {name, dir: true}, {name, text, duplicate: true} (the name appears twice), {nameHex, text} (a name that is not UTF-8) or {name, raw} for a whole file that is not a zip. A verdict is {read: [kind/id, ...]} or {refused: {entry, reason}} with a piece of the sentence. The app's tests and the checker of run 4 run the same file.",
+ "cases": [
+  {
+   "name": "one block",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/a"
+    ]
+   }
+  },
+  {
+   "name": "general only",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"dayStart\":\"05:00\",\"theme\":\"dark\"}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "general"
+    ]
+   }
+  },
+  {
+   "name": "a practice only",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "practice/p"
+    ]
+   }
+  },
+  {
+   "name": "a deck only",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "decks/d.json",
+     "text": "{\"schema\":2,\"id\":\"d\",\"name\":\"Deck d\",\"cards\":[{\"id\":\"c1\",\"question\":\"q\",\"answer\":\"a\"}]}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "deck/d"
+    ]
+   }
+  },
+  {
+   "name": "a practice and a routine",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/r.json",
+     "text": "{\"schema\":2,\"id\":\"r\",\"name\":\"Routine r\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"]}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "practice/p",
+     "routine/r"
+    ]
+   }
+  },
+  {
+   "name": "every kind of file together",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"emergency\":{\"perDay\":2,\"minutes\":20},\"uninstallProtection\":{\"mode\":\"wait\",\"days\":3}}"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"practice\",\"practice\":\"p\"},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"}}"
+    },
+    {
+     "name": "blocks/e.json",
+     "text": "{\"schema\":2,\"id\":\"e\",\"name\":\"Block e\",\"covers\":{\"apps\":[\"com.example.e\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}],\"earn\":{\"practice\":\"p\",\"minutesEach\":10,\"maxPerDay\":30}}"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "practices/q.json",
+     "text": "{\"schema\":2,\"id\":\"q\",\"name\":\"Practice q\",\"activity\":\"flashcards\",\"amountPerSet\":5,\"deck\":\"d\"}"
+    },
+    {
+     "name": "routines/r.json",
+     "text": "{\"schema\":2,\"id\":\"r\",\"name\":\"Routine r\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"]},\"ifSkipped\":{\"holdBlocks\":[\"a\"],\"takeOver\":true}}"
+    },
+    {
+     "name": "decks/d.json",
+     "text": "{\"schema\":2,\"id\":\"d\",\"name\":\"Deck d\",\"cards\":[{\"id\":\"c1\",\"question\":\"q\",\"answer\":\"a\"}]}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/a",
+     "block/e",
+     "deck/d",
+     "general",
+     "practice/p",
+     "practice/q",
+     "routine/r"
+    ]
+   }
+  },
+  {
+   "name": "setup 1: push-ups before any app",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/pushups-5.json",
+     "text": "{\"schema\":2,\"id\":\"pushups-5\",\"name\":\"Practice pushups-5\",\"activity\":\"pushUps\",\"amountPerSet\":5,\"lock\":{\"level\":\"wait\",\"hours\":12}}"
+    },
+    {
+     "name": "blocks/everything.json",
+     "text": "{\"schema\":2,\"id\":\"everything\",\"name\":\"Everything\",\"covers\":{\"allAppsExcept\":[]},\"rules\":[{\"id\":\"each-open\",\"kind\":\"everyOpen\"}],\"door\":{\"kind\":\"practice\",\"practice\":\"pushups-5\"},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"scope\":\"block\",\"perDay\":\"unlimited\",\"risingCost\":\"none\"},\"lock\":{\"level\":\"wait\",\"hours\":12}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/everything",
+     "practice/pushups-5"
+    ]
+   }
+  },
+  {
+   "name": "setup 2: three opens a day",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/instagram.json",
+     "text": "{\"schema\":2,\"id\":\"instagram\",\"name\":\"Instagram\",\"covers\":{\"apps\":[\"com.instagram.android\"]},\"rules\":[{\"id\":\"three-a-day\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"each-open\",\"kind\":\"everyOpen\"}],\"door\":{\"kind\":\"wait\",\"seconds\":30},\"pass\":{\"length\":\"oneOpen\",\"minutes\":10,\"perDay\":3,\"risingCost\":\"none\"},\"lock\":{\"level\":\"changeHours\",\"from\":\"10:00\",\"to\":\"18:00\",\"hours\":0}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/instagram"
+    ]
+   }
+  },
+  {
+   "name": "setup 3: nights off, sealed",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/nights.json",
+     "text": "{\"schema\":2,\"id\":\"nights\",\"name\":\"Nights off\",\"covers\":{\"allAppsExcept\":[]},\"rules\":[{\"id\":\"night\",\"kind\":\"outsideHours\",\"allowed\":[{\"from\":\"06:00\",\"to\":\"23:00\"}]}],\"door\":{\"kind\":\"wall\"},\"lock\":{\"level\":\"sealedUntil\",\"until\":\"2026-12-31\"}}"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"dayStart\":\"04:00\",\"emergency\":{\"perDay\":1,\"minutes\":15}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/nights",
+     "general"
+    ]
+   }
+  },
+  {
+   "name": "setup 4: study before games",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "decks/spanish.json",
+     "text": "{\"schema\":2,\"id\":\"spanish\",\"name\":\"Deck spanish\",\"cards\":[{\"id\":\"c1\",\"question\":\"dog\",\"answer\":\"perro\"},{\"id\":\"c2\",\"question\":\"cat\",\"answer\":\"gato\"}],\"returnRule\":{\"kind\":\"afterRest\",\"restHours\":24}}"
+    },
+    {
+     "name": "practices/cards-10.json",
+     "text": "{\"schema\":2,\"id\":\"cards-10\",\"name\":\"Practice cards-10\",\"activity\":\"flashcards\",\"amountPerSet\":10,\"deck\":\"spanish\"}"
+    },
+    {
+     "name": "blocks/games.json",
+     "text": "{\"schema\":2,\"id\":\"games\",\"name\":\"Games\",\"covers\":{\"apps\":[\"com.supercell.clashroyale\"]},\"rules\":[{\"id\":\"half-hour\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"school-hours\",\"kind\":\"outsideHours\",\"days\":[\"mon\",\"tue\",\"wed\",\"thu\",\"fri\"],\"allowed\":[{\"from\":\"15:00\",\"to\":\"21:00\"}]}],\"door\":{\"kind\":\"key\",\"keyHash\":{\"alg\":\"pbkdf2-sha256\",\"iterations\":100000,\"salt\":\"AAECAwQFBgcICQoLDA0ODw==\",\"hash\":\"49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e\"}},\"pass\":{\"length\":\"minutes\",\"minutes\":20,\"scope\":\"block\",\"perDay\":2},\"earn\":{\"practice\":\"cards-10\",\"minutesEach\":15,\"maxPerDay\":30},\"lock\":{\"level\":\"wait\",\"hours\":24,\"partnerKeyHash\":{\"alg\":\"pbkdf2-sha256\",\"iterations\":100000,\"salt\":\"AAECAwQFBgcICQoLDA0ODw==\",\"hash\":\"49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e\"}}}"
+    },
+    {
+     "name": "routines/evening-cards.json",
+     "text": "{\"schema\":2,\"id\":\"evening-cards\",\"name\":\"Routine evening-cards\",\"practice\":\"cards-10\",\"due\":{\"times\":[\"19:00\"],\"days\":[\"mon\",\"tue\",\"wed\",\"thu\",\"fri\"]},\"ifSkipped\":{\"holdBlocks\":[\"games\"],\"takeOver\":false}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/games",
+     "deck/spanish",
+     "practice/cards-10",
+     "routine/evening-cards"
+    ]
+   }
+  },
+  {
+   "name": "the schema file is optional and is not read",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "schema/enforcer-config-v2.schema.json",
+     "text": "{ this is not read"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/a"
+    ]
+   }
+  },
+  {
+   "name": "directory entries are ignored, an empty config folder among them",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/",
+     "dir": true
+    },
+    {
+     "name": "config/",
+     "dir": true
+    },
+    {
+     "name": "decks/",
+     "dir": true
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/a"
+    ]
+   }
+  },
+  {
+   "name": "an all-except block with a pass",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"allAppsExcept\":[\"com.example.keep\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/a"
+    ]
+   }
+  },
+  {
+   "name": "sixteen rules and twelve stretches",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"r0\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r1\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r2\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r3\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r4\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r5\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r6\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r7\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r8\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r9\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r10\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r11\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r12\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r13\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r14\",\"kind\":\"opens\",\"count\":3,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"night\",\"kind\":\"outsideHours\",\"allowed\":[{\"from\":\"00:00\",\"to\":\"00:30\"},{\"from\":\"02:00\",\"to\":\"02:30\"},{\"from\":\"04:00\",\"to\":\"04:30\"},{\"from\":\"06:00\",\"to\":\"06:30\"},{\"from\":\"08:00\",\"to\":\"08:30\"},{\"from\":\"10:00\",\"to\":\"10:30\"},{\"from\":\"12:00\",\"to\":\"12:30\"},{\"from\":\"14:00\",\"to\":\"14:30\"},{\"from\":\"16:00\",\"to\":\"16:30\"},{\"from\":\"18:00\",\"to\":\"18:30\"},{\"from\":\"20:00\",\"to\":\"20:30\"},{\"from\":\"22:00\",\"to\":\"22:30\"}]}],\"door\":{\"kind\":\"wait\",\"seconds\":0},\"pass\":{\"length\":\"oneOpen\",\"perDay\":1}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/a"
+    ]
+   }
+  },
+  {
+   "name": "unicode in names and messages",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Café ☕\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}],\"message\":\"Bonne journée — allez\"}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/a"
+    ]
+   }
+  },
+  {
+   "name": "an id of 64 characters",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.json",
+     "text": "{\"schema\":2,\"id\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"name\":\"Long id\",\"covers\":{\"apps\":[\"com.example.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    ]
+   }
+  },
+  {
+   "name": "a converted sha256 key is read",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"},\"lock\":{\"level\":\"wait\",\"hours\":1,\"partnerKeyHash\":{\"alg\":\"sha256\",\"hash\":\"49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e\"}}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/a"
+    ]
+   }
+  },
+  {
+   "name": "hyphens in a package name",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.l-daily-30.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/a"
+    ]
+   }
+  },
+  {
+   "name": "a wholeDeck return rule and a reset token",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "decks/d.json",
+     "text": "{\"schema\":2,\"id\":\"d\",\"name\":\"Deck d\",\"cards\":[{\"id\":\"c1\",\"question\":\"q\",\"answer\":\"a\"}],\"returnRule\":{\"kind\":\"wholeDeck\",\"restHours\":0},\"resetToken\":\"v2\"}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "deck/d"
+    ]
+   }
+  },
+  {
+   "name": "an every-minutes routine to the end of the day",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/r.json",
+     "text": "{\"schema\":2,\"id\":\"r\",\"name\":\"Routine r\",\"practice\":\"p\",\"due\":{\"everyMinutes\":60,\"from\":\"08:00\",\"to\":\"24:00\",\"days\":[\"sat\"]}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "practice/p",
+     "routine/r"
+    ]
+   }
+  },
+  {
+   "name": "a file that is not a zip",
+   "entries": [
+    {
+     "name": "x",
+     "raw": "hello, this is not a zip",
+     "whole": true
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "could not be opened as a zip"
+    }
+   }
+  },
+  {
+   "name": "a zip with no entries",
+   "entries": [],
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "could not be opened as a zip"
+    }
+   }
+  },
+  {
+   "name": "a zip of folders only",
+   "entries": [
+    {
+     "name": "blocks/",
+     "dir": true
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "GUIDE.md",
+     "reason": "no GUIDE.md"
+    }
+   }
+  },
+  {
+   "name": "a zip without GUIDE.md",
+   "entries": [
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "GUIDE.md",
+     "reason": "no GUIDE.md"
+    }
+   }
+  },
+  {
+   "name": "a guide written in lower case",
+   "entries": [
+    {
+     "name": "guide.md",
+     "text": "x"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "GUIDE.md",
+     "reason": "no GUIDE.md"
+    }
+   }
+  },
+  {
+   "name": "a guide and no settings file",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "no settings file"
+    }
+   }
+  },
+  {
+   "name": "a guide and the schema only",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "schema/enforcer-config-v2.schema.json",
+     "text": "{}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "no settings file"
+    }
+   }
+  },
+  {
+   "name": "a stray readme",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "README.txt",
+     "text": "x"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "README.txt",
+     "reason": "is not a place where"
+    }
+   }
+  },
+  {
+   "name": "a folder in the wrong case",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "Blocks/b.json",
+     "text": "{\"schema\":2,\"id\":\"b\",\"name\":\"Block b\",\"covers\":{\"apps\":[\"com.example.b\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "Blocks/b.json",
+     "reason": "is not a place where"
+    }
+   }
+  },
+  {
+   "name": "a nested folder",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "blocks/sub/b.json",
+     "text": "{\"schema\":2,\"id\":\"b\",\"name\":\"Block b\",\"covers\":{\"apps\":[\"com.example.b\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/sub/b.json",
+     "reason": "is not a place where"
+    }
+   }
+  },
+  {
+   "name": "a prefix before the folder",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "export/blocks/b.json",
+     "text": "{\"schema\":2,\"id\":\"b\",\"name\":\"Block b\",\"covers\":{\"apps\":[\"com.example.b\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "export/blocks/b.json",
+     "reason": "is not a place where"
+    }
+   }
+  },
+  {
+   "name": "a backup beside a block",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "blocks/a.json.bak",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json.bak",
+     "reason": "is not a place where"
+    }
+   }
+  },
+  {
+   "name": "general in upper case",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "general.JSON",
+     "text": "{\"schema\":2}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "general.JSON",
+     "reason": "is not a place where"
+    }
+   }
+  },
+  {
+   "name": "a block with no name",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "blocks/.json",
+     "text": "{\"schema\":2,\"id\":\"b\",\"name\":\"Block b\",\"covers\":{\"apps\":[\"com.example.b\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/.json",
+     "reason": "is not a place where"
+    }
+   }
+  },
+  {
+   "name": "a space in a file name",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "blocks/a b.json",
+     "text": "{\"schema\":2,\"id\":\"b\",\"name\":\"Block b\",\"covers\":{\"apps\":[\"com.example.b\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a b.json",
+     "reason": "is not a place where"
+    }
+   }
+  },
+  {
+   "name": "a leading slash",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "/blocks/b.json",
+     "text": "{\"schema\":2,\"id\":\"b\",\"name\":\"Block b\",\"covers\":{\"apps\":[\"com.example.b\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "/blocks/b.json",
+     "reason": "is not a place where"
+    }
+   }
+  },
+  {
+   "name": "a backslash",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "blocks\\b.json",
+     "text": "{\"schema\":2,\"id\":\"b\",\"name\":\"Block b\",\"covers\":{\"apps\":[\"com.example.b\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks\\b.json",
+     "reason": "is not a place where"
+    }
+   }
+  },
+  {
+   "name": "a dot-dot name",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "blocks/../blocks/b.json",
+     "text": "{\"schema\":2,\"id\":\"b\",\"name\":\"Block b\",\"covers\":{\"apps\":[\"com.example.b\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/../blocks/b.json",
+     "reason": "is not a place where"
+    }
+   }
+  },
+  {
+   "name": "another file in the schema folder",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "schema/other.json",
+     "text": "{}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "schema/other.json",
+     "reason": "is not a place where"
+    }
+   }
+  },
+  {
+   "name": "a text file in the decks folder",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "decks/a.txt",
+     "text": "x"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "decks/a.txt",
+     "reason": "is not a place where"
+    }
+   }
+  },
+  {
+   "name": "the same entry twice",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}",
+     "duplicate": true
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "appears twice"
+    }
+   }
+  },
+  {
+   "name": "a name that is not UTF-8",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "nameHex": "626c6f636b732fff2e6a736f6e",
+     "text": "{\"schema\":2,\"id\":\"b\",\"name\":\"Block b\",\"covers\":{\"apps\":[\"com.example.b\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "not written in UTF-8"
+    }
+   }
+  },
+  {
+   "name": "a config file marks a 0.2 zip",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "config/settings.json",
+     "text": "{}"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "made by Enforcer 0.2"
+    }
+   }
+  },
+  {
+   "name": "a 0.2 zip is named before a missing guide",
+   "entries": [
+    {
+     "name": "config/settings.json",
+     "text": "{}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "made by Enforcer 0.2"
+    }
+   }
+  },
+  {
+   "name": "a 0.2 deck marks a 0.2 zip",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "decks/old.json",
+     "text": "{\"schemaVersion\":1,\"name\":\"Old\",\"cards\":[]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "made by Enforcer 0.2"
+    }
+   }
+  },
+  {
+   "name": "a deck with schemaVersion and a stamp is a malformed deck, not a 0.2 zip",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "decks/old.json",
+     "text": "{\"schema\":2,\"schemaVersion\":1,\"id\":\"old\",\"name\":\"Old\",\"cards\":[{\"id\":\"c\",\"question\":\"q\",\"answer\":\"a\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "decks/old.json",
+     "reason": "is not a field of this file"
+    }
+   }
+  },
+  {
+   "name": "general is not an object",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "[]"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "general.json",
+     "reason": "must be a JSON object"
+    }
+   }
+  },
+  {
+   "name": "broken JSON",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "is not valid JSON"
+    }
+   }
+  },
+  {
+   "name": "an empty file",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": ""
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must be a JSON object"
+    }
+   }
+  },
+  {
+   "name": "a v2 file without its stamp",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "\"schema\" is required and must be the number 2"
+    }
+   }
+  },
+  {
+   "name": "a stamp of 1",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":1,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "\"schema\" is required and must be the number 2"
+    }
+   }
+  },
+  {
+   "name": "a stamp written as text",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":\"2\",\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "\"schema\" is required and must be the number 2"
+    }
+   }
+  },
+  {
+   "name": "an unknown field in a block",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}],\"colour\":\"red\"}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "\"colour\" is not a field of this file"
+    }
+   }
+  },
+  {
+   "name": "a misspelt field",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}],\"messsage\":\"hi\"}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "\"messsage\" is not a field of this file"
+    }
+   }
+  },
+  {
+   "name": "an unknown field in a pass",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":1,\"bonus\":1}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "\"pass.bonus\" is not a field of this file"
+    }
+   }
+  },
+  {
+   "name": "an id that differs from the file name",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"b\",\"name\":\"Block b\",\"covers\":{\"apps\":[\"com.example.b\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must equal the file name"
+    }
+   }
+  },
+  {
+   "name": "an id with a space",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a b\",\"name\":\"Block a b\",\"covers\":{\"apps\":[\"com.example.a b\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must hold only letters, digits"
+    }
+   }
+  },
+  {
+   "name": "an empty name",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "\"name\" must be"
+    }
+   }
+  },
+  {
+   "name": "a name of 61 characters",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "\"name\" must be"
+    }
+   }
+  },
+  {
+   "name": "covers with both forms",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.a\"],\"allAppsExcept\":[]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must hold either"
+    }
+   }
+  },
+  {
+   "name": "covers with neither form",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must hold either"
+    }
+   }
+  },
+  {
+   "name": "an empty apps list",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must hold at least 1 entries"
+    }
+   }
+  },
+  {
+   "name": "an app Enforcer never blocks",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.android.settings\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "which Enforcer never blocks"
+    }
+   }
+  },
+  {
+   "name": "a package name with a space",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.a b\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must be a package name"
+    }
+   }
+  },
+  {
+   "name": "seventeen rules",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"r0\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r1\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r2\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r3\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r4\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r5\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r6\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r7\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r8\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r9\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r10\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r11\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r12\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r13\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r14\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r15\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"r16\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must hold 0 to 16 entries"
+    }
+   }
+  },
+  {
+   "name": "two rules with one id",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"x\",\"kind\":\"opens\",\"count\":1,\"per\":\"day\",\"scope\":\"block\"},{\"id\":\"x\",\"kind\":\"opens\",\"count\":2,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "has two rules with the id"
+    }
+   }
+  },
+  {
+   "name": "a rule of an unknown kind",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"x\",\"kind\":\"sometimes\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must be always, everyOpen, outsideHours, minutes or opens"
+    }
+   }
+  },
+  {
+   "name": "a pass that is missing",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":10}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "is required when the door is not a wall"
+    }
+   }
+  },
+  {
+   "name": "a pass behind a wall",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wall\"},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "is not used"
+    }
+   }
+  },
+  {
+   "name": "a pass beside minutes rules only",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}],\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":1}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "is not used"
+    }
+   }
+  },
+  {
+   "name": "a wait door of 601 seconds",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":601},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must be a whole number from 0 to 600"
+    }
+   }
+  },
+  {
+   "name": "a rising cost on a plain button",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":0},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":1,\"risingCost\":\"double\"}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "double needs a wait door"
+    }
+   }
+  },
+  {
+   "name": "a blank sentence",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"sentence\",\"sentence\":\"   \"},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must not be blank"
+    }
+   }
+  },
+  {
+   "name": "a pass of a minutes length with no minutes",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"perDay\":1}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "\"pass.minutes\" is required"
+    }
+   }
+  },
+  {
+   "name": "a pass that has no perDay",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":5}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "\"pass.perDay\" is required"
+    }
+   }
+  },
+  {
+   "name": "earn without a minutes rule",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"n\",\"kind\":\"outsideHours\",\"allowed\":[{\"from\":\"09:00\",\"to\":\"17:00\"}]}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"},\"earn\":{\"practice\":\"p\",\"minutesEach\":5,\"maxPerDay\":10}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "needs a minutes rule"
+    }
+   }
+  },
+  {
+   "name": "earn beside an always rule",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"},{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":5,\"per\":\"day\",\"scope\":\"block\"}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"},\"earn\":{\"practice\":\"p\",\"minutesEach\":5,\"maxPerDay\":10}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "cannot be used beside an always or everyOpen rule"
+    }
+   }
+  },
+  {
+   "name": "an earn cap below the amount earned each time",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}],\"earn\":{\"practice\":\"p\",\"minutesEach\":20,\"maxPerDay\":10}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must be at least minutesEach"
+    }
+   }
+  },
+  {
+   "name": "a stretch that starts where it ends",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"n\",\"kind\":\"outsideHours\",\"allowed\":[{\"from\":\"09:00\",\"to\":\"09:00\"}]}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must differ from \"from\""
+    }
+   }
+  },
+  {
+   "name": "stretches that overlap",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"n\",\"kind\":\"outsideHours\",\"allowed\":[{\"from\":\"09:00\",\"to\":\"12:00\"},{\"from\":\"11:00\",\"to\":\"13:00\"}]}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "has stretches that overlap"
+    }
+   }
+  },
+  {
+   "name": "thirteen stretches",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"n\",\"kind\":\"outsideHours\",\"allowed\":[{\"from\":\"00:00\",\"to\":\"00:30\"},{\"from\":\"01:00\",\"to\":\"01:30\"},{\"from\":\"02:00\",\"to\":\"02:30\"},{\"from\":\"03:00\",\"to\":\"03:30\"},{\"from\":\"04:00\",\"to\":\"04:30\"},{\"from\":\"05:00\",\"to\":\"05:30\"},{\"from\":\"06:00\",\"to\":\"06:30\"},{\"from\":\"07:00\",\"to\":\"07:30\"},{\"from\":\"08:00\",\"to\":\"08:30\"},{\"from\":\"09:00\",\"to\":\"09:30\"},{\"from\":\"10:00\",\"to\":\"10:30\"},{\"from\":\"11:00\",\"to\":\"11:30\"},{\"from\":\"12:00\",\"to\":\"12:30\"}]}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must hold 0 to 12 entries"
+    }
+   }
+  },
+  {
+   "name": "a minutes rule counted per year",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":5,\"per\":\"year\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must be hour, day, week"
+    }
+   }
+  },
+  {
+   "name": "an opens rule counted per hour",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"opens\",\"count\":5,\"per\":\"hour\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must be day, week"
+    }
+   }
+  },
+  {
+   "name": "a key with too few iterations",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"},\"lock\":{\"level\":\"wait\",\"hours\":1,\"partnerKeyHash\":{\"alg\":\"pbkdf2-sha256\",\"iterations\":99999,\"salt\":\"AAECAwQFBgcICQoLDA0ODw==\",\"hash\":\"49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e\"}}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "from 100000 to 600000"
+    }
+   }
+  },
+  {
+   "name": "a salt without its padding",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"},\"lock\":{\"level\":\"wait\",\"hours\":1,\"partnerKeyHash\":{\"alg\":\"pbkdf2-sha256\",\"iterations\":100000,\"salt\":\"AAECAwQFBgcICQoLDA0ODw\",\"hash\":\"49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e\"}}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must be base64 of 16 bytes"
+    }
+   }
+  },
+  {
+   "name": "a hash in upper case",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"},\"lock\":{\"level\":\"wait\",\"hours\":1,\"partnerKeyHash\":{\"alg\":\"pbkdf2-sha256\",\"iterations\":100000,\"salt\":\"AAECAwQFBgcICQoLDA0ODw==\",\"hash\":\"49D49C25F597846209F0D92E7770AB64E1C75E94B4CE6C509265EE67175D2A1E\"}}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must be 64 lowercase hex characters"
+    }
+   }
+  },
+  {
+   "name": "a wait of 0 hours",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}],\"lock\":{\"level\":\"wait\",\"hours\":0}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must be a whole number from 1 to 8760"
+    }
+   }
+  },
+  {
+   "name": "a change window that starts where it ends",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}],\"lock\":{\"level\":\"changeHours\",\"from\":\"10:00\",\"to\":\"10:00\",\"hours\":1}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must differ from \"from\""
+    }
+   }
+  },
+  {
+   "name": "a seal on a date that does not exist",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}],\"lock\":{\"level\":\"sealedUntil\",\"until\":\"2026-02-30\"}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must be a date that exists"
+    }
+   }
+  },
+  {
+   "name": "a lock of an unknown level",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}],\"lock\":{\"level\":\"tight\"}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must be open, wait, changeHours or sealedUntil"
+    }
+   }
+  },
+  {
+   "name": "a day start that is not a whole hour",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"dayStart\":\"04:30\"}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "general.json",
+     "reason": "whole hour"
+    }
+   }
+  },
+  {
+   "name": "no emergency passes a day",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"emergency\":{\"perDay\":0,\"minutes\":15}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "general.json",
+     "reason": "from 1 to 3"
+    }
+   }
+  },
+  {
+   "name": "protection of zero days",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":0}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "general.json",
+     "reason": "from 1 to 365"
+    }
+   }
+  },
+  {
+   "name": "protection with no mode",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"uninstallProtection\":{\"days\":3}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "general.json",
+     "reason": "\"uninstallProtection.mode\" is required"
+    }
+   }
+  },
+  {
+   "name": "a flashcards practice with no deck",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Practice a\",\"activity\":\"flashcards\",\"amountPerSet\":5}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/a.json",
+     "reason": "is required for flashcards"
+    }
+   }
+  },
+  {
+   "name": "a push-ups practice with a deck",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Practice a\",\"activity\":\"pushUps\",\"amountPerSet\":5,\"deck\":\"d\"}"
+    },
+    {
+     "name": "decks/d.json",
+     "text": "{\"schema\":2,\"id\":\"d\",\"name\":\"Deck d\",\"cards\":[{\"id\":\"c1\",\"question\":\"q\",\"answer\":\"a\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/a.json",
+     "reason": "is only for flashcards"
+    }
+   }
+  },
+  {
+   "name": "a practice with no amount",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Practice a\",\"activity\":\"pushUps\"}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/a.json",
+     "reason": "\"amountPerSet\" is required"
+    }
+   }
+  },
+  {
+   "name": "a deck with no cards",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "decks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Deck a\",\"cards\":[]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "decks/a.json",
+     "reason": "must hold 1 to 5000 entries"
+    }
+   }
+  },
+  {
+   "name": "a deck with a repeated card id",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "decks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Deck a\",\"cards\":[{\"id\":\"c\",\"question\":\"q\",\"answer\":\"a\"},{\"id\":\"c\",\"question\":\"q2\",\"answer\":\"a2\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "decks/a.json",
+     "reason": "has two cards with the id"
+    }
+   }
+  },
+  {
+   "name": "a card with an empty answer",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "decks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Deck a\",\"cards\":[{\"id\":\"c\",\"question\":\"q\",\"answer\":\"\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "decks/a.json",
+     "reason": "must be 1 to 1000 characters"
+    }
+   }
+  },
+  {
+   "name": "a routine with thirteen times",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Routine a\",\"practice\":\"p\",\"due\":{\"times\":[\"00:00\",\"01:00\",\"02:00\",\"03:00\",\"04:00\",\"05:00\",\"06:00\",\"07:00\",\"08:00\",\"09:00\",\"10:00\",\"11:00\",\"12:00\"]}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "routines/a.json",
+     "reason": "must hold 1 to 12 entries"
+    }
+   }
+  },
+  {
+   "name": "a routine every four minutes",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Routine a\",\"practice\":\"p\",\"due\":{\"everyMinutes\":4,\"from\":\"08:00\",\"to\":\"20:00\"}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "routines/a.json",
+     "reason": "from 5 to 1440"
+    }
+   }
+  },
+  {
+   "name": "a routine with times and everyMinutes",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Routine a\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"],\"everyMinutes\":60,\"from\":\"08:00\",\"to\":\"20:00\"}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "routines/a.json",
+     "reason": "must hold either"
+    }
+   }
+  },
+  {
+   "name": "a routine with an unknown field in ifSkipped",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Routine a\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"]},\"ifSkipped\":{\"holdBlocks\":[],\"takeOver\":false,\"shout\":true}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "routines/a.json",
+     "reason": "\"ifSkipped.shout\" is not a field of this file"
+    }
+   }
+  },
+  {
+   "name": "a practice door that names a practice not in the zip",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"practice\",\"practice\":\"p\"},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "which is not in this set"
+    }
+   }
+  },
+  {
+   "name": "an earn practice that is not in the zip",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}],\"earn\":{\"practice\":\"p\",\"minutesEach\":5,\"maxPerDay\":10}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "which is not in this set"
+    }
+   }
+  },
+  {
+   "name": "a routine whose practice is not in the zip",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "routines/r.json",
+     "text": "{\"schema\":2,\"id\":\"r\",\"name\":\"Routine r\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"]}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "routines/r.json",
+     "reason": "which is not in this set"
+    }
+   }
+  },
+  {
+   "name": "a routine that holds a block not in the zip",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/r.json",
+     "text": "{\"schema\":2,\"id\":\"r\",\"name\":\"Routine r\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"]},\"ifSkipped\":{\"holdBlocks\":[\"gone\"],\"takeOver\":false}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "routines/r.json",
+     "reason": "which is not in this set"
+    }
+   }
+  },
+  {
+   "name": "a practice whose deck is not in the zip",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"flashcards\",\"amountPerSet\":5,\"deck\":\"gone\"}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/p.json",
+     "reason": "which is not in this set"
+    }
+   }
+  },
+  {
+   "name": "a block with no rules that no routine holds",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "is empty and no routine holds this block"
+    }
+   }
+  },
+  {
+   "name": "two malformed files are named in path order",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/b.json",
+     "text": "{\"schema\":2,\"id\":\"b\",\"name\":\"\",\"covers\":{\"apps\":[\"com.example.b\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "\"name\" must be"
+    }
+   }
+  },
+  {
+   "name": "a malformed block comes before a malformed general in path order",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"dayStart\":\"04:30\"}"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "\"name\" must be"
+    }
+   }
+  },
+  {
+   "name": "a malformed file is named before a broken reference",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"practice\",\"practice\":\"gone\"},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"}}"
+    },
+    {
+     "name": "blocks/b.json",
+     "text": "{\"schema\":2,\"id\":\"b\",\"name\":\"\",\"covers\":{\"apps\":[\"com.example.b\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/b.json",
+     "reason": "\"name\" must be"
+    }
+   }
+  },
+  {
+   "name": "a stray entry is named before a malformed file",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"m\",\"kind\":\"minutes\",\"amount\":30,\"per\":\"day\",\"scope\":\"block\"}]}"
+    },
+    {
+     "name": "extra.txt",
+     "text": "x"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "extra.txt",
+     "reason": "is not a place where"
+    }
+   }
+  },
+  {
+   "name": "bytes in front of a zip are not read",
+   "zipBase64": "SlVOS1BLAwQUAAgICAAAACEAAAAAAAAAAAAAAAAACAAAAEdVSURFLm1kLcvBDYAgDAXQu1P8AQQTd2AQhII1UpKWkLi9Bz2/vCClayKF0Rgs1VaUri0O7B5hkj4oTHcGGzJZUj4ogwWWTmpxo/+71KVwdXP3n/jLuvjlBVBLBwjZmNJ8UgAAAGAAAABQSwMEFAAICAgAAAAhAAAAAAAAAAAAAAAAAA0AAABibG9ja3MvYS5qc29uJY1LCsJAEAWvIrVuguiul15DsmgnDYZkPmQSUULuLqO74hW82qnh6dHQizAOKIaQLDrKbc5hOrUh5JcvFd2xUip6J+TY+dtimb0z+kNYttmb2v8/EWEa0w/HtK1eESzmLa3o9SwUX1AG+yDUkEsrPlqRoz++UEsHCHqRw711AAAAmAAAAFBLAQIUABQACAgIAAAAIQDZmNJ8UgAAAGAAAAAIAAAAAAAAAAAAAAAAAAAAAABHVUlERS5tZFBLAQIUABQACAgIAAAAIQB6kcO9dQAAAJgAAAANAAAAAAAAAAAAAAAAAIgAAABibG9ja3MvYS5qc29uUEsFBgAAAAACAAIAcQAAADgBAAAAAA==",
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "could not be opened as a zip"
+    }
+   }
+  },
+  {
+   "name": "a zip cut in the middle of an entry is refused",
+   "zipBase64": "UEsDBBQACAgIAAAAIQAAAAAAAAAAAAAAAAAIAAAAR1VJREUubWQty8ENgCAMBdC7U/wBBBN3YBCEgjVSkpaQuL0HPb+8IKVrIoXRGCzVVpSuLQ7sHmGSPihMdwYbMllSPiiDBZZOanGj/7vUpXB1c/ef+Mu6+OUFUEsHCNmY0nxSAAAAYAAAAFBLAwQUAAgICAAAACEAAAAAAAAAAAAAAAAADQAAAGJsb2Nrcy9hLmpzb24ljUsKwg==",
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "could not be opened as a zip"
+    }
+   }
+  },
+  {
+   "name": "a zip whose central directory is cut off is still read",
+   "zipBase64": "UEsDBBQACAgIAAAAIQAAAAAAAAAAAAAAAAAIAAAAR1VJREUubWQty8ENgCAMBdC7U/wBBBN3YBCEgjVSkpaQuL0HPb+8IKVrIoXRGCzVVpSuLQ7sHmGSPihMdwYbMllSPiiDBZZOanGj/7vUpXB1c/ef+Mu6+OUFUEsHCNmY0nxSAAAAYAAAAFBLAwQUAAgICAAAACEAAAAAAAAAAAAAAAAADQAAAGJsb2Nrcy9hLmpzb24ljUsKwkAQBa8itW6C6K6XXkOyaCcNhmQ+ZBJRQu4uo7viFbzaqeHp0dCLMA4ohpAsOsptzmE6tSHkly8V3bFSKnon5Nj522KZvTP6Q1i22Zva/z8RYRrTD8e0rV4RLOYtrej1LBRfUAb7INSQSys+WpGjP75QSwcIepHDvXUAAACYAAAA",
+   "expect": {
+    "read": [
+     "block/a"
+    ]
+   }
+  },
+  {
+   "name": "an entry that only the central directory lists is not read",
+   "zipBase64": "UEsDBBQACAgIAAAAIQAAAAAAAAAAAAAAAAAIAAAAR1VJREUubWQty8ENgCAMBdC7U/wBBBN3YBCEgjVSkpaQuL0HPb+8IKVrIoXRGCzVVpSuLQ7sHmGSPihMdwYbMllSPiiDBZZOanGj/7vUpXB1c/ef+Mu6+OUFUEsHCNmY0nxSAAAAYAAAAFBLAwQUAAgICAAAACEAAAAAAAAAAAAAAAAADQAAAGJsb2Nrcy9hLmpzb24ljUsKwkAQBa8itW6C6K6XXkOyaCcNhmQ+ZBJRQu4uo7viFbzaqeHp0dCLMA4ohpAsOsptzmE6tSHkly8V3bFSKnon5Nj522KZvTP6Q1i22Zva/z8RYRrTD8e0rV4RLOYtrej1LBRfUAb7INSQSys+WpGjP75QSwcIepHDvXUAAACYAAAAUEsBAhQAFAAICAgAAAAhANmY0nxSAAAAYAAAAAgAAAAAAAAAAAAAAAAAAAAAAEdVSURFLm1kUEsBAhQAFAAICAgAAAAhAHqRw711AAAAmAAAAA0AAAAAAAAAAAAAAAAAiAAAAGJsb2Nrcy9hLmpzb25QSwECFAAUAAAIAAAAAAAAAAAAAAAAAAAAAAAAEQAAAAAAAAAAAAAAAAAAAAAAYmxvY2tzL2dob3N0Lmpzb25QSwUGAAAAAAMAAwCwAAAAOAEAAAAA",
+   "expect": {
+    "read": [
+     "block/a"
+    ]
+   }
+  },
+  {
+   "name": "a stored entry that claims a data descriptor is refused",
+   "zipBase64": "UEsDBBQACAgAAAAAIQDZmNJ8YAAAAGAAAAAIAAAAR1VJREUubWRFbmZvcmNlciBzZXR0aW5ncywgZm9ybWF0IDIuIEV2ZXJ5IGZpZWxkIGlzIGRlc2NyaWJlZCBpbiBzY2hlbWEvZW5mb3JjZXItY29uZmlnLXYyLnNjaGVtYS5qc29uLgpQSwMEFAAACAAAAAAhAHqRw72YAAAAmAAAAA0AAABibG9ja3MvYS5qc29ueyJzY2hlbWEiOjIsImlkIjoiYSIsIm5hbWUiOiJCbG9jayBhIiwiY292ZXJzIjp7ImFwcHMiOlsiY29tLmV4YW1wbGUuYSJdfSwicnVsZXMiOlt7ImlkIjoibSIsImtpbmQiOiJtaW51dGVzIiwiYW1vdW50IjozMCwicGVyIjoiZGF5Iiwic2NvcGUiOiJibG9jayJ9XX1QSwECFAAUAAAIAAAAACEA2ZjSfGAAAABgAAAACAAAAAAAAAAAAAAAAAAAAAAAR1VJREUubWRQSwECFAAUAAAIAAAAACEAepHDvZgAAACYAAAADQAAAAAAAAAAAAAAAACGAAAAYmxvY2tzL2EuanNvblBLBQYAAAAAAgACAHEAAABJAQAAAAA=",
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "could not be opened as a zip"
+    }
+   }
+  },
+  {
+   "name": "an encrypted entry is refused",
+   "zipBase64": "UEsDBBQACQgIAAAAIQAAAAAAAAAAAAAAAAAIAAAAR1VJREUubWQty8ENgCAMBdC7U/wBBBN3YBCEgjVSkpaQuL0HPb+8IKVrIoXRGCzVVpSuLQ7sHmGSPihMdwYbMllSPiiDBZZOanGj/7vUpXB1c/ef+Mu6+OUFUEsHCNmY0nxSAAAAYAAAAFBLAwQUAAgICAAAACEAAAAAAAAAAAAAAAAADQAAAGJsb2Nrcy9hLmpzb24ljUsKwkAQBa8itW6C6K6XXkOyaCcNhmQ+ZBJRQu4uo7viFbzaqeHp0dCLMA4ohpAsOsptzmE6tSHkly8V3bFSKnon5Nj522KZvTP6Q1i22Zva/z8RYRrTD8e0rV4RLOYtrej1LBRfUAb7INSQSys+WpGjP75QSwcIepHDvXUAAACYAAAAUEsBAhQAFAAICAgAAAAhANmY0nxSAAAAYAAAAAgAAAAAAAAAAAAAAAAAAAAAAEdVSURFLm1kUEsBAhQAFAAICAgAAAAhAHqRw711AAAAmAAAAA0AAAAAAAAAAAAAAAAAiAAAAGJsb2Nrcy9hLmpzb25QSwUGAAAAAAIAAgBxAAAAOAEAAAAA",
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "could not be opened as a zip"
+    }
+   }
+  },
+  {
+   "name": "an entry with an unknown compression method is refused",
+   "zipBase64": "UEsDBBQAAAhjAAAAIQDZmNJ8YAAAAGAAAAAIAAAAR1VJREUubWRFbmZvcmNlciBzZXR0aW5ncywgZm9ybWF0IDIuIEV2ZXJ5IGZpZWxkIGlzIGRlc2NyaWJlZCBpbiBzY2hlbWEvZW5mb3JjZXItY29uZmlnLXYyLnNjaGVtYS5qc29uLgpQSwMEFAAACAAAAAAhAHqRw72YAAAAmAAAAA0AAABibG9ja3MvYS5qc29ueyJzY2hlbWEiOjIsImlkIjoiYSIsIm5hbWUiOiJCbG9jayBhIiwiY292ZXJzIjp7ImFwcHMiOlsiY29tLmV4YW1wbGUuYSJdfSwicnVsZXMiOlt7ImlkIjoibSIsImtpbmQiOiJtaW51dGVzIiwiYW1vdW50IjozMCwicGVyIjoiZGF5Iiwic2NvcGUiOiJibG9jayJ9XX1QSwECFAAUAAAIAAAAACEA2ZjSfGAAAABgAAAACAAAAAAAAAAAAAAAAAAAAAAAR1VJREUubWRQSwECFAAUAAAIAAAAACEAepHDvZgAAACYAAAADQAAAAAAAAAAAAAAAACGAAAAYmxvY2tzL2EuanNvblBLBQYAAAAAAgACAHEAAABJAQAAAAA=",
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "could not be opened as a zip"
+    }
+   }
+  },
+  {
+   "name": "an entry whose checksum is wrong is refused",
+   "zipBase64": "UEsDBBQACAgIAAAAIQAAAAAAAAAAAAAAAAAIAAAAR1VJREUubWQty8ENgCAMBdC7U/wBBBN3YBCEgjVSkpaQuL0HPb+8IKVrIoXRGCzVVpSuLQ7sHmGSPihMdwYbMllSPiiDBZZOanGj/7vUpXB1c/ef+Mu6+OUFUEsHCNmY0nxSAAAAYAAAAFBLAwQUAAgICAAAACEAAAAAAAAAAAAAAAAADQAAAGJsb2Nrcy9hLmpzb24ljUsKwkAQBa8itW6C6K6XXkOyaCcNhmQ+ZBJRQu4uo7viFbzaqeHp0dCLMA4ohpAsOsptzmE6tSHkly8V3bFSKnon5Nj522KZvTP6Q1i22Zva/z8RYRrTD8e0rV4RLOYtrej1LBRfUAb7INSQSys+WpGjP75QSwcIhW7DvXUAAACYAAAAUEsBAhQAFAAICAgAAAAhANmY0nxSAAAAYAAAAAgAAAAAAAAAAAAAAAAAAAAAAEdVSURFLm1kUEsBAhQAFAAICAgAAAAhAHqRw711AAAAmAAAAA0AAAAAAAAAAAAAAAAAiAAAAGJsb2Nrcy9hLmpzb25QSwUGAAAAAAIAAgBxAAAAOAEAAAAA",
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "could not be opened as a zip"
+    }
+   }
+  },
+  {
+   "name": "a zip of stored entries is read",
+   "zipBase64": "UEsDBBQAAAgAAAAAIQDZmNJ8YAAAAGAAAAAIAAAAR1VJREUubWRFbmZvcmNlciBzZXR0aW5ncywgZm9ybWF0IDIuIEV2ZXJ5IGZpZWxkIGlzIGRlc2NyaWJlZCBpbiBzY2hlbWEvZW5mb3JjZXItY29uZmlnLXYyLnNjaGVtYS5qc29uLgpQSwMEFAAACAAAAAAhAHqRw72YAAAAmAAAAA0AAABibG9ja3MvYS5qc29ueyJzY2hlbWEiOjIsImlkIjoiYSIsIm5hbWUiOiJCbG9jayBhIiwiY292ZXJzIjp7ImFwcHMiOlsiY29tLmV4YW1wbGUuYSJdfSwicnVsZXMiOlt7ImlkIjoibSIsImtpbmQiOiJtaW51dGVzIiwiYW1vdW50IjozMCwicGVyIjoiZGF5Iiwic2NvcGUiOiJibG9jayJ9XX1QSwECFAAUAAAIAAAAACEA2ZjSfGAAAABgAAAACAAAAAAAAAAAAAAAAAAAAAAAR1VJREUubWRQSwECFAAUAAAIAAAAACEAepHDvZgAAACYAAAADQAAAAAAAAAAAAAAAACGAAAAYmxvY2tzL2EuanNvblBLBQYAAAAAAgACAHEAAABJAQAAAAA=",
+   "expect": {
+    "read": [
+     "block/a"
+    ]
+   }
+  },
+  {
+   "name": "an entry of 1 MB and one byte is refused",
+   "generate": {
+    "files": 1,
+    "bytesEach": 1048577
+   },
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "is larger than 1 MB"
+    }
+   }
+  },
+  {
+   "name": "an entry of exactly 1 MB passes the entry bound",
+   "generate": {
+    "files": 1,
+    "bytesEach": 1048576
+   },
+   "expect": {
+    "refused": {
+     "entry": "GUIDE.md",
+     "reason": "no GUIDE.md"
+    }
+   }
+  },
+  {
+   "name": "501 files are refused",
+   "generate": {
+    "files": 501,
+    "bytesEach": 1
+   },
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "more than 500 files"
+    }
+   }
+  },
+  {
+   "name": "500 files pass the count bound",
+   "generate": {
+    "files": 500,
+    "bytesEach": 1
+   },
+   "expect": {
+    "refused": {
+     "entry": "GUIDE.md",
+     "reason": "no GUIDE.md"
+    }
+   }
+  },
+  {
+   "name": "65 entries of 1 MB pass the entry bound and break the total",
+   "generate": {
+    "files": 65,
+    "bytesEach": 1048576
+   },
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "holds more data than a settings file should"
+    }
+   }
+  },
+  {
+   "name": "one entry that inflates past 64 MB is stopped at the bound",
+   "generate": {
+    "files": 1,
+    "bytesEach": 70000000
+   },
+   "expect": {
+    "refused": {
+     "entry": null,
+     "reason": "holds more data than a settings file should"
+    }
+   }
+  },
+  {
+   "name": "protection on: fewer days are refused naming the days",
+   "state": {
+    "protection": "on",
+    "lastExport": [
+     {
+      "name": "GUIDE.md",
+      "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+     },
+     {
+      "name": "general.json",
+      "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":7}}"
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":3}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "general"
+    ],
+    "stored": {
+     "refused": "uninstallProtection.days"
+    }
+   }
+  },
+  {
+   "name": "protection on: one day fewer is refused naming the days",
+   "state": {
+    "protection": "on",
+    "lastExport": [
+     {
+      "name": "GUIDE.md",
+      "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+     },
+     {
+      "name": "general.json",
+      "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":7}}"
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":6}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "general"
+    ],
+    "stored": {
+     "refused": "uninstallProtection.days"
+    }
+   }
+  },
+  {
+   "name": "protection on: more days are taken",
+   "state": {
+    "protection": "on",
+    "lastExport": [
+     {
+      "name": "GUIDE.md",
+      "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+     },
+     {
+      "name": "general.json",
+      "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":7}}"
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":30}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "general"
+    ],
+    "stored": {
+     "accepted": true
+    }
+   }
+  },
+  {
+   "name": "protection on: the same days change nothing",
+   "state": {
+    "protection": "on",
+    "lastExport": [
+     {
+      "name": "GUIDE.md",
+      "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+     },
+     {
+      "name": "general.json",
+      "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":7}}"
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":7}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "general"
+    ],
+    "stored": {
+     "accepted": true
+    }
+   }
+  },
+  {
+   "name": "protection on: wait to key is refused naming the mode",
+   "state": {
+    "protection": "on",
+    "lastExport": [
+     {
+      "name": "GUIDE.md",
+      "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+     },
+     {
+      "name": "general.json",
+      "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":7}}"
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"key\",\"keyHash\":{\"alg\":\"pbkdf2-sha256\",\"iterations\":100000,\"salt\":\"AAECAwQFBgcICQoLDA0ODw==\",\"hash\":\"49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e\"}}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "general"
+    ],
+    "stored": {
+     "refused": "uninstallProtection.mode"
+    }
+   }
+  },
+  {
+   "name": "protection on: key to wait is refused naming the mode",
+   "state": {
+    "protection": "on",
+    "lastExport": [
+     {
+      "name": "GUIDE.md",
+      "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+     },
+     {
+      "name": "general.json",
+      "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"key\",\"keyHash\":{\"alg\":\"pbkdf2-sha256\",\"iterations\":100000,\"salt\":\"AAECAwQFBgcICQoLDA0ODw==\",\"hash\":\"49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e\"}}}"
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":365}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "general"
+    ],
+    "stored": {
+     "refused": "uninstallProtection.mode"
+    }
+   }
+  },
+  {
+   "name": "protection on: another key is refused naming the key",
+   "state": {
+    "protection": "on",
+    "lastExport": [
+     {
+      "name": "GUIDE.md",
+      "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+     },
+     {
+      "name": "general.json",
+      "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"key\",\"keyHash\":{\"alg\":\"pbkdf2-sha256\",\"iterations\":100000,\"salt\":\"AAECAwQFBgcICQoLDA0ODw==\",\"hash\":\"49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e\"}}}"
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"key\",\"keyHash\":{\"alg\":\"pbkdf2-sha256\",\"iterations\":300000,\"salt\":\"//z59vPw7ern5OHe29jV0g==\",\"hash\":\"11fc416ef71c2ca057d16ef03bfb1ada1a7cb58c671771ef59ca8b4ca4833f82\"}}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "general"
+    ],
+    "stored": {
+     "refused": "uninstallProtection.keyHash"
+    }
+   }
+  },
+  {
+   "name": "protection on: the same key changes nothing",
+   "state": {
+    "protection": "on",
+    "lastExport": [
+     {
+      "name": "GUIDE.md",
+      "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+     },
+     {
+      "name": "general.json",
+      "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"key\",\"keyHash\":{\"alg\":\"pbkdf2-sha256\",\"iterations\":100000,\"salt\":\"AAECAwQFBgcICQoLDA0ODw==\",\"hash\":\"49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e\"}}}"
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"key\",\"keyHash\":{\"alg\":\"pbkdf2-sha256\",\"iterations\":100000,\"salt\":\"AAECAwQFBgcICQoLDA0ODw==\",\"hash\":\"49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e\"}}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "general"
+    ],
+    "stored": {
+     "accepted": true
+    }
+   }
+  },
+  {
+   "name": "protection on: a file with no protection block leaves it alone",
+   "state": {
+    "protection": "on",
+    "lastExport": [
+     {
+      "name": "GUIDE.md",
+      "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+     },
+     {
+      "name": "general.json",
+      "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":7}}"
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "general"
+    ],
+    "stored": {
+     "accepted": true
+    }
+   }
+  },
+  {
+   "name": "protection off: fewer days are taken",
+   "state": {
+    "protection": "off",
+    "lastExport": [
+     {
+      "name": "GUIDE.md",
+      "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+     },
+     {
+      "name": "general.json",
+      "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":7}}"
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":2}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "general"
+    ],
+    "stored": {
+     "accepted": true
+    }
+   }
+  },
+  {
+   "name": "protection off: another mode and key are taken",
+   "state": {
+    "protection": "off",
+    "lastExport": [
+     {
+      "name": "GUIDE.md",
+      "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+     },
+     {
+      "name": "general.json",
+      "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"wait\",\"days\":7}}"
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"uninstallProtection\":{\"mode\":\"key\",\"keyHash\":{\"alg\":\"pbkdf2-sha256\",\"iterations\":300000,\"salt\":\"//z59vPw7ern5OHe29jV0g==\",\"hash\":\"11fc416ef71c2ca057d16ef03bfb1ada1a7cb58c671771ef59ca8b4ca4833f82\"}}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "general"
+    ],
+    "stored": {
+     "accepted": true
+    }
+   }
+  },
+  {
+   "name": "a converted sha256 key the phone does not hold is refused",
+   "state": {
+    "protection": "off",
+    "lastExport": [
+     {
+      "name": "GUIDE.md",
+      "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+     },
+     {
+      "name": "general.json",
+      "text": "{\"schema\":2}"
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"},\"lock\":{\"level\":\"wait\",\"hours\":1,\"partnerKeyHash\":{\"alg\":\"sha256\",\"hash\":\"49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e\"}}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/a"
+    ],
+    "stored": {
+     "refused": "old unsalted form"
+    }
+   }
+  },
+  {
+   "name": "a converted sha256 key the phone already holds is taken",
+   "state": {
+    "protection": "off",
+    "lastExport": [
+     {
+      "name": "GUIDE.md",
+      "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+     },
+     {
+      "name": "blocks/a.json",
+      "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"},\"lock\":{\"level\":\"wait\",\"hours\":1,\"partnerKeyHash\":{\"alg\":\"sha256\",\"hash\":\"49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e\"}}}"
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"},\"lock\":{\"level\":\"wait\",\"hours\":1,\"partnerKeyHash\":{\"alg\":\"sha256\",\"hash\":\"49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e\"}}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/a"
+    ],
+    "stored": {
+     "accepted": true
+    }
+   }
+  },
+  {
+   "name": "a new key in the PBKDF2 form is taken",
+   "state": {
+    "protection": "off",
+    "lastExport": [
+     {
+      "name": "GUIDE.md",
+      "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+     },
+     {
+      "name": "general.json",
+      "text": "{\"schema\":2}"
+     }
+    ]
+   },
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\"}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":10,\"perDay\":\"unlimited\"},\"lock\":{\"level\":\"wait\",\"hours\":1,\"partnerKeyHash\":{\"alg\":\"pbkdf2-sha256\",\"iterations\":100000,\"salt\":\"AAECAwQFBgcICQoLDA0ODw==\",\"hash\":\"49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e\"}}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "block/a"
+    ],
+    "stored": {
+     "accepted": true
+    }
+   }
+  },
+  {
+   "name": "a weekday named twice in the days of a rule",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "blocks/a.json",
+     "text": "{\"schema\":2,\"id\":\"a\",\"name\":\"Block a\",\"covers\":{\"apps\":[\"com.example.a\"]},\"rules\":[{\"id\":\"a\",\"kind\":\"always\",\"days\":[\"mon\",\"mon\"]}],\"door\":{\"kind\":\"wait\",\"seconds\":10},\"pass\":{\"length\":\"minutes\",\"minutes\":5,\"perDay\":\"unlimited\"}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "blocks/a.json",
+     "reason": "must not name a weekday twice"
+    }
+   }
+  },
+  {
+   "name": "a weekday named twice in the due days of a routine",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/r.json",
+     "text": "{\"schema\":2,\"id\":\"r\",\"name\":\"Routine r\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"],\"days\":[\"sat\",\"sat\"]}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "routines/r.json",
+     "reason": "must not name a weekday twice"
+    }
+   }
+  },
+  {
+   "name": "emergency passes counted per week are refused",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"emergency\":{\"perWeek\":2,\"minutes\":15}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "general.json",
+     "reason": "is gone: the emergency pass is counted per day"
+    }
+   }
+  },
+  {
+   "name": "four emergency passes a day",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"emergency\":{\"perDay\":4,\"minutes\":15}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "general.json",
+     "reason": "from 1 to 3"
+    }
+   }
+  },
+  {
+   "name": "three emergency passes a day",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "general.json",
+     "text": "{\"schema\":2,\"emergency\":{\"perDay\":3,\"minutes\":60}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "general"
+    ]
+   }
+  },
+  {
+   "name": "a deep squat practice",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/squat.json",
+     "text": "{\"schema\":2,\"id\":\"squat\",\"name\":\"Squat\",\"activity\":\"deepSquat\",\"sets\":2,\"amountPerSet\":30,\"restSeconds\":20}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "practice/squat"
+    ]
+   }
+  },
+  {
+   "name": "a deep squat of four seconds",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/squat.json",
+     "text": "{\"schema\":2,\"id\":\"squat\",\"name\":\"Squat\",\"activity\":\"deepSquat\",\"amountPerSet\":4}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/squat.json",
+     "reason": "from 5 to 600"
+    }
+   }
+  },
+  {
+   "name": "a deep squat of 601 seconds",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/squat.json",
+     "text": "{\"schema\":2,\"id\":\"squat\",\"name\":\"Squat\",\"activity\":\"deepSquat\",\"amountPerSet\":601}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/squat.json",
+     "reason": "from 5 to 600"
+    }
+   }
+  },
+  {
+   "name": "a practice of parts with a deck in the zip",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/mixed.json",
+     "text": "{\"schema\":2,\"id\":\"mixed\",\"name\":\"Mixed\",\"parts\":[{\"activity\":\"pushUps\",\"amountPerSet\":10},{\"activity\":\"flashcards\",\"amountPerSet\":5,\"deck\":\"spanish\"},{\"activity\":\"deepSquat\",\"amountPerSet\":30}]}"
+    },
+    {
+     "name": "decks/spanish.json",
+     "text": "{\"schema\":2,\"id\":\"spanish\",\"name\":\"Spanish\",\"cards\":[{\"id\":\"c1\",\"question\":\"dog\",\"answer\":\"perro\"}]}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "deck/spanish",
+     "practice/mixed"
+    ]
+   }
+  },
+  {
+   "name": "a practice of four parts",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/mixed.json",
+     "text": "{\"schema\":2,\"id\":\"mixed\",\"name\":\"Mixed\",\"parts\":[{\"activity\":\"pushUps\",\"amountPerSet\":10},{\"activity\":\"pistolSquats\",\"amountPerSet\":5},{\"activity\":\"deepSquat\",\"amountPerSet\":30},{\"activity\":\"pushUps\",\"amountPerSet\":1}],\"verify\":false,\"typing\":true}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "practice/mixed"
+    ]
+   }
+  },
+  {
+   "name": "a flashcard part whose deck is not in the zip",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/mixed.json",
+     "text": "{\"schema\":2,\"id\":\"mixed\",\"name\":\"Mixed\",\"parts\":[{\"activity\":\"pushUps\",\"amountPerSet\":10},{\"activity\":\"flashcards\",\"amountPerSet\":5,\"deck\":\"spanish\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/mixed.json",
+     "reason": "which is not in this set"
+    }
+   }
+  },
+  {
+   "name": "a second flashcard part whose deck is not in the zip is named by its place",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/mixed.json",
+     "text": "{\"schema\":2,\"id\":\"mixed\",\"name\":\"Mixed\",\"parts\":[{\"activity\":\"flashcards\",\"amountPerSet\":5,\"deck\":\"spanish\"},{\"activity\":\"flashcards\",\"amountPerSet\":5,\"deck\":\"french\"}]}"
+    },
+    {
+     "name": "decks/spanish.json",
+     "text": "{\"schema\":2,\"id\":\"spanish\",\"name\":\"Spanish\",\"cards\":[{\"id\":\"c1\",\"question\":\"dog\",\"answer\":\"perro\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/mixed.json",
+     "reason": "\"parts[1].deck\" names the deck \"french\""
+    }
+   }
+  },
+  {
+   "name": "a flashcard part with no deck",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/mixed.json",
+     "text": "{\"schema\":2,\"id\":\"mixed\",\"name\":\"Mixed\",\"parts\":[{\"activity\":\"pushUps\",\"amountPerSet\":10},{\"activity\":\"flashcards\",\"amountPerSet\":5}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/mixed.json",
+     "reason": "is required for a flashcard part"
+    }
+   }
+  },
+  {
+   "name": "a push-ups part with a deck",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/mixed.json",
+     "text": "{\"schema\":2,\"id\":\"mixed\",\"name\":\"Mixed\",\"parts\":[{\"activity\":\"pushUps\",\"amountPerSet\":10,\"deck\":\"spanish\"},{\"activity\":\"deepSquat\",\"amountPerSet\":30}]}"
+    },
+    {
+     "name": "decks/spanish.json",
+     "text": "{\"schema\":2,\"id\":\"spanish\",\"name\":\"Spanish\",\"cards\":[{\"id\":\"c1\",\"question\":\"dog\",\"answer\":\"perro\"}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/mixed.json",
+     "reason": "is only for flashcards"
+    }
+   }
+  },
+  {
+   "name": "a walk cannot be a part",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/mixed.json",
+     "text": "{\"schema\":2,\"id\":\"mixed\",\"name\":\"Mixed\",\"parts\":[{\"activity\":\"pushUps\",\"amountPerSet\":10},{\"activity\":\"walking\",\"amountPerSet\":500}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/mixed.json",
+     "reason": "cannot be a part: a walk counts in the background"
+    }
+   }
+  },
+  {
+   "name": "one part is not enough",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/mixed.json",
+     "text": "{\"schema\":2,\"id\":\"mixed\",\"name\":\"Mixed\",\"parts\":[{\"activity\":\"pushUps\",\"amountPerSet\":10}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/mixed.json",
+     "reason": "must hold 2 to 4 entries"
+    }
+   }
+  },
+  {
+   "name": "five parts are too many",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/mixed.json",
+     "text": "{\"schema\":2,\"id\":\"mixed\",\"name\":\"Mixed\",\"parts\":[{\"activity\":\"pushUps\",\"amountPerSet\":1},{\"activity\":\"pushUps\",\"amountPerSet\":1},{\"activity\":\"pushUps\",\"amountPerSet\":1},{\"activity\":\"pushUps\",\"amountPerSet\":1},{\"activity\":\"pushUps\",\"amountPerSet\":1}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/mixed.json",
+     "reason": "must hold 2 to 4 entries"
+    }
+   }
+  },
+  {
+   "name": "parts beside an activity",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/mixed.json",
+     "text": "{\"schema\":2,\"id\":\"mixed\",\"name\":\"Mixed\",\"parts\":[{\"activity\":\"pushUps\",\"amountPerSet\":10},{\"activity\":\"deepSquat\",\"amountPerSet\":30}],\"activity\":\"pushUps\"}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/mixed.json",
+     "reason": "is not used beside parts"
+    }
+   }
+  },
+  {
+   "name": "parts beside sets",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/mixed.json",
+     "text": "{\"schema\":2,\"id\":\"mixed\",\"name\":\"Mixed\",\"parts\":[{\"activity\":\"pushUps\",\"amountPerSet\":10},{\"activity\":\"deepSquat\",\"amountPerSet\":30}],\"sets\":2}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/mixed.json",
+     "reason": "is not used beside parts"
+    }
+   }
+  },
+  {
+   "name": "a part of an unknown activity",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/mixed.json",
+     "text": "{\"schema\":2,\"id\":\"mixed\",\"name\":\"Mixed\",\"parts\":[{\"activity\":\"pushUps\",\"amountPerSet\":10},{\"activity\":\"jumping\",\"amountPerSet\":30}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/mixed.json",
+     "reason": "must be pushUps, pistolSquats, deepSquat or flashcards"
+    }
+   }
+  },
+  {
+   "name": "a deep squat part of four seconds",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/mixed.json",
+     "text": "{\"schema\":2,\"id\":\"mixed\",\"name\":\"Mixed\",\"parts\":[{\"activity\":\"pushUps\",\"amountPerSet\":10},{\"activity\":\"deepSquat\",\"amountPerSet\":4}]}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "practices/mixed.json",
+     "reason": "from 5 to 600"
+    }
+   }
+  },
+  {
+   "name": "a routine with a daily goal and a snooze",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/r.json",
+     "text": "{\"schema\":2,\"id\":\"r\",\"name\":\"Routine r\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"]},\"ifSkipped\":{\"holdBlocks\":[],\"takeOver\":true,\"snooze\":{\"minutes\":[5,15],\"perDay\":2}},\"timesPerDay\":3}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "practice/p",
+     "routine/r"
+    ]
+   }
+  },
+  {
+   "name": "a routine with a snooze that names nothing",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/r.json",
+     "text": "{\"schema\":2,\"id\":\"r\",\"name\":\"Routine r\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"]},\"ifSkipped\":{\"takeOver\":true,\"snooze\":{}}}"
+    }
+   ],
+   "expect": {
+    "read": [
+     "practice/p",
+     "routine/r"
+    ]
+   }
+  },
+  {
+   "name": "a daily goal of zero",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/r.json",
+     "text": "{\"schema\":2,\"id\":\"r\",\"name\":\"Routine r\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"]},\"timesPerDay\":0}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "routines/r.json",
+     "reason": "from 1 to 100"
+    }
+   }
+  },
+  {
+   "name": "a daily goal of 101",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/r.json",
+     "text": "{\"schema\":2,\"id\":\"r\",\"name\":\"Routine r\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"]},\"timesPerDay\":101}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "routines/r.json",
+     "reason": "from 1 to 100"
+    }
+   }
+  },
+  {
+   "name": "a snooze with no lengths",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/r.json",
+     "text": "{\"schema\":2,\"id\":\"r\",\"name\":\"Routine r\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"]},\"ifSkipped\":{\"takeOver\":true,\"snooze\":{\"minutes\":[]}}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "routines/r.json",
+     "reason": "must hold 1 to 3 entries"
+    }
+   }
+  },
+  {
+   "name": "a snooze with four lengths",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/r.json",
+     "text": "{\"schema\":2,\"id\":\"r\",\"name\":\"Routine r\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"]},\"ifSkipped\":{\"takeOver\":true,\"snooze\":{\"minutes\":[1,2,3,4]}}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "routines/r.json",
+     "reason": "must hold 1 to 3 entries"
+    }
+   }
+  },
+  {
+   "name": "a snooze of 61 minutes",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/r.json",
+     "text": "{\"schema\":2,\"id\":\"r\",\"name\":\"Routine r\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"]},\"ifSkipped\":{\"takeOver\":true,\"snooze\":{\"minutes\":[5,61]}}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "routines/r.json",
+     "reason": "\"ifSkipped.snooze.minutes[1]\" must be a whole number from 1 to 60"
+    }
+   }
+  },
+  {
+   "name": "eleven snoozes a day",
+   "entries": [
+    {
+     "name": "GUIDE.md",
+     "text": "Enforcer settings, format 2. Every field is described in schema/enforcer-config-v2.schema.json.\n"
+    },
+    {
+     "name": "practices/p.json",
+     "text": "{\"schema\":2,\"id\":\"p\",\"name\":\"Practice p\",\"activity\":\"pushUps\",\"amountPerSet\":5}"
+    },
+    {
+     "name": "routines/r.json",
+     "text": "{\"schema\":2,\"id\":\"r\",\"name\":\"Routine r\",\"practice\":\"p\",\"due\":{\"times\":[\"07:00\"]},\"ifSkipped\":{\"takeOver\":true,\"snooze\":{\"perDay\":11}}}"
+    }
+   ],
+   "expect": {
+    "refused": {
+     "entry": "routines/r.json",
+     "reason": "\"ifSkipped.snooze.perDay\" must be a whole number from 1 to 10"
+    }
+   }
+  }
+ ]
+}

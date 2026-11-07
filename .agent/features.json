@@ -1,0 +1,68 @@
+{
+  "rust-config-core": [
+    "core/src/lib.rs",
+    "core/src/io/zip_reader.rs",
+    "core/src/models/specs.rs",
+    "core/src/config/strict_fields.rs",
+    "core/src/config/read_key_lock.rs",
+    "core/src/config/read_door.rs",
+    "core/src/config/read_block.rs",
+    "core/src/config/read_practice.rs",
+    "core/src/config/read_deck.rs",
+    "core/src/config/read_routine.rs",
+    "core/src/config/read_basics.rs",
+    "core/src/domain/set_rules.rs",
+    "core/src/io/zip_check.rs",
+    "core/src/domain/stored_state.rs",
+    "core/src/domain/key_derivation.rs",
+    "core/src/domain/json_same.rs",
+    "core/src/domain/schema_fields.rs",
+    "core/src/domain/canonical.rs",
+    "core/src/config_time/zone_time.rs",
+    "core/src/config_time/window_mask.rs",
+    "core/src/config_time/due_time.rs"
+  ],
+  "site-coverage-and-sessions": [
+    "core/src/sites/site_name.rs",
+    "core/src/sites/site_match.rs",
+    "core/src/domain/extended_schema.rs",
+    "core/src/sessions/session_rule.rs",
+    "core/src/sessions/utc_moment.rs",
+    "core/src/sessions/session_compare.rs",
+    "core/src/sessions/timed_session.rs",
+    "core/src/domain/extension_fields.rs"
+  ],
+  "session-command": [
+    "cli/src/session/session_length.rs",
+    "cli/src/session/session_arguments.rs",
+    "cli/src/session/session_report.rs",
+    "cli/src/session/voice_phrase.rs",
+    "cli/src/session/run_command.rs",
+    "cli/src/lib.rs"
+  ],
+  "block-decision": [
+    "core/src/decision/rule_closes.rs",
+    "core/src/decision/block_cover.rs",
+    "core/src/decision/decide_target.rs",
+    "core/src/decision/next_change.rs"
+  ],
+  "status-command": [
+    "core/src/status/next_flip.rs",
+    "cli/src/status/status_arguments.rs",
+    "cli/src/status/zone_choice.rs",
+    "cli/src/status/settings_file.rs",
+    "cli/src/status/status_report.rs",
+    "cli/src/status/run_status.rs"
+  ],
+  "add-block-command": [
+    "core/src/io/zip_writer.rs"
+  ],
+  "waiting-list-and-cancel": [
+    "core/src/waiting_changes/cancel_waiting.rs",
+    "core/src/waiting_changes/waiting_for_target.rs",
+    "cli/src/waiting_changes/cancel_arguments.rs",
+    "cli/src/waiting_changes/cancel_report.rs",
+    "cli/src/waiting_changes/run_cancel.rs",
+    "cli/src/waiting_changes/status_waiting.rs"
+  ]
+}

@@ -1,0 +1,11798 @@
+{
+ "description": "Table-driven cases of the judge of loosening, written from the Definitions of CONTRACT_0_3.md. The app's tests and the checker run the same file. The old and new documents of a diff case are first brought to their canonical form (every default written, as the importer does before it compares). A diff case lists the units that differ between two versions of one item and whether each loosens; a due case lists the locks that apply and the instant a loosening requested at \"at\" may land (null when the change windows share no minute).",
+ "zone": "America/New_York",
+ "dayStartHour": 4,
+ "defaultAt": "2026-11-02T10:00:00-05:00",
+ "unitNames": "a field is its dotted path; a rule is rules#<id>; an element of a list is <path>#<element>; the lock is lock and lock.partnerKeyHash; a routine window is due.window",
+ "diff": [
+  {
+   "name": "a new name changes nothing that loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "Other",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "name",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a new message changes nothing that loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    },
+    "message": "Hi"
+   },
+   "expect": [
+    {
+     "unit": "message",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "switching a block off loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    },
+    "on": false
+   },
+   "expect": [
+    {
+     "unit": "on",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "switching a block on tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    },
+    "on": false
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    },
+    "on": true
+   },
+   "expect": [
+    {
+     "unit": "on",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "an app leaving covers.apps loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers.apps#com.b",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "an app joining covers.apps tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b",
+      "com.c"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers.apps#com.c",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "an app joining allAppsExcept loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "allAppsExcept": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "allAppsExcept": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers.allAppsExcept#com.b",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "an app leaving allAppsExcept tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "allAppsExcept": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "allAppsExcept": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers.allAppsExcept#com.b",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "apps to allAppsExcept that still covers everything tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "allAppsExcept": [
+      "com.z"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "apps to allAppsExcept that leaves an old app out loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "allAppsExcept": [
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "allAppsExcept to apps loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "allAppsExcept": []
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "adding a rule tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     },
+     {
+      "id": "r2",
+      "kind": "everyOpen"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r2",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "removing a rule loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     },
+     {
+      "id": "r2",
+      "kind": "everyOpen"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r2",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a different kind under the same id loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "everyOpen"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a minutes amount rising loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 45,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a minutes amount falling tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 20,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a minutes period lengthening loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "hour",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a minutes period shortening tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "week",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a minutes scope going from block to app loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "app"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a minutes scope going from app to block tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "app"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "an opens count rising loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "opens",
+      "count": 3,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "opens",
+      "count": 4,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "an opens count falling tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "opens",
+      "count": 3,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "opens",
+      "count": 2,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "an opens period lengthening loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "opens",
+      "count": 3,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "opens",
+      "count": 3,
+      "per": "week",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "an opens scope going from block to app loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "opens",
+      "count": 3,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "opens",
+      "count": 3,
+      "per": "day",
+      "scope": "app"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "widening an allowed stretch loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "outsideHours",
+      "allowed": [
+       {
+        "from": "09:00",
+        "to": "17:00"
+       }
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "outsideHours",
+      "allowed": [
+       {
+        "from": "08:00",
+        "to": "17:00"
+       }
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "narrowing an allowed stretch tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "outsideHours",
+      "allowed": [
+       {
+        "from": "09:00",
+        "to": "17:00"
+       }
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "outsideHours",
+      "allowed": [
+       {
+        "from": "10:00",
+        "to": "17:00"
+       }
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "adding an allowed stretch loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "outsideHours",
+      "allowed": [
+       {
+        "from": "09:00",
+        "to": "12:00"
+       }
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "outsideHours",
+      "allowed": [
+       {
+        "from": "09:00",
+        "to": "12:00"
+       },
+       {
+        "from": "14:00",
+        "to": "15:00"
+       }
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "removing an allowed stretch tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "outsideHours",
+      "allowed": [
+       {
+        "from": "09:00",
+        "to": "12:00"
+       },
+       {
+        "from": "14:00",
+        "to": "15:00"
+       }
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "outsideHours",
+      "allowed": [
+       {
+        "from": "09:00",
+        "to": "12:00"
+       }
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "an empty allowed list is the strictest value",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "outsideHours",
+      "allowed": [
+       {
+        "from": "09:00",
+        "to": "12:00"
+       }
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "outsideHours",
+      "allowed": []
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a stretch across midnight compares on the 24-hour circle",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "outsideHours",
+      "allowed": [
+       {
+        "from": "22:00",
+        "to": "06:00"
+       }
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "outsideHours",
+      "allowed": [
+       {
+        "from": "23:00",
+        "to": "05:00"
+       }
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "fewer days on a rule loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always",
+      "days": [
+       "mon",
+       "tue"
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always",
+      "days": [
+       "mon"
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "more days on a rule tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always",
+      "days": [
+       "mon"
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always",
+      "days": [
+       "mon",
+       "tue"
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "rules#r1",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "naming all seven days equals naming none",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always",
+      "days": [
+       "mon",
+       "tue",
+       "wed",
+       "thu",
+       "fri",
+       "sat",
+       "sun"
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": []
+  },
+  {
+   "name": "leaving a wall loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wall"
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "moving to a wall tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wall"
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "fewer wait seconds loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 10
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "more wait seconds tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 10
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a longer sentence that starts with the old one tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "sentence",
+     "sentence": "I will wait"
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "sentence",
+     "sentence": "I will wait a little longer"
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "another sentence loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "sentence",
+     "sentence": "I will wait"
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "sentence",
+     "sentence": "Let me in"
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a shorter sentence loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "sentence",
+     "sentence": "I will wait a little longer"
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "sentence",
+     "sentence": "I will wait"
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a different door key loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "key",
+     "keyHash": {
+      "alg": "pbkdf2-sha256",
+      "iterations": 100000,
+      "salt": "AAECAwQFBgcICQoLDA0ODw==",
+      "hash": "49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e"
+     }
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "key",
+     "keyHash": {
+      "alg": "pbkdf2-sha256",
+      "iterations": 100000,
+      "salt": "AAECAwQFBgcICQoLDA0ODw==",
+      "hash": "5eb5f5b1b3e0f5c8d1a7f3e9c4b2a6d8e0f1a3c5b7d9e1f3a5c7e9b1d3f5a7c9"
+     }
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a different door practice loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "practice",
+     "practice": "p1"
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "practice",
+     "practice": "p2"
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "wait to sentence loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "sentence",
+     "sentence": "Let me in"
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "sentence to key loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "sentence",
+     "sentence": "Let me in"
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "key",
+     "keyHash": {
+      "alg": "pbkdf2-sha256",
+      "iterations": 100000,
+      "salt": "AAECAwQFBgcICQoLDA0ODw==",
+      "hash": "49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e"
+     }
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "adding a pass loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "removing a pass tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "any change of pass length kind loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "untilDayStart",
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "more pass minutes loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 20,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass.minutes",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "fewer pass minutes tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 20,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass.minutes",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "removing the cap of a oneOpen pass loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "oneOpen",
+     "minutes": 10,
+     "scope": "app",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "oneOpen",
+     "scope": "app",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass.minutes",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "adding a cap to a oneOpen pass tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "oneOpen",
+     "scope": "app",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "oneOpen",
+     "minutes": 10,
+     "scope": "app",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass.minutes",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "pass scope from app to block loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "app",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass.scope",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "pass scope from block to app tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "app",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass.scope",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a higher perDay loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 5,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass.perDay",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a lower perDay tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 5,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass.perDay",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "unlimited is the highest perDay",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 100000,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": "unlimited",
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass.perDay",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "leaving unlimited tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": "unlimited",
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 100000,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass.perDay",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "rising cost from double to none loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "double"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass.risingCost",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "rising cost from none to double tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "double"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "pass.risingCost",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "adding earn loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    },
+    "earn": {
+     "practice": "p1",
+     "minutesEach": 10,
+     "maxPerDay": 30
+    }
+   },
+   "expect": [
+    {
+     "unit": "earn",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "removing earn tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    },
+    "earn": {
+     "practice": "p1",
+     "minutesEach": 10,
+     "maxPerDay": 30
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "earn",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a different earn practice loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    },
+    "earn": {
+     "practice": "p1",
+     "minutesEach": 10,
+     "maxPerDay": 30
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    },
+    "earn": {
+     "practice": "p2",
+     "minutesEach": 10,
+     "maxPerDay": 30
+    }
+   },
+   "expect": [
+    {
+     "unit": "earn.practice",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "more minutes earned each loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    },
+    "earn": {
+     "practice": "p1",
+     "minutesEach": 10,
+     "maxPerDay": 30
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    },
+    "earn": {
+     "practice": "p1",
+     "minutesEach": 15,
+     "maxPerDay": 30
+    }
+   },
+   "expect": [
+    {
+     "unit": "earn.minutesEach",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "fewer minutes earned each tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    },
+    "earn": {
+     "practice": "p1",
+     "minutesEach": 10,
+     "maxPerDay": 30
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    },
+    "earn": {
+     "practice": "p1",
+     "minutesEach": 5,
+     "maxPerDay": 30
+    }
+   },
+   "expect": [
+    {
+     "unit": "earn.minutesEach",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a higher earn cap loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    },
+    "earn": {
+     "practice": "p1",
+     "minutesEach": 10,
+     "maxPerDay": 30
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    },
+    "earn": {
+     "practice": "p1",
+     "minutesEach": 10,
+     "maxPerDay": 60
+    }
+   },
+   "expect": [
+    {
+     "unit": "earn.maxPerDay",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a lower earn cap tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    },
+    "earn": {
+     "practice": "p1",
+     "minutesEach": 10,
+     "maxPerDay": 30
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "lock": {
+     "level": "open"
+    },
+    "earn": {
+     "practice": "p1",
+     "minutesEach": 10,
+     "maxPerDay": 20
+    }
+   },
+   "expect": [
+    {
+     "unit": "earn.maxPerDay",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "open to wait tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 12
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "wait to open loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 12
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "wait to a longer wait tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 12
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 24
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "wait to a shorter wait loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 24
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 12
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "wait to changeHours with no fewer hours tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 12
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "changeHours",
+     "from": "10:00",
+     "to": "18:00",
+     "hours": 12
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "wait to changeHours with fewer hours loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 12
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "changeHours",
+     "from": "10:00",
+     "to": "18:00",
+     "hours": 6
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "changeHours to a window inside it tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "changeHours",
+     "from": "10:00",
+     "to": "18:00",
+     "hours": 2
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "changeHours",
+     "from": "11:00",
+     "to": "17:00",
+     "hours": 2
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "changeHours to a wider window loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "changeHours",
+     "from": "11:00",
+     "to": "17:00",
+     "hours": 2
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "changeHours",
+     "from": "10:00",
+     "to": "18:00",
+     "hours": 2
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "changeHours across midnight to a window inside it tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "changeHours",
+     "from": "22:00",
+     "to": "06:00",
+     "hours": 2
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "changeHours",
+     "from": "23:00",
+     "to": "05:00",
+     "hours": 2
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "changeHours to wait loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "changeHours",
+     "from": "10:00",
+     "to": "18:00",
+     "hours": 2
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 2
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "changeHours to changeHours with fewer hours loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "changeHours",
+     "from": "10:00",
+     "to": "18:00",
+     "hours": 6
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "changeHours",
+     "from": "10:00",
+     "to": "18:00",
+     "hours": 2
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "open to a seal tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "sealedUntil",
+     "until": "2026-12-31"
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a seal that ends no earlier than the old wait lands tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 48
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "sealedUntil",
+     "until": "2026-11-04"
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a seal that ends before the old wait lands loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 240
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "sealedUntil",
+     "until": "2026-11-04"
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a seal to a later seal tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "sealedUntil",
+     "until": "2026-12-01"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "sealedUntil",
+     "until": "2026-12-31"
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a seal to an earlier seal loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "sealedUntil",
+     "until": "2026-12-31"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "sealedUntil",
+     "until": "2026-12-01"
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a seal to a wait that ends no earlier than the seal tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "sealedUntil",
+     "until": "2026-11-04"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 100
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a seal to a wait that ends earlier than the seal loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "sealedUntil",
+     "until": "2026-11-30"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 24
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a seal that has ended acts as open",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "sealedUntil",
+     "until": "2026-11-01"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 1
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "adding a partner key loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 12
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 12,
+     "partnerKeyHash": {
+      "alg": "pbkdf2-sha256",
+      "iterations": 100000,
+      "salt": "AAECAwQFBgcICQoLDA0ODw==",
+      "hash": "49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e"
+     }
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock.partnerKeyHash",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "removing a partner key tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 12,
+     "partnerKeyHash": {
+      "alg": "pbkdf2-sha256",
+      "iterations": 100000,
+      "salt": "AAECAwQFBgcICQoLDA0ODw==",
+      "hash": "49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e"
+     }
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 12
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock.partnerKeyHash",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "replacing a partner key loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 12,
+     "partnerKeyHash": {
+      "alg": "pbkdf2-sha256",
+      "iterations": 100000,
+      "salt": "AAECAwQFBgcICQoLDA0ODw==",
+      "hash": "49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e"
+     }
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 12,
+     "partnerKeyHash": {
+      "alg": "pbkdf2-sha256",
+      "iterations": 100000,
+      "salt": "AAECAwQFBgcICQoLDA0ODw==",
+      "hash": "5eb5f5b1b3e0f5c8d1a7f3e9c4b2a6d8e0f1a3c5b7d9e1f3a5c7e9b1d3f5a7c9"
+     }
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock.partnerKeyHash",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "the level and the key are judged separately",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 12,
+     "partnerKeyHash": {
+      "alg": "pbkdf2-sha256",
+      "iterations": 100000,
+      "salt": "AAECAwQFBgcICQoLDA0ODw==",
+      "hash": "49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e"
+     }
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 24,
+     "partnerKeyHash": {
+      "alg": "pbkdf2-sha256",
+      "iterations": 100000,
+      "salt": "AAECAwQFBgcICQoLDA0ODw==",
+      "hash": "5eb5f5b1b3e0f5c8d1a7f3e9c4b2a6d8e0f1a3c5b7d9e1f3a5c7e9b1d3f5a7c9"
+     }
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": false
+    },
+    {
+     "unit": "lock.partnerKeyHash",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "fewer sets loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 1,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "sets",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "more sets tightens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 3,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "sets",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a smaller amount per set loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 5,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "amountPerSet",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a shorter rest loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 10,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "restSeconds",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a longer rest tightens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 60,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "restSeconds",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a changed activity loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pistolSquats",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "activity",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a changed deck loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "flashcards",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    },
+    "deck": "d1"
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "flashcards",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    },
+    "deck": "d2"
+   },
+   "expect": [
+    {
+     "unit": "deck",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "switching verify off loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": false,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "verify",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "switching typing off loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": true,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "typing",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "switching typing on tightens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": true,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "typing",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a practice name changes nothing that loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "Other",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "name",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "switching a routine off loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": false,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "on",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a changed routine practice loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p2",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "practice",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a due time removed loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "due.times#19:00",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a due time added tightens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00",
+      "21:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "due.times#21:00",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "fewer routine days loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ],
+     "days": [
+      "mon",
+      "tue"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ],
+     "days": [
+      "mon"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "due.days#tue",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "more routine days tightens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ],
+     "days": [
+      "mon"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ],
+     "days": [
+      "mon",
+      "tue"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "due.days#tue",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a longer everyMinutes loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "everyMinutes": 60,
+     "from": "08:00",
+     "to": "20:00"
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "everyMinutes": 90,
+     "from": "08:00",
+     "to": "20:00"
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "due.everyMinutes",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a shorter everyMinutes tightens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "everyMinutes": 60,
+     "from": "08:00",
+     "to": "20:00"
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "everyMinutes": 30,
+     "from": "08:00",
+     "to": "20:00"
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "due.everyMinutes",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a narrower window loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "everyMinutes": 60,
+     "from": "08:00",
+     "to": "20:00"
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "everyMinutes": 60,
+     "from": "09:00",
+     "to": "20:00"
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "due.window",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a wider window tightens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "everyMinutes": 60,
+     "from": "08:00",
+     "to": "20:00"
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "everyMinutes": 60,
+     "from": "08:00",
+     "to": "22:00"
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "due.window",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a due form change loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "everyMinutes": 60,
+     "from": "08:00",
+     "to": "20:00"
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "due",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a held block leaving loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "ifSkipped.holdBlocks#b2",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a held block joining tightens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1",
+      "b2",
+      "b3"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "ifSkipped.holdBlocks#b3",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "turning takeOver off loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "ifSkipped.takeOver",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "turning takeOver on tightens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "ifSkipped.takeOver",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "turning ring off loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "ring": true
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "ifSkipped.ring",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "turning ring on tightens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "ring": true
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "ifSkipped.ring",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a card leaving loosens",
+   "kind": "deck",
+   "old": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "q2",
+      "answer": "a2"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "cards#c2",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a card joining tightens",
+   "kind": "deck",
+   "old": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "q2",
+      "answer": "a2"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "q2",
+      "answer": "a2"
+     },
+     {
+      "id": "c3",
+      "question": "q3",
+      "answer": "a3"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "cards#c3",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a card changing its question or answer loosens",
+   "kind": "deck",
+   "old": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "q2",
+      "answer": "a2"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "other",
+      "answer": "a2"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "cards#c2",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a shorter rest loosens a deck",
+   "kind": "deck",
+   "old": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "q2",
+      "answer": "a2"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "q2",
+      "answer": "a2"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 12
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "returnRule.restHours",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a longer rest tightens a deck",
+   "kind": "deck",
+   "old": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "q2",
+      "answer": "a2"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "q2",
+      "answer": "a2"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 48
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "returnRule.restHours",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a changed return kind loosens",
+   "kind": "deck",
+   "old": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "q2",
+      "answer": "a2"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "q2",
+      "answer": "a2"
+     }
+    ],
+    "returnRule": {
+     "kind": "wholeDeck",
+     "restHours": 24
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "returnRule.kind",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a new reset token tightens",
+   "kind": "deck",
+   "old": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "q2",
+      "answer": "a2"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "q2",
+      "answer": "a2"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "resetToken": "t2",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "resetToken",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a deck name changes nothing that loosens",
+   "kind": "deck",
+   "old": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "q2",
+      "answer": "a2"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "d",
+    "name": "Other",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q1",
+      "answer": "a1"
+     },
+     {
+      "id": "c2",
+      "question": "q2",
+      "answer": "a2"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "resetToken": "t1",
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "name",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "theme never loosens",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "dark",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "theme",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "tracking never loosens",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": false,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "tracking",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "the countdown bubble never loosens",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": true,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "countdownBubble",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "turning practice recording off never loosens",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    },
+    "practiceRecording": false
+   },
+   "expect": [
+    {
+     "unit": "practiceRecording",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "turning the rep ding off never loosens",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    },
+    "repSound": false
+   },
+   "expect": [
+    {
+     "unit": "repSound",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a dayStart change waits like any change under the general lock",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "05:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "dayStart",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a rise in emergency passes a day loosens",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 2,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "emergency.perDay",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a fall in emergency passes a day tightens",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 2,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "emergency.perDay",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a rise in emergency minutes loosens",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 30
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "emergency.minutes",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a fall in emergency minutes tightens",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 10
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "emergency.minutes",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "the general lock is judged like any lock",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "wait",
+     "hours": 12
+    }
+   },
+   "expect": [
+    {
+     "unit": "lock",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "fewer steps on a walk loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "walking",
+    "amountPerSet": 2000,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "walking",
+    "amountPerSet": 1000,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "amountPerSet",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "more steps on a walk tightens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "walking",
+    "amountPerSet": 1000,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "walking",
+    "amountPerSet": 2000,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "amountPerSet",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "push-ups changed to a walk loosens the activity, the sets and the rest",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "walking",
+    "amountPerSet": 2000,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "activity",
+     "loosens": true
+    },
+    {
+     "unit": "sets",
+     "loosens": true
+    },
+    {
+     "unit": "amountPerSet",
+     "loosens": false
+    },
+    {
+     "unit": "restSeconds",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a walk changed to push-ups loosens the activity and the amount",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "walking",
+    "amountPerSet": 2000,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 2,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "activity",
+     "loosens": true
+    },
+    {
+     "unit": "sets",
+     "loosens": false
+    },
+    {
+     "unit": "amountPerSet",
+     "loosens": true
+    },
+    {
+     "unit": "restSeconds",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a lower pace on walk to use loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "walking",
+     "stepsPerMinute": 100
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "walking",
+     "stepsPerMinute": 80
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a higher pace on walk to use does not loosen",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "walking",
+     "stepsPerMinute": 100
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "walking",
+     "stepsPerMinute": 120
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "walk to use left with no pace is the same as 100",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "walking"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "walking",
+     "stepsPerMinute": 100
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": []
+  },
+  {
+   "name": "walk to use made a wall does not loosen",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "walking",
+     "stepsPerMinute": 100
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wall"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a wait door made walk to use loosens, and its pass goes",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "walking",
+     "stepsPerMinute": 150
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "door",
+     "loosens": true
+    },
+    {
+     "unit": "pass",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "push-ups changed to deep squats loosens the activity",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 1,
+    "amountPerSet": 10,
+    "restSeconds": 0,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "deepSquat",
+    "sets": 1,
+    "amountPerSet": 10,
+    "restSeconds": 0,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "activity",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "fewer seconds held in a deep squat loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "deepSquat",
+    "sets": 1,
+    "amountPerSet": 30,
+    "restSeconds": 0,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "deepSquat",
+    "sets": 1,
+    "amountPerSet": 20,
+    "restSeconds": 0,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "amountPerSet",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "more seconds held in a deep squat tightens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "deepSquat",
+    "sets": 1,
+    "amountPerSet": 30,
+    "restSeconds": 0,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "deepSquat",
+    "sets": 1,
+    "amountPerSet": 45,
+    "restSeconds": 0,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "amountPerSet",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a deep squat with its sets and rest left out is the same as one of 1 set and no rest",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "deepSquat",
+    "amountPerSet": 30,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "deepSquat",
+    "sets": 1,
+    "amountPerSet": 30,
+    "restSeconds": 0,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": []
+  },
+  {
+   "name": "more sets of a deep squat tightens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "deepSquat",
+    "sets": 1,
+    "amountPerSet": 30,
+    "restSeconds": 0,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "deepSquat",
+    "sets": 3,
+    "amountPerSet": 30,
+    "restSeconds": 0,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "sets",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "push-ups changed to a practice of parts loosens the activity, the sets, the amount and the rest",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 3,
+    "amountPerSet": 10,
+    "restSeconds": 30,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "activity",
+     "loosens": true
+    },
+    {
+     "unit": "sets",
+     "loosens": true
+    },
+    {
+     "unit": "amountPerSet",
+     "loosens": true
+    },
+    {
+     "unit": "restSeconds",
+     "loosens": true
+    },
+    {
+     "unit": "parts",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a practice of parts changed to one activity loosens the activity and the parts but tightens the amounts",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "sets": 1,
+    "amountPerSet": 10,
+    "restSeconds": 0,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "activity",
+     "loosens": true
+    },
+    {
+     "unit": "sets",
+     "loosens": false
+    },
+    {
+     "unit": "amountPerSet",
+     "loosens": false
+    },
+    {
+     "unit": "restSeconds",
+     "loosens": false
+    },
+    {
+     "unit": "parts",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a bigger amount in one part is still a change of parts, which loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 15
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "parts",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a smaller amount in one part loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 5
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "parts",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a third part added to a practice of parts loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     },
+     {
+      "activity": "pistolSquats",
+      "amountPerSet": 5
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "parts",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a part taken out of a practice of three loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     },
+     {
+      "activity": "pistolSquats",
+      "amountPerSet": 5
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "parts",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "the same parts in another order loosen",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     },
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "parts",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a flashcard part with another deck loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "flashcards",
+      "amountPerSet": 10,
+      "deck": "spanish"
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "flashcards",
+      "amountPerSet": 10,
+      "deck": "french"
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "parts",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a part of another activity loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "pistolSquats",
+      "amountPerSet": 5
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "parts",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "the same parts change nothing",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": []
+  },
+  {
+   "name": "turning verify off on a practice of parts loosens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": false,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "verify",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "turning typing on for a practice of parts with flashcards tightens",
+   "kind": "practice",
+   "old": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "flashcards",
+      "amountPerSet": 10,
+      "deck": "spanish"
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "flashcards",
+      "amountPerSet": 10,
+      "deck": "spanish"
+     }
+    ],
+    "verify": true,
+    "typing": true,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "typing",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "adding a daily goal loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "timesPerDay": 3,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "timesPerDay",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "removing a daily goal tightens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "timesPerDay": 3,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "timesPerDay",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a lower daily goal loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "timesPerDay": 5,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "timesPerDay": 3,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "timesPerDay",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a higher daily goal tightens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "timesPerDay": 3,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "timesPerDay": 5,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "timesPerDay",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a daily goal of 100 is still a goal, and adding it loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "timesPerDay": 100,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "timesPerDay",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "adding a snooze loosens its lengths and its count",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       5,
+       10,
+       20
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "ifSkipped.snooze.minutes#5",
+     "loosens": true
+    },
+    {
+     "unit": "ifSkipped.snooze.minutes#10",
+     "loosens": true
+    },
+    {
+     "unit": "ifSkipped.snooze.minutes#20",
+     "loosens": true
+    },
+    {
+     "unit": "ifSkipped.snooze.perDay",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "removing a snooze tightens its lengths and its count",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       5,
+       10,
+       20
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "ifSkipped.snooze.minutes#5",
+     "loosens": false
+    },
+    {
+     "unit": "ifSkipped.snooze.minutes#10",
+     "loosens": false
+    },
+    {
+     "unit": "ifSkipped.snooze.minutes#20",
+     "loosens": false
+    },
+    {
+     "unit": "ifSkipped.snooze.perDay",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a snooze length joining loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       5,
+       10
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       5,
+       10,
+       30
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "ifSkipped.snooze.minutes#30",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a snooze length leaving tightens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       5,
+       10,
+       30
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       5,
+       10
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "ifSkipped.snooze.minutes#30",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "a longer snooze in place of a shorter one loosens the new length and tightens the old",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       5
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       10
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "ifSkipped.snooze.minutes#5",
+     "loosens": false
+    },
+    {
+     "unit": "ifSkipped.snooze.minutes#10",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "more snoozes a day loosens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       5,
+       10,
+       20
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       5,
+       10,
+       20
+      ],
+      "perDay": 5
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "ifSkipped.snooze.perDay",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "fewer snoozes a day tightens",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       5,
+       10,
+       20
+      ],
+      "perDay": 5
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       5,
+       10,
+       20
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "ifSkipped.snooze.perDay",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "snooze lengths in another order or named twice are the same snooze",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       5,
+       10
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       10,
+       5,
+       5
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": []
+  },
+  {
+   "name": "a snooze that names only its count has the default lengths",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       5,
+       10,
+       20
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": []
+  },
+  {
+   "name": "a snooze that names nothing is the default snooze",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {}
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       5,
+       10,
+       20
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": []
+  },
+  {
+   "name": "a snooze that names only its lengths has the default count",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       15
+      ]
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       15
+      ],
+      "perDay": 3
+     }
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": []
+  },
+  {
+   "name": "a snooze added with a daily goal changes both",
+   "kind": "routine",
+   "old": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "on": true,
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "minutes": [
+       15
+      ],
+      "perDay": 1
+     }
+    },
+    "timesPerDay": 4,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "ifSkipped.snooze.minutes#15",
+     "loosens": true
+    },
+    {
+     "unit": "ifSkipped.snooze.perDay",
+     "loosens": true
+    },
+    {
+     "unit": "timesPerDay",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "emergency passes a day left out are the default of one",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": []
+  },
+  {
+   "name": "a rise in emergency passes from the default to three loosens",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 3,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "emergency.perDay",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "a fall in emergency passes from three to two tightens",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 3,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 2,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "emergency.perDay",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "emergency passes a day and their minutes both rising loosen both",
+   "kind": "basics",
+   "old": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 2,
+     "minutes": 30
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "emergency.perDay",
+     "loosens": true
+    },
+    {
+     "unit": "emergency.minutes",
+     "loosens": true
+    }
+   ]
+  }
+ ],
+ "due": [
+  {
+   "name": "no lock lands at once",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [],
+   "expect": "2026-11-02T10:00:00-05:00"
+  },
+  {
+   "name": "an open lock lands at once",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "open"
+    }
+   ],
+   "expect": "2026-11-02T10:00:00-05:00"
+  },
+  {
+   "name": "a wait lands after its hours",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "wait",
+     "hours": 2
+    }
+   ],
+   "expect": "2026-11-02T12:00:00-05:00"
+  },
+  {
+   "name": "the longest of two waits holds",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "wait",
+     "hours": 2
+    },
+    {
+     "level": "wait",
+     "hours": 5
+    }
+   ],
+   "expect": "2026-11-02T15:00:00-05:00"
+  },
+  {
+   "name": "inside a change window it lands at once",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "changeHours",
+     "from": "09:00",
+     "to": "18:00",
+     "hours": 0
+    }
+   ],
+   "expect": "2026-11-02T10:00:00-05:00"
+  },
+  {
+   "name": "before a change window it waits for the window",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "changeHours",
+     "from": "12:00",
+     "to": "18:00",
+     "hours": 0
+    }
+   ],
+   "expect": "2026-11-02T12:00:00-05:00"
+  },
+  {
+   "name": "after a change window it waits for the next day",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "changeHours",
+     "from": "06:00",
+     "to": "09:00",
+     "hours": 0
+    }
+   ],
+   "expect": "2026-11-03T06:00:00-05:00"
+  },
+  {
+   "name": "a window across midnight opens in the evening",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "changeHours",
+     "from": "22:00",
+     "to": "06:00",
+     "hours": 0
+    }
+   ],
+   "expect": "2026-11-02T22:00:00-05:00"
+  },
+  {
+   "name": "a window across midnight holds after midnight",
+   "at": "2026-11-03T01:00:00-05:00",
+   "locks": [
+    {
+     "level": "changeHours",
+     "from": "22:00",
+     "to": "06:00",
+     "hours": 0
+    }
+   ],
+   "expect": "2026-11-03T01:00:00-05:00"
+  },
+  {
+   "name": "the window own wait hours count first",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "changeHours",
+     "from": "10:00",
+     "to": "18:00",
+     "hours": 9
+    }
+   ],
+   "expect": "2026-11-03T10:00:00-05:00"
+  },
+  {
+   "name": "two windows land in their overlap",
+   "at": "2026-11-02T08:00:00-05:00",
+   "locks": [
+    {
+     "level": "changeHours",
+     "from": "10:00",
+     "to": "12:00",
+     "hours": 0
+    },
+    {
+     "level": "changeHours",
+     "from": "11:00",
+     "to": "13:00",
+     "hours": 0
+    }
+   ],
+   "expect": "2026-11-02T11:00:00-05:00"
+  },
+  {
+   "name": "two windows that share no minute never land by themselves",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "changeHours",
+     "from": "10:00",
+     "to": "12:00",
+     "hours": 0
+    },
+    {
+     "level": "changeHours",
+     "from": "13:00",
+     "to": "15:00",
+     "hours": 0
+    }
+   ],
+   "expect": null
+  },
+  {
+   "name": "windows that touch share no minute",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "changeHours",
+     "from": "10:00",
+     "to": "12:00",
+     "hours": 0
+    },
+    {
+     "level": "changeHours",
+     "from": "12:00",
+     "to": "14:00",
+     "hours": 0
+    }
+   ],
+   "expect": null
+  },
+  {
+   "name": "a seal lands at the following midnight",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "sealedUntil",
+     "until": "2026-11-05"
+    }
+   ],
+   "expect": "2026-11-06T00:00:00-05:00"
+  },
+  {
+   "name": "a seal that has ended acts as open",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "sealedUntil",
+     "until": "2026-11-01"
+    }
+   ],
+   "expect": "2026-11-02T10:00:00-05:00"
+  },
+  {
+   "name": "a seal and a wait land at the later",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "sealedUntil",
+     "until": "2026-11-03"
+    },
+    {
+     "level": "wait",
+     "hours": 100
+    }
+   ],
+   "expect": "2026-11-06T14:00:00-05:00"
+  },
+  {
+   "name": "a seal and a window land in the window after the seal",
+   "at": "2026-11-02T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "sealedUntil",
+     "until": "2026-11-03"
+    },
+    {
+     "level": "changeHours",
+     "from": "09:00",
+     "to": "17:00",
+     "hours": 0
+    }
+   ],
+   "expect": "2026-11-04T09:00:00-05:00"
+  },
+  {
+   "name": "a window that starts in the skipped hour of spring starts when the hour is over",
+   "at": "2027-03-14T00:30:00-05:00",
+   "locks": [
+    {
+     "level": "changeHours",
+     "from": "02:30",
+     "to": "05:00",
+     "hours": 0
+    }
+   ],
+   "expect": "2027-03-14T03:30:00-04:00"
+  },
+  {
+   "name": "a window that spans the skipped hour of spring is open at once after it",
+   "at": "2027-03-14T03:15:00-04:00",
+   "locks": [
+    {
+     "level": "changeHours",
+     "from": "01:30",
+     "to": "03:30",
+     "hours": 0
+    }
+   ],
+   "expect": "2027-03-14T03:15:00-04:00"
+  },
+  {
+   "name": "a window inside the repeated hour of autumn is its first pass only",
+   "at": "2026-11-01T01:30:00-05:00",
+   "locks": [
+    {
+     "level": "changeHours",
+     "from": "01:15",
+     "to": "01:45",
+     "hours": 0
+    }
+   ],
+   "expect": "2026-11-02T01:15:00-05:00"
+  },
+  {
+   "name": "a window inside the repeated hour of autumn opens in the first pass",
+   "at": "2026-11-01T00:30:00-04:00",
+   "locks": [
+    {
+     "level": "changeHours",
+     "from": "01:15",
+     "to": "01:45",
+     "hours": 0
+    }
+   ],
+   "expect": "2026-11-01T01:15:00-04:00"
+  },
+  {
+   "name": "a wait counts elapsed hours across the autumn change",
+   "at": "2026-10-31T23:00:00-04:00",
+   "locks": [
+    {
+     "level": "wait",
+     "hours": 6
+    }
+   ],
+   "expect": "2026-11-01T04:00:00-05:00"
+  },
+  {
+   "name": "a wait counts elapsed hours across the spring change",
+   "at": "2027-03-13T23:00:00-05:00",
+   "locks": [
+    {
+     "level": "wait",
+     "hours": 6
+    }
+   ],
+   "expect": "2027-03-14T06:00:00-04:00"
+  },
+  {
+   "name": "a seal ending the day before the spring change lands at that midnight",
+   "at": "2027-03-10T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "sealedUntil",
+     "until": "2027-03-13"
+    }
+   ],
+   "expect": "2027-03-14T00:00:00-05:00"
+  },
+  {
+   "name": "a seal ending on the day of the spring change lands at the next midnight",
+   "at": "2027-03-10T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "sealedUntil",
+     "until": "2027-03-14"
+    }
+   ],
+   "expect": "2027-03-15T00:00:00-04:00"
+  },
+  {
+   "name": "a seal ending the day before the autumn change lands at that midnight",
+   "at": "2026-10-28T10:00:00-04:00",
+   "locks": [
+    {
+     "level": "sealedUntil",
+     "until": "2026-10-31"
+    }
+   ],
+   "expect": "2026-11-01T00:00:00-04:00"
+  },
+  {
+   "name": "a seal ending on the long day of the autumn change lands at the next midnight",
+   "at": "2026-10-28T10:00:00-04:00",
+   "locks": [
+    {
+     "level": "sealedUntil",
+     "until": "2026-11-01"
+    }
+   ],
+   "expect": "2026-11-02T00:00:00-05:00"
+  },
+  {
+   "name": "a seal and a window that starts in the skipped hour land at the moved start",
+   "at": "2027-03-10T10:00:00-05:00",
+   "locks": [
+    {
+     "level": "sealedUntil",
+     "until": "2027-03-13"
+    },
+    {
+     "level": "changeHours",
+     "from": "02:30",
+     "to": "05:00",
+     "hours": 0
+    }
+   ],
+   "expect": "2027-03-14T03:30:00-04:00"
+  }
+ ]
+}

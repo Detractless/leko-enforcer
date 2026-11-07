@@ -1,0 +1,29 @@
+{
+  "description": "Shared test vectors for partner keys (PBKDF2-HMAC-SHA256, secret NFC-normalised, UTF-8, 32 bytes). Used by the app tests and by the checker.",
+  "vectors": [
+    {
+      "name": "ascii",
+      "secret": "correct horse battery staple",
+      "secretNfc": "correct horse battery staple",
+      "note": "plain ASCII secret",
+      "key": {
+        "alg": "pbkdf2-sha256",
+        "iterations": 100000,
+        "salt": "AAECAwQFBgcICQoLDA0ODw==",
+        "hash": "49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e"
+      }
+    },
+    {
+      "name": "accented",
+      "secret": "café über ångström",
+      "secretNfc": "café über ångström",
+      "note": "secret with accented letters written precomposed; a decomposed spelling must give the same hash",
+      "key": {
+        "alg": "pbkdf2-sha256",
+        "iterations": 300000,
+        "salt": "//z59vPw7ern5OHe29jV0g==",
+        "hash": "11fc416ef71c2ca057d16ef03bfb1ada1a7cb58c671771ef59ca8b4ca4833f82"
+      }
+    }
+  ]
+}

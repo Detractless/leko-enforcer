@@ -1,0 +1,2247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "enforcer-config-v2.schema.json",
+  "title": "Enforcer settings, format 2",
+  "description": "The files of an Enforcer settings zip: general.json, blocks/<id>.json, practices/<id>.json, routines/<id>.json, decks/<id>.json and books/<id>.json, each stamped with the number 2. Every file is a JSON object; a field this schema does not list refuses its file. Beside the standard keywords each field carries: x-part (Blocks, Practices, Routines, Protection or Basics), x-loosening (how a change of the field loosens: up, down, set-leave, set-join, days, bool-off, any, never, rules, door, pass-length, lock, protection, dayStart or emergency), and exactly one of required (in its object's required list), default, x-absent (what leaving it out means) or x-requiredWhen (the case in which it is required). A field inside the shared definitions lock and key that carries no x-part or x-loosening takes the value of the field that holds it. examples are values the importer accepts and x-invalid are values it refuses.",
+  "x-files": {
+    "general": "general.json",
+    "block": "blocks/<id>.json",
+    "practice": "practices/<id>.json",
+    "routine": "routines/<id>.json",
+    "deck": "decks/<id>.json",
+    "book": "books/<id>.json"
+  },
+  "$defs": {
+    "id": {
+      "description": "An id: ASCII letters, digits, - and _, 1 to 64 characters.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "examples": [
+        "night-1",
+        "Morning_2",
+        "x"
+      ],
+      "x-invalid": [
+        "",
+        "has space",
+        "a/b",
+        "café",
+        "a.b"
+      ]
+    },
+    "name": {
+      "description": "A display name, 1 to 60 characters.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+    },
+    "package": {
+      "description": "An app's package name: parts of letters, digits, - and _ joined by dots.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$",
+      "examples": [
+        "com.example.app",
+        "single",
+        "a-b.c_d.e1"
+      ],
+      "x-invalid": [
+        "",
+        "has space",
+        ".leading",
+        "double..dot",
+        "trailing.",
+        "a/b"
+      ]
+    },
+    "clock": {
+      "description": "A time of day written HH:MM, from 00:00 to 23:59.",
+      "type": "string",
+      "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+      "examples": [
+        "00:00",
+        "07:30",
+        "23:59"
+      ],
+      "x-invalid": [
+        "24:00",
+        "7:30",
+        "12:60",
+        "1230",
+        "12:5",
+        "noon"
+      ]
+    },
+    "clockEnd": {
+      "description": "A time of day written HH:MM, from 00:00 to 23:59, or 24:00 for the end of the day.",
+      "type": "string",
+      "pattern": "^(([01][0-9]|2[0-3]):[0-5][0-9]|24:00)$",
+      "examples": [
+        "00:00",
+        "23:59",
+        "24:00"
+      ],
+      "x-invalid": [
+        "24:01",
+        "25:00",
+        "7:30",
+        "12:60",
+        "noon"
+      ]
+    },
+    "days": {
+      "description": "Weekdays named mon to sun; leaving the list out, or naming all seven, means every day.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat",
+          "sun"
+        ]
+      },
+      "examples": [
+        [
+          "mon"
+        ],
+        [
+          "sat",
+          "sun"
+        ]
+      ],
+      "x-invalid": [
+        [
+          "monday"
+        ],
+        [
+          "mon",
+          5
+        ],
+        "mon"
+      ]
+    },
+    "key": {
+      "description": "A partner key. A new key is the PBKDF2 form; the sha256 form exists only for keys converted from Enforcer 0.2 and is accepted only when the phone already stores the same key.",
+      "type": "object",
+      "required": [
+        "alg",
+        "hash"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "alg": {
+          "description": "How the key was made: pbkdf2-sha256 (PBKDF2 with HMAC-SHA-256 over the NFC, UTF-8 secret) or sha256 (an unsalted digest converted from 0.2).",
+          "type": "string",
+          "enum": [
+            "pbkdf2-sha256",
+            "sha256"
+          ]
+        },
+        "iterations": {
+          "description": "The PBKDF2 iteration count, 100000 to 600000. Not used by the sha256 form.",
+          "type": "integer",
+          "minimum": 100000,
+          "maximum": 600000,
+          "x-requiredWhen": "alg is pbkdf2-sha256"
+        },
+        "salt": {
+          "description": "The PBKDF2 salt: base64 of 16 bytes. Not used by the sha256 form.",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]{22}==$",
+          "examples": [
+            "AAECAwQFBgcICQoLDA0ODw==",
+            "////////////////////8w=="
+          ],
+          "x-invalid": [
+            "",
+            "short",
+            "AAECAwQFBgcICQoLDA0O",
+            "AAECAwQFBgcICQoLDA0ODw"
+          ],
+          "x-requiredWhen": "alg is pbkdf2-sha256"
+        },
+        "hash": {
+          "description": "The 32-byte digest as 64 lowercase hex characters.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "examples": [
+            "49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e"
+          ],
+          "x-invalid": [
+            "",
+            "49D49C25F597846209F0D92E7770AB64E1C75E94B4CE6C509265EE67175D2A1E",
+            "49d49c25",
+            "zz9c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "alg": {
+                "const": "pbkdf2-sha256"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "iterations",
+              "salt"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "iterations"
+                  ]
+                },
+                {
+                  "required": [
+                    "salt"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "lock": {
+      "description": "How hard the item is to loosen: open (at once), wait (hours after the import), changeHours (inside a daily window, after a wait) or sealedUntil (not before the end of a date). A missing lock is open.",
+      "type": "object",
+      "required": [
+        "level"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "description": "The kind of lock.",
+          "type": "string",
+          "enum": [
+            "open",
+            "wait",
+            "changeHours",
+            "sealedUntil"
+          ]
+        },
+        "hours": {
+          "description": "The wait in hours, up to 8760 (one year). A wait is 1 or more; for changeHours it may be 0.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8760,
+          "x-requiredWhen": "level is wait; with changeHours it defaults to 0"
+        },
+        "from": {
+          "$ref": "#/$defs/clock",
+          "description": "Where the daily change window opens. A window with from after to crosses midnight.",
+          "x-requiredWhen": "level is changeHours"
+        },
+        "to": {
+          "$ref": "#/$defs/clockEnd",
+          "description": "Where the daily change window closes. It differs from from.",
+          "x-requiredWhen": "level is changeHours"
+        },
+        "until": {
+          "description": "The last day of the seal, written YYYY-MM-DD; the seal holds through the end of that day.",
+          "type": "string",
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
+          "format": "date",
+          "examples": [
+            "2026-12-31",
+            "2027-02-28"
+          ],
+          "x-invalid": [
+            "2026-13-01",
+            "2026-02-30",
+            "26-12-31",
+            "2026/12/31",
+            ""
+          ],
+          "x-requiredWhen": "level is sealedUntil"
+        },
+        "partnerKeyHash": {
+          "$ref": "#/$defs/key",
+          "description": "A partner key that can let a waiting change through early.",
+          "x-absent": "no partner key"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "level": {
+                "const": "wait"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "hours"
+            ],
+            "properties": {
+              "hours": {
+                "minimum": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "level": {
+                "const": "changeHours"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "from",
+              "to"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "level": {
+                "const": "sealedUntil"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "until"
+            ]
+          }
+        }
+      ]
+    },
+    "stretch": {
+      "description": "One allowed stretch of the day.",
+      "type": "object",
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/clock",
+          "description": "Where the stretch starts.",
+          "x-part": "Blocks",
+          "x-loosening": "rules"
+        },
+        "to": {
+          "$ref": "#/$defs/clockEnd",
+          "description": "Where the stretch ends. It differs from from; a stretch with from after to crosses midnight.",
+          "x-part": "Blocks",
+          "x-loosening": "rules"
+        }
+      }
+    },
+    "rule": {
+      "description": "One rule of a block. The block is closed when any of its rules closes it.",
+      "type": "object",
+      "required": [
+        "id",
+        "kind"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id",
+          "description": "The rule's id, unique inside its block.",
+          "x-part": "Blocks",
+          "x-loosening": "rules"
+        },
+        "kind": {
+          "description": "always (closed all the time), everyOpen (closed at every arrival), outsideHours (closed outside the allowed stretches), minutes (closed once an amount of use is spent) or opens (closed once a number of openings is spent).",
+          "type": "string",
+          "enum": [
+            "always",
+            "everyOpen",
+            "outsideHours",
+            "minutes",
+            "opens"
+          ],
+          "x-part": "Blocks",
+          "x-loosening": "rules"
+        },
+        "days": {
+          "$ref": "#/$defs/days",
+          "description": "The weekdays the rule applies on.",
+          "x-absent": "every day",
+          "x-part": "Blocks",
+          "x-loosening": "rules"
+        },
+        "allowed": {
+          "description": "The stretches of the day the block is open, at most 12 that do not overlap. An empty list closes the block all day.",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/stretch"
+          },
+          "x-requiredWhen": "kind is outsideHours",
+          "x-part": "Blocks",
+          "x-loosening": "rules"
+        },
+        "amount": {
+          "description": "The minutes of use allowed in the period; 0 closes the block from the start of the period.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000,
+          "x-requiredWhen": "kind is minutes",
+          "x-part": "Blocks",
+          "x-loosening": "rules"
+        },
+        "count": {
+          "description": "The number of openings allowed in the period.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000,
+          "x-requiredWhen": "kind is opens",
+          "x-part": "Blocks",
+          "x-loosening": "rules"
+        },
+        "per": {
+          "description": "The period the amount or count is counted over: hour (minutes rules only), day or week.",
+          "type": "string",
+          "enum": [
+            "hour",
+            "day",
+            "week"
+          ],
+          "x-requiredWhen": "kind is minutes or opens",
+          "x-part": "Blocks",
+          "x-loosening": "rules"
+        },
+        "scope": {
+          "description": "Whether the amount is one pot for the whole block or one for each app.",
+          "type": "string",
+          "enum": [
+            "block",
+            "app"
+          ],
+          "x-requiredWhen": "kind is minutes or opens",
+          "x-part": "Blocks",
+          "x-loosening": "rules"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "always",
+                  "everyOpen"
+                ]
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "allowed"
+                  ]
+                },
+                {
+                  "required": [
+                    "amount"
+                  ]
+                },
+                {
+                  "required": [
+                    "count"
+                  ]
+                },
+                {
+                  "required": [
+                    "per"
+                  ]
+                },
+                {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "outsideHours"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "allowed"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "amount"
+                  ]
+                },
+                {
+                  "required": [
+                    "count"
+                  ]
+                },
+                {
+                  "required": [
+                    "per"
+                  ]
+                },
+                {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "minutes"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "amount",
+              "per",
+              "scope"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "allowed"
+                  ]
+                },
+                {
+                  "required": [
+                    "count"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "opens"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "count",
+              "per",
+              "scope"
+            ],
+            "properties": {
+              "per": {
+                "enum": [
+                  "day",
+                  "week"
+                ]
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "allowed"
+                  ]
+                },
+                {
+                  "required": [
+                    "amount"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "door": {
+      "description": "The way in when a rule has closed the block.",
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "description": "wall (no way in), wait (a button after a wait), sentence (type a sentence), key (a partner key), practice (do a practice) or walking (walk to use: the app is open only while you keep a pace).",
+          "type": "string",
+          "enum": [
+            "wall",
+            "wait",
+            "sentence",
+            "key",
+            "practice",
+            "walking"
+          ],
+          "x-part": "Blocks",
+          "x-loosening": "door"
+        },
+        "seconds": {
+          "description": "The wait in seconds, 0 to 600; 0 is a plain button.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600,
+          "x-requiredWhen": "kind is wait",
+          "x-part": "Blocks",
+          "x-loosening": "door"
+        },
+        "sentence": {
+          "description": "The sentence to type, 1 to 500 characters and not blank.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "x-requiredWhen": "kind is sentence",
+          "x-part": "Blocks",
+          "x-loosening": "door"
+        },
+        "keyHash": {
+          "$ref": "#/$defs/key",
+          "description": "The partner key that opens the door.",
+          "x-requiredWhen": "kind is key",
+          "x-part": "Blocks",
+          "x-loosening": "door"
+        },
+        "practice": {
+          "$ref": "#/$defs/id",
+          "description": "The id of the practice to do.",
+          "x-requiredWhen": "kind is practice",
+          "x-part": "Blocks",
+          "x-loosening": "door"
+        },
+        "stepsPerMinute": {
+          "description": "Only for kind walking: the pace to keep, 60 to 200 steps a minute. The app is open only while the steps of the last 30 seconds, doubled, reach it, and its screen comes back after 15 seconds below it. A slow stroll is about 80, a brisk walk 100 to 130. A walking door gives no pass.",
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 200,
+          "x-absent": "100 steps a minute",
+          "x-part": "Blocks",
+          "x-loosening": "door"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "wait"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "seconds"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "seconds"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "sentence"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "sentence"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "sentence"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "key"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "keyHash"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "keyHash"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "practice"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "practice"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "practice"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "walking"
+              }
+            }
+          },
+          "then": {},
+          "else": {
+            "not": {
+              "required": [
+                "stepsPerMinute"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "pass": {
+      "description": "What a door gives. Required when the door is neither a wall nor walking and the block has an always, everyOpen or outsideHours rule; refused otherwise.",
+      "type": "object",
+      "required": [
+        "length",
+        "perDay"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "length": {
+          "description": "oneOpen (until the app is left), minutes (a number of minutes) or untilDayStart (until the next day start).",
+          "type": "string",
+          "enum": [
+            "oneOpen",
+            "minutes",
+            "untilDayStart"
+          ],
+          "x-part": "Blocks",
+          "x-loosening": "pass-length"
+        },
+        "minutes": {
+          "description": "How long a minutes pass lasts, 1 to 1440; a oneOpen pass may also carry it as a limit.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1440,
+          "x-requiredWhen": "length is minutes; refused with untilDayStart",
+          "x-part": "Blocks",
+          "x-loosening": "up"
+        },
+        "scope": {
+          "description": "Whether the pass opens the whole block or only the app it was given for.",
+          "type": "string",
+          "enum": [
+            "block",
+            "app"
+          ],
+          "x-absent": "block for minutes and untilDayStart, app for oneOpen (which refuses block)",
+          "x-part": "Blocks",
+          "x-loosening": "up"
+        },
+        "perDay": {
+          "description": "How many passes a counting day allows, 1 to 100000, or the word unlimited.",
+          "type": [
+            "integer",
+            "string"
+          ],
+          "minimum": 1,
+          "maximum": 100000,
+          "pattern": "^unlimited$",
+          "examples": [
+            1,
+            100000,
+            "unlimited"
+          ],
+          "x-invalid": [
+            0,
+            100001,
+            "forever",
+            "Unlimited",
+            1.5
+          ],
+          "x-part": "Blocks",
+          "x-loosening": "up"
+        },
+        "risingCost": {
+          "description": "none, or double: each pass of the day waits twice as long as the last. Double needs a wait door of at least 1 second or a practice door.",
+          "type": "string",
+          "enum": [
+            "none",
+            "double"
+          ],
+          "default": "none",
+          "x-part": "Blocks",
+          "x-loosening": "up"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "length": {
+                "const": "minutes"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "minutes"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "length": {
+                "const": "untilDayStart"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "minutes"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "length": {
+                "const": "oneOpen"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "scope": {
+                "const": "app"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "earn": {
+      "description": "Minutes the person earns for a practice, added to the block's minutes rules.",
+      "type": "object",
+      "required": [
+        "practice",
+        "minutesEach",
+        "maxPerDay"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "practice": {
+          "$ref": "#/$defs/id",
+          "description": "The id of the practice that earns the time.",
+          "x-part": "Blocks",
+          "x-loosening": "any"
+        },
+        "minutesEach": {
+          "description": "The minutes one completed practice earns, 1 to 120.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120,
+          "x-part": "Blocks",
+          "x-loosening": "up"
+        },
+        "maxPerDay": {
+          "description": "The most minutes earned in a counting day, from minutesEach to 600.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600,
+          "x-part": "Blocks",
+          "x-loosening": "up"
+        }
+      }
+    },
+    "covers": {
+      "description": "What the block covers: named apps, or every launchable app except the named ones.",
+      "type": "object",
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "apps"
+          ]
+        },
+        {
+          "required": [
+            "allAppsExcept"
+          ]
+        }
+      ],
+      "properties": {
+        "apps": {
+          "description": "One or more package names. A name Enforcer never blocks refuses the file.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/package"
+          },
+          "x-requiredWhen": "allAppsExcept is not given",
+          "x-part": "Blocks",
+          "x-loosening": "set-leave"
+        },
+        "allAppsExcept": {
+          "description": "Package names left uncovered. Every launchable app, including apps installed later, is covered except these and the apps Enforcer never blocks.",
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/package"
+          },
+          "x-requiredWhen": "apps is not given",
+          "x-part": "Blocks",
+          "x-loosening": "set-join"
+        }
+      }
+    },
+    "general": {
+      "description": "general.json: the settings that are not about one item. A missing file leaves them unchanged.",
+      "type": "object",
+      "required": [
+        "schema"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "description": "The format stamp: the number 2.",
+          "type": "integer",
+          "enum": [
+            2
+          ],
+          "x-part": "Basics",
+          "x-loosening": "any"
+        },
+        "dayStart": {
+          "description": "When a counting day begins, a whole hour written HH:00.",
+          "type": "string",
+          "pattern": "^([01][0-9]|2[0-3]):00$",
+          "default": "04:00",
+          "examples": [
+            "00:00",
+            "04:00",
+            "23:00"
+          ],
+          "x-invalid": [
+            "24:00",
+            "04:30",
+            "4:00",
+            "0400",
+            "04:60"
+          ],
+          "x-part": "Basics",
+          "x-loosening": "dayStart"
+        },
+        "theme": {
+          "description": "The app's palette: follow the phone, or always light or dark.",
+          "type": "string",
+          "enum": [
+            "system",
+            "light",
+            "dark"
+          ],
+          "default": "system",
+          "x-part": "Basics",
+          "x-loosening": "never"
+        },
+        "tracking": {
+          "description": "Whether usage history rows are kept. Package names and times only.",
+          "type": "boolean",
+          "default": true,
+          "x-part": "Basics",
+          "x-loosening": "never"
+        },
+        "countdownBubble": {
+          "description": "Whether the floating countdown shows over an app with a minutes rule.",
+          "type": "boolean",
+          "default": false,
+          "x-part": "Basics",
+          "x-loosening": "never"
+        },
+        "practiceRecording": {
+          "description": "Whether each camera set is recorded on the phone: the body points the counter saw, what it said of each frame, and small pictures four a second, kept 7 days and at most 300 MB, in Enforcer's own files. With it off nothing is recorded, and the next camera set deletes every recording kept. The phone writes it only when it is false.",
+          "type": "boolean",
+          "x-absent": "recording is on (the phone writes practiceRecording only when it is false)",
+          "examples": [
+            false
+          ],
+          "x-part": "Basics",
+          "x-loosening": "never"
+        },
+        "repSound": {
+          "description": "Whether each rep the camera counts plays a short ding, as media: the media volume sets it. A hold dings once when it starts to count. The phone writes it only when it is false.",
+          "type": "boolean",
+          "x-absent": "the ding is on (the phone writes repSound only when it is false)",
+          "examples": [
+            false
+          ],
+          "x-part": "Basics",
+          "x-loosening": "never"
+        },
+        "neverTakeOver": {
+          "description": "Package names a routine's take-over never covers. While every app on the screen is one of these or one Enforcer never blocks, the take-over waits; the routine still owes its practice. Adding an app eases, so it waits for the lock of general.json.",
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/package"
+          },
+          "x-absent": "No app is listed: a take-over covers every app Enforcer may block. The phone writes the list only when it names an app.",
+          "examples": [
+            [
+              "com.google.android.apps.maps"
+            ]
+          ],
+          "x-part": "Routines",
+          "x-loosening": "set-join"
+        },
+        "emergency": {
+          "description": "Emergency passes: how many a day and how long each lasts. A pass is offered only where a practice cannot run, and it opens what it opened before.",
+          "type": "object",
+          "additionalProperties": false,
+          "default": {
+            "perDay": 1,
+            "minutes": 15
+          },
+          "properties": {
+            "perDay": {
+              "description": "Emergency passes a counting day, 1 to 3. The old perWeek is gone, and a file that names it is refused.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3,
+              "default": 1,
+              "x-part": "Protection",
+              "x-loosening": "emergency"
+            },
+            "minutes": {
+              "description": "Minutes one emergency pass lasts, 1 to 60.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 60,
+              "default": 15,
+              "x-part": "Protection",
+              "x-loosening": "emergency"
+            }
+          },
+          "x-part": "Protection",
+          "x-loosening": "any"
+        },
+        "uninstallProtection": {
+          "description": "How uninstall protection is lifted. Turning it on happens on the phone.",
+          "type": "object",
+          "required": [
+            "mode"
+          ],
+          "additionalProperties": false,
+          "x-absent": "unchanged (a new phone starts with a wait of 1 day)",
+          "properties": {
+            "mode": {
+              "description": "key (a partner key lifts it) or wait (it lifts after a number of days).",
+              "type": "string",
+              "enum": [
+                "key",
+                "wait"
+              ],
+              "x-part": "Protection",
+              "x-loosening": "protection"
+            },
+            "days": {
+              "description": "The days a wait lasts, 1 to 365.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 365,
+              "x-requiredWhen": "mode is wait",
+              "x-part": "Protection",
+              "x-loosening": "protection"
+            },
+            "keyHash": {
+              "$ref": "#/$defs/key",
+              "description": "The partner key that lifts protection.",
+              "x-requiredWhen": "mode is key",
+              "x-part": "Protection",
+              "x-loosening": "protection"
+            }
+          },
+          "x-part": "Protection",
+          "x-loosening": "protection"
+        },
+        "lock": {
+          "$ref": "#/$defs/lock",
+          "description": "The lock on the settings in this file.",
+          "default": {
+            "level": "open"
+          },
+          "x-part": "Basics",
+          "x-loosening": "lock"
+        }
+      }
+    },
+    "block": {
+      "description": "blocks/<id>.json: a set of apps, when they are closed and the way back in.",
+      "type": "object",
+      "required": [
+        "schema",
+        "id",
+        "name",
+        "covers",
+        "rules"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "description": "The format stamp: the number 2.",
+          "type": "integer",
+          "enum": [
+            2
+          ],
+          "x-part": "Blocks",
+          "x-loosening": "any"
+        },
+        "id": {
+          "$ref": "#/$defs/id",
+          "description": "The block's id. It equals the file name without .json.",
+          "x-part": "Blocks",
+          "x-loosening": "any"
+        },
+        "name": {
+          "$ref": "#/$defs/name",
+          "description": "The name shown on the block screen and in Waiting changes.",
+          "x-part": "Blocks",
+          "x-loosening": "never"
+        },
+        "on": {
+          "description": "Whether the block enforces. Switching a block off is a loosening.",
+          "type": "boolean",
+          "default": true,
+          "x-part": "Blocks",
+          "x-loosening": "bool-off"
+        },
+        "message": {
+          "description": "Text shown above the door, 0 to 300 characters; empty means none.",
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 300,
+          "x-absent": "no message",
+          "x-part": "Blocks",
+          "x-loosening": "never"
+        },
+        "covers": {
+          "$ref": "#/$defs/covers",
+          "description": "What the block covers: either apps or allAppsExcept.",
+          "x-part": "Blocks",
+          "x-loosening": "any"
+        },
+        "rules": {
+          "description": "When the block is closed: 0 to 16 rules. No rules is allowed only when a routine holds the block.",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/rule"
+          },
+          "x-part": "Blocks",
+          "x-loosening": "rules"
+        },
+        "door": {
+          "$ref": "#/$defs/door",
+          "description": "The way in.",
+          "default": {
+            "kind": "wait",
+            "seconds": 0
+          },
+          "x-part": "Blocks",
+          "x-loosening": "door"
+        },
+        "pass": {
+          "$ref": "#/$defs/pass",
+          "description": "What the door gives.",
+          "x-absent": "no pass",
+          "x-part": "Blocks",
+          "x-loosening": "set-join"
+        },
+        "earn": {
+          "$ref": "#/$defs/earn",
+          "description": "Minutes earned by a practice. Only with a minutes rule and no always or everyOpen rule.",
+          "x-absent": "no earn",
+          "x-part": "Blocks",
+          "x-loosening": "set-join"
+        },
+        "lock": {
+          "$ref": "#/$defs/lock",
+          "description": "How hard the block is to loosen.",
+          "default": {
+            "level": "open"
+          },
+          "x-part": "Blocks",
+          "x-loosening": "lock"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "allOf": [
+              {
+                "not": {
+                  "required": [
+                    "door"
+                  ],
+                  "properties": {
+                    "door": {
+                      "required": [
+                        "kind"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "wall",
+                            "walking"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "required": [
+                  "rules"
+                ],
+                "properties": {
+                  "rules": {
+                    "contains": {
+                      "required": [
+                        "kind"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "always",
+                            "everyOpen",
+                            "outsideHours"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "then": {
+            "required": [
+              "pass"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "pass"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "earn"
+            ]
+          },
+          "then": {
+            "properties": {
+              "rules": {
+                "contains": {
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "minutes"
+                    }
+                  }
+                },
+                "not": {
+                  "contains": {
+                    "required": [
+                      "kind"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "enum": [
+                          "always",
+                          "everyOpen"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "practice": {
+      "description": "practices/<id>.json: something to do, such as push-ups or flashcards.",
+      "type": "object",
+      "required": [
+        "schema",
+        "id",
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "description": "The format stamp: the number 2.",
+          "type": "integer",
+          "enum": [
+            2
+          ],
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "id": {
+          "$ref": "#/$defs/id",
+          "description": "The practice's id. It equals the file name without .json.",
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "name": {
+          "$ref": "#/$defs/name",
+          "description": "The name shown on the take-over and the block screens that ask for the practice.",
+          "x-part": "Practices",
+          "x-loosening": "never"
+        },
+        "activity": {
+          "description": "pushUps, pistolSquats, deepSquat (a deep squat held in front of the camera: amountPerSet is the seconds held in a set, and the timer runs only while the squat is held), flashcards, readAloud (pages of a book read aloud, each checked by the speech model on the phone) or walking (steps counted in the background by the phone's step counter from Start, with no Stop: a step counts only while Google's activity detection says walking or running, never in a vehicle or on a bike, and at most 250 count in a minute).",
+          "type": "string",
+          "enum": [
+            "pushUps",
+            "pistolSquats",
+            "deepSquat",
+            "flashcards",
+            "walking",
+            "readAloud"
+          ],
+          "x-requiredWhen": "parts is not given",
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "sets": {
+          "description": "How many sets, 1 to 50. Refused for walking, which is one set.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 1,
+          "x-part": "Practices",
+          "x-loosening": "down"
+        },
+        "amountPerSet": {
+          "description": "Repetitions or cards in one set, 1 to 1000; for a deep squat, the seconds held in a set, 5 to 600; for walking, the steps, 100 to 20000; for readAloud, the pages, 1 to 50.",
+          "type": "integer",
+          "minimum": 1,
+          "x-allowed": "a whole number from 1 to 1000; for a deep squat, from 5 to 600; for walking, from 100 to 20000; for readAloud, from 1 to 50",
+          "x-requiredWhen": "parts is not given",
+          "x-part": "Practices",
+          "x-loosening": "down"
+        },
+        "restSeconds": {
+          "description": "Rest between sets in seconds, 0 to 600. Refused for walking.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600,
+          "default": 0,
+          "x-part": "Practices",
+          "x-loosening": "down"
+        },
+        "deck": {
+          "$ref": "#/$defs/id",
+          "description": "The id of the deck to draw cards from. Required for flashcards and refused for any other activity.",
+          "x-absent": "no deck",
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "book": {
+          "$ref": "#/$defs/id",
+          "description": "The id of the book to read from. Required for readAloud and refused for any other activity. The phone checks a page with the speech model in the Minimal Kit app, so that app and its model must be on the phone first: open Minimal Kit, Dictation. Enforcer itself has no internet. A recording, or another phone reading the page aloud, also passes a page.",
+          "x-absent": "no book",
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "match": {
+          "description": "The share of a page's words that must be heard for it to pass, in percent, 60 to 95. Refused for any activity but readAloud.",
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 95,
+          "default": 80,
+          "x-part": "Practices",
+          "x-loosening": "down"
+        },
+        "parts": {
+          "description": "A practice of 2 to 4 parts, done once each in any order in one session. Give parts in place of activity, sets, amountPerSet, restSeconds and deck, which are refused beside it. A walk cannot be a part, because a walk counts in the background. A rising cost doubles every part, and the practice can run only when every part can.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/part"
+          },
+          "x-absent": "the practice is one activity, named by activity",
+          "examples": [
+            [
+              {
+                "activity": "pushUps",
+                "amountPerSet": 10
+              },
+              {
+                "activity": "deepSquat",
+                "amountPerSet": 30
+              }
+            ]
+          ],
+          "x-invalid": [
+            [],
+            [
+              {
+                "activity": "pushUps",
+                "amountPerSet": 10
+              }
+            ],
+            [
+              {
+                "activity": "pushUps",
+                "amountPerSet": 10
+              },
+              {
+                "activity": "walking",
+                "amountPerSet": 500
+              }
+            ]
+          ],
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "verify": {
+          "description": "Whether the camera checks the repetitions. For a practice of parts it applies to the parts the camera watches.",
+          "type": "boolean",
+          "default": true,
+          "x-part": "Practices",
+          "x-loosening": "bool-off"
+        },
+        "typing": {
+          "description": "Whether flashcard answers are typed rather than chosen. For a practice of parts it applies to its flashcard parts.",
+          "type": "boolean",
+          "default": false,
+          "x-part": "Practices",
+          "x-loosening": "bool-off"
+        },
+        "lock": {
+          "$ref": "#/$defs/lock",
+          "description": "How hard the practice is to loosen.",
+          "default": {
+            "level": "open"
+          },
+          "x-part": "Practices",
+          "x-loosening": "lock"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "parts"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "activity"
+                  ]
+                },
+                {
+                  "required": [
+                    "sets"
+                  ]
+                },
+                {
+                  "required": [
+                    "amountPerSet"
+                  ]
+                },
+                {
+                  "required": [
+                    "restSeconds"
+                  ]
+                },
+                {
+                  "required": [
+                    "deck"
+                  ]
+                },
+                {
+                  "required": [
+                    "book"
+                  ]
+                },
+                {
+                  "required": [
+                    "match"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "activity",
+              "amountPerSet"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "activity"
+            ],
+            "properties": {
+              "activity": {
+                "const": "walking"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "amountPerSet": {
+                "minimum": 100,
+                "maximum": 20000
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "sets"
+                  ]
+                },
+                {
+                  "required": [
+                    "restSeconds"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "properties": {
+              "amountPerSet": {
+                "maximum": 1000
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "activity"
+            ],
+            "properties": {
+              "activity": {
+                "const": "deepSquat"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "amountPerSet": {
+                "minimum": 5,
+                "maximum": 600
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "activity"
+            ],
+            "properties": {
+              "activity": {
+                "const": "flashcards"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "deck"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "deck"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "activity"
+            ],
+            "properties": {
+              "activity": {
+                "const": "readAloud"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "book"
+            ],
+            "properties": {
+              "amountPerSet": {
+                "maximum": 50
+              }
+            }
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "book"
+                  ]
+                },
+                {
+                  "required": [
+                    "match"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "part": {
+      "description": "One part of a practice of parts: an activity and how much of it.",
+      "type": "object",
+      "required": [
+        "activity",
+        "amountPerSet"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "activity": {
+          "description": "pushUps, pistolSquats, deepSquat or flashcards. A walk cannot be a part, because a walk counts in the background.",
+          "type": "string",
+          "enum": [
+            "pushUps",
+            "pistolSquats",
+            "deepSquat",
+            "flashcards"
+          ],
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "amountPerSet": {
+          "description": "Repetitions or cards in the part, 1 to 1000; for a deep squat, the seconds held, 5 to 600.",
+          "type": "integer",
+          "minimum": 1,
+          "x-allowed": "a whole number from 1 to 1000; for a deep squat, from 5 to 600",
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "deck": {
+          "$ref": "#/$defs/id",
+          "description": "The id of the deck a flashcard part draws cards from. Required for a flashcard part and refused for any other part.",
+          "x-requiredWhen": "activity is flashcards",
+          "x-part": "Practices",
+          "x-loosening": "any"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "activity"
+            ],
+            "properties": {
+              "activity": {
+                "const": "flashcards"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "deck"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "deck"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "activity"
+            ],
+            "properties": {
+              "activity": {
+                "const": "deepSquat"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "amountPerSet": {
+                "minimum": 5,
+                "maximum": 600
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "amountPerSet": {
+                "maximum": 1000
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ifSkipped": {
+      "description": "What happens when a routine's practice is not done by its due time.",
+      "type": "object",
+      "additionalProperties": false,
+      "default": {
+        "holdBlocks": [],
+        "takeOver": false
+      },
+      "properties": {
+        "holdBlocks": {
+          "description": "The ids of the blocks held closed until the practice is done.",
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "default": [],
+          "x-part": "Routines",
+          "x-loosening": "set-leave"
+        },
+        "takeOver": {
+          "description": "Whether the practice takes over the screen at its due time.",
+          "type": "boolean",
+          "default": false,
+          "x-part": "Routines",
+          "x-loosening": "bool-off"
+        },
+        "ring": {
+          "description": "Whether the phone rings from the due time until the practice is done: the alarm sound on repeat with the alarm volume held at its maximum (your own level comes back after), with a vibration and a notice; while Do Not Disturb silences alarms it plays as an accessibility sound, which Do Not Disturb does not mute. It waits during a call, while an app listed in neverTakeOver is on the screen (or was when the screen went off), while an emergency pass runs, while the practice screen shows progress (a rep or a card within the last 90 seconds), and while a walk of its practice runs, until 5 minutes after that walk's last step. A routine due every so many minutes rings only from its from time until one spacing past its to time; one due at set times rings at any hour.",
+          "type": "boolean",
+          "x-absent": "no ring (the phone writes ring only when it is true)",
+          "examples": [
+            true
+          ],
+          "x-part": "Routines",
+          "x-loosening": "bool-off"
+        },
+        "snooze": {
+          "$ref": "#/$defs/snooze",
+          "description": "Whether the take-over offers Snooze, and how. A snooze quiets this routine's take-over and ring for its minutes. The practice stays owed and its held blocks stay held, and when the minutes end the take-over comes back. Adding a snooze, a longer length, another length or more snoozes a day waits for the lock.",
+          "x-absent": "no snooze",
+          "x-part": "Routines",
+          "x-loosening": "any"
+        }
+      }
+    },
+    "snooze": {
+      "description": "How a routine's take-over can be quieted for a while.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minutes": {
+          "description": "The lengths of a snooze in minutes: 1 to 3 whole numbers, each from 1 to 60. A length named twice counts once, and the lengths are kept shortest first.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
+          },
+          "default": [
+            5,
+            10,
+            20
+          ],
+          "x-allowed": "a list of 1 to 3 whole numbers, each from 1 to 60",
+          "examples": [
+            [
+              5,
+              10,
+              20
+            ],
+            [
+              15
+            ]
+          ],
+          "x-invalid": [
+            [],
+            [
+              0
+            ],
+            [
+              61
+            ],
+            [
+              5,
+              10,
+              20,
+              30
+            ],
+            [
+              5.5
+            ]
+          ],
+          "x-part": "Routines",
+          "x-loosening": "set-join"
+        },
+        "perDay": {
+          "description": "How many snoozes the routine allows in a counting day, 1 to 10. They are counted for each routine, and a restart or a change of the clock never gives one back.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3,
+          "x-part": "Routines",
+          "x-loosening": "up"
+        }
+      }
+    },
+    "due": {
+      "description": "When a routine falls due: at clock times, or every so many minutes between two times.",
+      "type": "object",
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "times"
+          ]
+        },
+        {
+          "required": [
+            "everyMinutes",
+            "from",
+            "to"
+          ]
+        }
+      ],
+      "properties": {
+        "times": {
+          "description": "1 to 12 clock times.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/clock"
+          },
+          "x-requiredWhen": "everyMinutes is not given",
+          "x-part": "Routines",
+          "x-loosening": "set-leave"
+        },
+        "days": {
+          "$ref": "#/$defs/days",
+          "description": "The weekdays the routine falls due on.",
+          "x-absent": "every day",
+          "x-part": "Routines",
+          "x-loosening": "days"
+        },
+        "everyMinutes": {
+          "description": "How many minutes after its last set the routine falls due again, 5 to 1440: done at 21:55, due again at 22:15 with 20.",
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 1440,
+          "x-requiredWhen": "times is not given",
+          "x-part": "Routines",
+          "x-loosening": "up"
+        },
+        "from": {
+          "$ref": "#/$defs/clock",
+          "description": "When the first one of each day falls due; a set done earlier counts from this time.",
+          "x-requiredWhen": "everyMinutes is given",
+          "x-part": "Routines",
+          "x-loosening": "up"
+        },
+        "to": {
+          "$ref": "#/$defs/clockEnd",
+          "description": "The latest time one falls due each day; a set that would bring one after it brings the next at the next day's from. It differs from from.",
+          "x-requiredWhen": "everyMinutes is given",
+          "x-part": "Routines",
+          "x-loosening": "down"
+        }
+      }
+    },
+    "routine": {
+      "description": "routines/<id>.json: a practice that falls due on a schedule and can hold blocks closed until it is done.",
+      "type": "object",
+      "required": [
+        "schema",
+        "id",
+        "name",
+        "practice",
+        "due"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "description": "The format stamp: the number 2.",
+          "type": "integer",
+          "enum": [
+            2
+          ],
+          "x-part": "Routines",
+          "x-loosening": "any"
+        },
+        "id": {
+          "$ref": "#/$defs/id",
+          "description": "The routine's id. It equals the file name without .json.",
+          "x-part": "Routines",
+          "x-loosening": "any"
+        },
+        "name": {
+          "$ref": "#/$defs/name",
+          "description": "The name shown with the routine.",
+          "x-part": "Routines",
+          "x-loosening": "never"
+        },
+        "on": {
+          "description": "Whether the routine runs. Switching it off is a loosening.",
+          "type": "boolean",
+          "default": true,
+          "x-part": "Routines",
+          "x-loosening": "bool-off"
+        },
+        "practice": {
+          "$ref": "#/$defs/id",
+          "description": "The id of the practice to do.",
+          "x-part": "Routines",
+          "x-loosening": "any"
+        },
+        "due": {
+          "$ref": "#/$defs/due",
+          "description": "When the routine falls due: times or everyMinutes.",
+          "x-part": "Routines",
+          "x-loosening": "any"
+        },
+        "ifSkipped": {
+          "$ref": "#/$defs/ifSkipped",
+          "description": "What happens when the practice is not done.",
+          "x-part": "Routines",
+          "x-loosening": "any"
+        },
+        "timesPerDay": {
+          "description": "The most times a day the routine asks for its practice, 1 to 100. Once that many of its practices are credited to it in a counting day, it owes nothing more that day, and the next counting day starts again from its first due time. Adding it, or lowering it, eases a rule, so the change waits.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "x-absent": "no daily goal: the routine falls due at every due time",
+          "x-part": "Routines",
+          "x-loosening": "down"
+        },
+        "lock": {
+          "$ref": "#/$defs/lock",
+          "description": "How hard the routine is to loosen.",
+          "default": {
+            "level": "open"
+          },
+          "x-part": "Routines",
+          "x-loosening": "lock"
+        }
+      }
+    },
+    "card": {
+      "description": "One flashcard.",
+      "type": "object",
+      "required": [
+        "id",
+        "question",
+        "answer"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id",
+          "description": "The card's id, unique inside its deck.",
+          "x-part": "Practices",
+          "x-loosening": "set-leave"
+        },
+        "question": {
+          "description": "The front of the card, 1 to 1000 characters.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "x-part": "Practices",
+          "x-loosening": "set-leave"
+        },
+        "answer": {
+          "description": "The back of the card, 1 to 1000 characters.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "x-part": "Practices",
+          "x-loosening": "set-leave"
+        }
+      }
+    },
+    "returnRule": {
+      "description": "When a card that was answered right comes back.",
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false,
+      "default": {
+        "kind": "afterRest",
+        "restHours": 24
+      },
+      "properties": {
+        "kind": {
+          "description": "afterRest (each card rests, then returns) or wholeDeck (the deck returns together when it is used up).",
+          "type": "string",
+          "enum": [
+            "afterRest",
+            "wholeDeck"
+          ],
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "restHours": {
+          "description": "The rest in hours, 0 to 720: 1 or more for afterRest, 0 or more for wholeDeck.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 720,
+          "x-absent": "24 for afterRest and 0 for wholeDeck",
+          "x-part": "Practices",
+          "x-loosening": "down"
+        }
+      }
+    },
+    "deck": {
+      "description": "decks/<id>.json: flashcards for a practice.",
+      "type": "object",
+      "required": [
+        "schema",
+        "id",
+        "name",
+        "cards"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "description": "The format stamp: the number 2.",
+          "type": "integer",
+          "enum": [
+            2
+          ],
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "id": {
+          "$ref": "#/$defs/id",
+          "description": "The deck's id. It equals the file name without .json.",
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "name": {
+          "$ref": "#/$defs/name",
+          "description": "The deck's name.",
+          "x-part": "Practices",
+          "x-loosening": "never"
+        },
+        "cards": {
+          "description": "1 to 5000 cards.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5000,
+          "items": {
+            "$ref": "#/$defs/card"
+          },
+          "x-part": "Practices",
+          "x-loosening": "set-leave"
+        },
+        "returnRule": {
+          "$ref": "#/$defs/returnRule",
+          "description": "When a card that was answered right comes back.",
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "resetToken": {
+          "description": "Text of 1 to 64 characters; changing it brings every card back.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "x-absent": "no token",
+          "x-part": "Practices",
+          "x-loosening": "never"
+        },
+        "lock": {
+          "$ref": "#/$defs/lock",
+          "description": "How hard the deck is to loosen.",
+          "default": {
+            "level": "open"
+          },
+          "x-part": "Practices",
+          "x-loosening": "lock"
+        }
+      }
+    },
+    "book": {
+      "description": "books/<id>.json: a book to read aloud for a practice.",
+      "type": "object",
+      "required": [
+        "schema",
+        "id",
+        "name",
+        "text"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "description": "The format stamp: the number 2.",
+          "type": "integer",
+          "enum": [
+            2
+          ],
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "id": {
+          "$ref": "#/$defs/id",
+          "description": "The book's id. It equals the file name without .json.",
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "name": {
+          "$ref": "#/$defs/name",
+          "description": "The book's name, shown over the page.",
+          "x-part": "Practices",
+          "x-loosening": "never"
+        },
+        "text": {
+          "description": "The book's words as plain text, 1 to 1000000 characters, with paragraphs split by a blank line. It must hold words. Any change waits for the locks, since a shorter or easier text asks less.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000000,
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "wordsPerPage": {
+          "description": "How long a page is, in words, 40 to 300. The phone cuts pages at paragraph and sentence ends as near this as it can, never over twice it. Any change waits for the locks.",
+          "type": "integer",
+          "minimum": 40,
+          "maximum": 300,
+          "default": 120,
+          "x-part": "Practices",
+          "x-loosening": "any"
+        },
+        "atEnd": {
+          "description": "What the last page leads to: restart goes back to the first page, and stop leaves the practice unable to run, which keeps every hold and offers the emergency pass.",
+          "type": "string",
+          "enum": [
+            "restart",
+            "stop"
+          ],
+          "default": "restart",
+          "x-part": "Practices",
+          "x-loosening": "up"
+        },
+        "resetToken": {
+          "description": "Text of 1 to 64 characters; changing it puts the bookmark back at the first page.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "x-absent": "no token",
+          "x-part": "Practices",
+          "x-loosening": "never"
+        },
+        "lock": {
+          "$ref": "#/$defs/lock",
+          "description": "How hard the book is to loosen.",
+          "default": {
+            "level": "open"
+          },
+          "x-part": "Practices",
+          "x-loosening": "lock"
+        }
+      }
+    }
+  }
+}

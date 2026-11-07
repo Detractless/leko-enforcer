@@ -1,0 +1,1730 @@
+{
+  "description": "Cases for moment seals (lock level sealedAt), made for Leko Enforcer. They are not the phone's cases: the phone 0.3 refuses a file that has one. A seal acts as open once its moment is at or before the moment of the change. Judged with the extended schema.",
+  "zone": "America/New_York",
+  "defaultAt": "2026-11-02T10:00:00-05:00",
+  "diff": [
+    {
+      "name": "the same moment is no change",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-12-01T00:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-12-01T00:00:00Z"
+        }
+      },
+      "expect": []
+    },
+    {
+      "name": "a later moment tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-12-01T00:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-12-31T00:00:00Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "an earlier moment loosens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-12-31T00:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-12-01T00:00:00Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "one second later tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-12-01T00:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-12-01T00:00:01Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "one second earlier loosens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-12-01T00:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-30T23:59:59Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "a moment seal dropped to open loosens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-12-01T00:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "open"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "open to a moment seal tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "open"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-12-01T00:00:00Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a moment seal to a wait that lasts as long tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-04T15:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "wait",
+          "hours": 48
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a moment seal to a wait that ends sooner loosens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-04T15:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "wait",
+          "hours": 47
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "a wait to a moment seal that ends as late tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "wait",
+          "hours": 48
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-04T15:00:00Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a wait to a moment seal that ends sooner loosens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "wait",
+          "hours": 49
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-04T15:00:00Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "a short wait to a moment seal tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "wait",
+          "hours": 24
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-04T15:00:00Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a change window that lands at once to a moment seal tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "changeHours",
+          "from": "09:00",
+          "to": "18:00",
+          "hours": 0
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-04T15:00:00Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a change window with a long wait to a shorter moment seal loosens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "changeHours",
+          "from": "09:00",
+          "to": "18:00",
+          "hours": 100
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-04T15:00:00Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "a moment seal to a change window that lands at once loosens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-04T15:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "changeHours",
+          "from": "09:00",
+          "to": "18:00",
+          "hours": 0
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "a moment seal to a change window that waits as long tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-04T15:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "changeHours",
+          "from": "09:00",
+          "to": "18:00",
+          "hours": 48
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a date seal to a moment seal that ends as late tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedUntil",
+          "until": "2026-11-04"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-05T05:00:00Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a date seal to a moment seal one second sooner loosens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedUntil",
+          "until": "2026-11-04"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-05T04:59:59Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "a moment seal to a date seal that ends as late tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-05T05:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedUntil",
+          "until": "2026-11-04"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a moment seal to a later date seal tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-05T05:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedUntil",
+          "until": "2026-11-05"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a moment seal to an earlier date seal loosens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-05T05:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedUntil",
+          "until": "2026-11-03"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "a seal whose moment has passed acts as open: to a wait it tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-02T14:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "wait",
+          "hours": 1
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a seal whose moment has passed acts as open: to a moment seal it tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-02T14:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-02T13:00:00Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a seal whose moment has passed acts as open: to open it is judged as an ended date seal is",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-02T14:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "open"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "an ended date seal to open is judged the same",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedUntil",
+          "until": "2026-11-01"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "open"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "a seal ending at the exact moment of the change has passed",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-02T15:00:00Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-02T14:30:00Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a seal ending one second after the change has not passed",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-02T15:00:01Z"
+        }
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ],
+        "lock": {
+          "level": "sealedAt",
+          "at": "2026-11-02T14:30:00Z"
+        }
+      },
+      "expect": [
+        {
+          "unit": "lock",
+          "loosens": true
+        }
+      ]
+    }
+  ],
+  "due": [
+    {
+      "name": "a moment seal lands at its exact moment",
+      "at": "2026-11-02T10:00:00-05:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2026-11-04T15:00:00Z"
+        }
+      ],
+      "expect": "2026-11-04T10:00:00-05:00",
+      "sameInEveryZone": true
+    },
+    {
+      "name": "a moment seal late in the day does not wait for midnight",
+      "at": "2026-11-02T10:00:00-05:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2026-11-02T23:00:00Z"
+        }
+      ],
+      "expect": "2026-11-02T18:00:00-05:00",
+      "sameInEveryZone": true
+    },
+    {
+      "name": "a moment seal lands to the second",
+      "at": "2026-11-02T10:00:00-05:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2026-11-02T15:00:01Z"
+        }
+      ],
+      "expect": "2026-11-02T10:00:01-05:00",
+      "sameInEveryZone": true
+    },
+    {
+      "name": "a moment seal that has passed lands at once",
+      "at": "2026-11-02T10:00:00-05:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2026-11-02T14:00:00Z"
+        }
+      ],
+      "expect": "2026-11-02T10:00:00-05:00",
+      "sameInEveryZone": true
+    },
+    {
+      "name": "a moment seal ending at the exact moment of the request lands at once",
+      "at": "2026-11-02T10:00:00-05:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2026-11-02T15:00:00Z"
+        }
+      ],
+      "expect": "2026-11-02T10:00:00-05:00",
+      "sameInEveryZone": true
+    },
+    {
+      "name": "a moment seal and a longer wait land at the wait",
+      "at": "2026-11-02T10:00:00-05:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2026-11-03T15:00:00Z"
+        },
+        {
+          "level": "wait",
+          "hours": 100
+        }
+      ],
+      "expect": "2026-11-06T14:00:00-05:00"
+    },
+    {
+      "name": "a moment seal and a shorter wait land at the seal",
+      "at": "2026-11-02T10:00:00-05:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2026-11-04T15:00:00Z"
+        },
+        {
+          "level": "wait",
+          "hours": 10
+        }
+      ],
+      "expect": "2026-11-04T10:00:00-05:00",
+      "sameInEveryZone": true
+    },
+    {
+      "name": "a moment seal inside a change window lands at the seal",
+      "at": "2026-11-02T10:00:00-05:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2026-11-04T20:00:00Z"
+        },
+        {
+          "level": "changeHours",
+          "from": "09:00",
+          "to": "17:00",
+          "hours": 0
+        }
+      ],
+      "expect": "2026-11-04T15:00:00-05:00"
+    },
+    {
+      "name": "a moment seal after a change window lands when the window next opens",
+      "at": "2026-11-02T10:00:00-05:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2026-11-04T23:00:00Z"
+        },
+        {
+          "level": "changeHours",
+          "from": "09:00",
+          "to": "17:00",
+          "hours": 0
+        }
+      ],
+      "expect": "2026-11-05T09:00:00-05:00"
+    },
+    {
+      "name": "two moment seals land at the later",
+      "at": "2026-11-02T10:00:00-05:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2026-11-04T15:00:00Z"
+        },
+        {
+          "level": "sealedAt",
+          "at": "2026-11-03T15:00:00Z"
+        }
+      ],
+      "expect": "2026-11-04T10:00:00-05:00",
+      "sameInEveryZone": true
+    },
+    {
+      "name": "a moment seal and a later date seal land at the date seal's midnight",
+      "at": "2026-11-02T10:00:00-05:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2026-11-04T15:00:00Z"
+        },
+        {
+          "level": "sealedUntil",
+          "until": "2026-11-10"
+        }
+      ],
+      "expect": "2026-11-11T00:00:00-05:00"
+    },
+    {
+      "name": "a moment seal and an earlier date seal land at the moment seal",
+      "at": "2026-11-02T10:00:00-05:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2026-11-04T15:00:00Z"
+        },
+        {
+          "level": "sealedUntil",
+          "until": "2026-11-03"
+        }
+      ],
+      "expect": "2026-11-04T10:00:00-05:00"
+    },
+    {
+      "name": "a moment seal across the spring clock change lands at its exact moment",
+      "at": "2027-03-13T12:00:00-05:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2027-03-14T12:00:00Z"
+        }
+      ],
+      "expect": "2027-03-14T08:00:00-04:00",
+      "sameInEveryZone": true
+    },
+    {
+      "name": "a moment seal across the autumn clock change lands at its exact moment",
+      "at": "2026-10-31T12:00:00-04:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2026-11-01T08:00:00Z"
+        }
+      ],
+      "expect": "2026-11-01T03:00:00-05:00",
+      "sameInEveryZone": true
+    },
+    {
+      "name": "a passed moment seal beside a wait lands at the wait",
+      "at": "2026-11-02T10:00:00-05:00",
+      "locks": [
+        {
+          "level": "sealedAt",
+          "at": "2026-11-02T14:00:00Z"
+        },
+        {
+          "level": "wait",
+          "hours": 2
+        }
+      ],
+      "expect": "2026-11-02T12:00:00-05:00"
+    }
+  ]
+}

@@ -1,0 +1,1215 @@
+{
+ "description": "Documents and the canonical form each is brought to before two versions are compared: every default written (the default keyword of the schema), weekday lists in order and without a list that names every day or none, repeated names and times taken out, a one-open pass with no scope, the hours of a change window and the rest hours of a deck. The app and the checker read the same file.",
+ "cases": [
+  {
+   "name": "general with nothing but the stamp",
+   "kind": "general",
+   "doc": {
+    "schema": 2
+   },
+   "canonical": {
+    "schema": 2,
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    },
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "general with part of the emergency passes",
+   "kind": "general",
+   "doc": {
+    "schema": 2,
+    "emergency": {
+     "perDay": 2
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "emergency": {
+     "perDay": 2,
+     "minutes": 15
+    },
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "general with a change window that has no hours",
+   "kind": "general",
+   "doc": {
+    "schema": 2,
+    "lock": {
+     "level": "changeHours",
+     "from": "10:00",
+     "to": "12:00"
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "lock": {
+     "level": "changeHours",
+     "from": "10:00",
+     "to": "12:00",
+     "hours": 0
+    },
+    "dayStart": "04:00",
+    "theme": "system",
+    "tracking": true,
+    "countdownBubble": false,
+    "emergency": {
+     "perDay": 1,
+     "minutes": 15
+    }
+   }
+  },
+  {
+   "name": "a block with the least a block needs",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "m",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ]
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "m",
+      "kind": "minutes",
+      "amount": 30,
+      "per": "day",
+      "scope": "block"
+     }
+    ],
+    "on": true,
+    "door": {
+     "kind": "wait",
+     "seconds": 0
+    },
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a block with all seven days on a rule and an empty message",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r",
+      "kind": "always",
+      "days": [
+       "sun",
+       "sat",
+       "fri",
+       "thu",
+       "wed",
+       "tue",
+       "mon"
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 5
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "perDay": 3
+    },
+    "message": ""
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 5
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "perDay": 3,
+     "risingCost": "none",
+     "scope": "block"
+    },
+    "on": true,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a block whose rule days are out of order",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r",
+      "kind": "always",
+      "days": [
+       "fri",
+       "mon"
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 5
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "perDay": 3
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r",
+      "kind": "always",
+      "days": [
+       "mon",
+       "fri"
+      ]
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 5
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "perDay": 3,
+     "risingCost": "none",
+     "scope": "block"
+    },
+    "on": true,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a block that names an app twice",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b",
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 5
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "perDay": 3
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 5
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "perDay": 3,
+     "risingCost": "none",
+     "scope": "block"
+    },
+    "on": true,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a one-open pass has no scope written",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 5
+    },
+    "pass": {
+     "length": "oneOpen",
+     "perDay": "unlimited",
+     "scope": "app"
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 5
+    },
+    "pass": {
+     "length": "oneOpen",
+     "perDay": "unlimited",
+     "risingCost": "none"
+    },
+    "on": true,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "an until-day-start pass gets the whole block",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 5
+    },
+    "pass": {
+     "length": "untilDayStart",
+     "perDay": 1
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 5
+    },
+    "pass": {
+     "length": "untilDayStart",
+     "perDay": 1,
+     "risingCost": "none",
+     "scope": "block"
+    },
+    "on": true,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a pass with a rising cost kept",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 5
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "perDay": 3,
+     "risingCost": "double"
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 5
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "perDay": 3,
+     "risingCost": "double",
+     "scope": "block"
+    },
+    "on": true,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a block with a sealed lock and a partner key",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 5
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "perDay": 3
+    },
+    "lock": {
+     "level": "sealedUntil",
+     "until": "2026-12-31",
+     "partnerKeyHash": {
+      "alg": "sha256",
+      "hash": "49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e"
+     }
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 5
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "perDay": 3,
+     "risingCost": "none",
+     "scope": "block"
+    },
+    "lock": {
+     "level": "sealedUntil",
+     "until": "2026-12-31",
+     "partnerKeyHash": {
+      "alg": "sha256",
+      "hash": "49d49c25f597846209f0d92e7770ab64e1c75e94b4ce6c509265ee67175d2a1e"
+     }
+    },
+    "on": true
+   }
+  },
+  {
+   "name": "a practice with the least it needs",
+   "kind": "practice",
+   "doc": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "amountPerSet": 5
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "pushUps",
+    "amountPerSet": 5,
+    "sets": 1,
+    "restSeconds": 0,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a routine with times out of order and repeated",
+   "kind": "routine",
+   "doc": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "practice": "p",
+    "due": {
+     "times": [
+      "19:00",
+      "07:00",
+      "19:00"
+     ]
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00",
+      "19:00"
+     ]
+    },
+    "on": true,
+    "ifSkipped": {
+     "holdBlocks": [],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a routine every so many minutes on all seven days",
+   "kind": "routine",
+   "doc": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "practice": "p",
+    "due": {
+     "everyMinutes": 60,
+     "from": "08:00",
+     "to": "20:00",
+     "days": [
+      "mon",
+      "tue",
+      "wed",
+      "thu",
+      "fri",
+      "sat",
+      "sun"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b",
+      "b"
+     ]
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "practice": "p",
+    "due": {
+     "everyMinutes": 60,
+     "from": "08:00",
+     "to": "20:00"
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b"
+     ],
+     "takeOver": false
+    },
+    "on": true,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a deck with the least it needs",
+   "kind": "deck",
+   "doc": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q",
+      "answer": "a"
+     }
+    ]
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q",
+      "answer": "a"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a deck that returns the whole deck with no rest given",
+   "kind": "deck",
+   "doc": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q",
+      "answer": "a"
+     }
+    ],
+    "returnRule": {
+     "kind": "wholeDeck"
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q",
+      "answer": "a"
+     }
+    ],
+    "returnRule": {
+     "kind": "wholeDeck",
+     "restHours": 0
+    },
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a deck that returns each card after a rest with no rest given",
+   "kind": "deck",
+   "doc": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q",
+      "answer": "a"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest"
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "d",
+    "name": "D",
+    "cards": [
+     {
+      "id": "c1",
+      "question": "q",
+      "answer": "a"
+     }
+    ],
+    "returnRule": {
+     "kind": "afterRest",
+     "restHours": 24
+    },
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a walk is written with neither sets nor restSeconds",
+   "kind": "practice",
+   "doc": {
+    "schema": 2,
+    "id": "walk",
+    "name": "Walk",
+    "activity": "walking",
+    "amountPerSet": 2000
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "walk",
+    "name": "Walk",
+    "activity": "walking",
+    "amountPerSet": 2000,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a walking door is written with its pace, 100 when left out",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "tube",
+    "name": "Tube",
+    "covers": {
+     "apps": [
+      "com.google.android.youtube"
+     ]
+    },
+    "rules": [
+     {
+      "id": "all",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "walking"
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "tube",
+    "name": "Tube",
+    "covers": {
+     "apps": [
+      "com.google.android.youtube"
+     ]
+    },
+    "rules": [
+     {
+      "id": "all",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "walking",
+     "stepsPerMinute": 100
+    },
+    "on": true,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a deep squat with the sets and rest left out",
+   "kind": "practice",
+   "doc": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "deepSquat",
+    "amountPerSet": 30
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "activity": "deepSquat",
+    "amountPerSet": 30,
+    "sets": 1,
+    "restSeconds": 0,
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a practice of parts holds neither sets nor rest",
+   "kind": "practice",
+   "doc": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ]
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pushUps",
+      "amountPerSet": 10
+     },
+     {
+      "activity": "deepSquat",
+      "amountPerSet": 30
+     }
+    ],
+    "verify": true,
+    "typing": false,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a practice of parts keeps the deck of a flashcard part",
+   "kind": "practice",
+   "doc": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pistolSquats",
+      "amountPerSet": 5
+     },
+     {
+      "activity": "flashcards",
+      "amountPerSet": 10,
+      "deck": "spanish"
+     }
+    ],
+    "typing": true
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "p",
+    "name": "P",
+    "parts": [
+     {
+      "activity": "pistolSquats",
+      "amountPerSet": 5
+     },
+     {
+      "activity": "flashcards",
+      "amountPerSet": 10,
+      "deck": "spanish"
+     }
+    ],
+    "typing": true,
+    "verify": true,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a routine with a daily goal and no snooze",
+   "kind": "routine",
+   "doc": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ]
+    },
+    "timesPerDay": 3
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ]
+    },
+    "timesPerDay": 3,
+    "on": true,
+    "ifSkipped": {
+     "holdBlocks": [],
+     "takeOver": false
+    },
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a snooze that names only its count gets the default lengths",
+   "kind": "routine",
+   "doc": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "perDay": 5
+     }
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ]
+    },
+    "ifSkipped": {
+     "holdBlocks": [
+      "b1"
+     ],
+     "takeOver": true,
+     "snooze": {
+      "perDay": 5,
+      "minutes": [
+       5,
+       10,
+       20
+      ]
+     }
+    },
+    "on": true,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a snooze that names nothing is the default snooze",
+   "kind": "routine",
+   "doc": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ]
+    },
+    "ifSkipped": {
+     "snooze": {}
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ]
+    },
+    "ifSkipped": {
+     "snooze": {
+      "minutes": [
+       5,
+       10,
+       20
+      ],
+      "perDay": 3
+     },
+     "holdBlocks": [],
+     "takeOver": false
+    },
+    "on": true,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a snooze keeps its lengths shortest first, each once",
+   "kind": "routine",
+   "doc": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ]
+    },
+    "ifSkipped": {
+     "snooze": {
+      "minutes": [
+       10,
+       5,
+       5
+      ],
+      "perDay": 2
+     }
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ]
+    },
+    "ifSkipped": {
+     "snooze": {
+      "minutes": [
+       5,
+       10
+      ],
+      "perDay": 2
+     },
+     "holdBlocks": [],
+     "takeOver": false
+    },
+    "on": true,
+    "lock": {
+     "level": "open"
+    }
+   }
+  },
+  {
+   "name": "a snooze that names only its lengths gets the default count",
+   "kind": "routine",
+   "doc": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ]
+    },
+    "ifSkipped": {
+     "takeOver": true,
+     "ring": true,
+     "snooze": {
+      "minutes": [
+       30
+      ]
+     }
+    }
+   },
+   "canonical": {
+    "schema": 2,
+    "id": "r",
+    "name": "R",
+    "practice": "p",
+    "due": {
+     "times": [
+      "07:00"
+     ]
+    },
+    "ifSkipped": {
+     "takeOver": true,
+     "ring": true,
+     "snooze": {
+      "minutes": [
+       30
+      ],
+      "perDay": 3
+     },
+     "holdBlocks": []
+    },
+    "on": true,
+    "lock": {
+     "level": "open"
+    }
+   }
+  }
+ ]
+}

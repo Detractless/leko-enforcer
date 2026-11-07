@@ -1,0 +1,23 @@
+[package]
+name = "leko-cli"
+version = "0.0.1"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "The leko command: makes a timed session (a session rule and a moment seal) from a typed length or from heard words."
+
+[lib]
+name = "leko_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "leko"
+path = "src/main.rs"
+
+[dependencies]
+leko-core = { path = "../core" }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+crc32fast = "1"
+base64 = "0.22"

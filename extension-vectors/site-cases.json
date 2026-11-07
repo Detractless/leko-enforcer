@@ -1,0 +1,1619 @@
+{
+ "description": "Cases for sites in a block's coverage, made for Leko Enforcer. They are not the phone's cases: the phone 0.3 refuses a file that has sites. Canonical cases compare only the covers part of the canonical block; change cases are judged the way the phone's loosening cases are.",
+ "zone": "America/New_York",
+ "defaultAt": "2026-11-02T10:00:00-05:00",
+ "canonical": [
+  {
+   "name": "a repeated site is kept once",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com",
+      "b.com",
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "canonicalCovers": {
+    "apps": [
+     "com.a"
+    ],
+    "sites": [
+     "a.com",
+     "b.com"
+    ]
+   }
+  },
+  {
+   "name": "sites keep the order they were written in",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "b.com",
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "canonicalCovers": {
+    "apps": [
+     "com.a"
+    ],
+    "sites": [
+     "b.com",
+     "a.com"
+    ]
+   }
+  },
+  {
+   "name": "sites alone stay alone and no app list is added",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "canonicalCovers": {
+    "sites": [
+     "a.com"
+    ]
+   }
+  },
+  {
+   "name": "a repeated site alone is kept once",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "sites": [
+      "a.com",
+      "a.com",
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "canonicalCovers": {
+    "sites": [
+     "a.com"
+    ]
+   }
+  },
+  {
+   "name": "repeated apps and repeated sites are both kept once",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.a"
+     ],
+     "sites": [
+      "a.com",
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "canonicalCovers": {
+    "apps": [
+     "com.a"
+    ],
+    "sites": [
+     "a.com"
+    ]
+   }
+  },
+  {
+   "name": "sites beside an all-except list",
+   "kind": "block",
+   "doc": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "allAppsExcept": [
+      "com.z",
+      "com.z"
+     ],
+     "sites": [
+      "a.com",
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "canonicalCovers": {
+    "allAppsExcept": [
+     "com.z"
+    ],
+    "sites": [
+     "a.com"
+    ]
+   }
+  }
+ ],
+ "diff": [
+  {
+   "name": "adding a site tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com",
+      "b.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers.sites#b.com",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "removing a site loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com",
+      "b.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers.sites#b.com",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "reordering the sites is no change",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com",
+      "b.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "b.com",
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": []
+  },
+  {
+   "name": "a repeated site is no change",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com",
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": []
+  },
+  {
+   "name": "dropping the whole list loosens every site",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com",
+      "b.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers.sites#a.com",
+     "loosens": true
+    },
+    {
+     "unit": "covers.sites#b.com",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "adding a whole list tightens every site",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com",
+      "b.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers.sites#a.com",
+     "loosens": false
+    },
+    {
+     "unit": "covers.sites#b.com",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "replacing a site loosens and tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "b.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers.sites#a.com",
+     "loosens": true
+    },
+    {
+     "unit": "covers.sites#b.com",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "adding a site beside the all-except form tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "allAppsExcept": [],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "allAppsExcept": [],
+     "sites": [
+      "a.com",
+      "b.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers.sites#b.com",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "sites alone: adding a site tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "sites": [
+      "a.com",
+      "b.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers.sites#b.com",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "sites alone: removing a site loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "sites": [
+      "a.com",
+      "b.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers.sites#b.com",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "sites alone to apps: the apps tighten, the site leaving loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers",
+     "loosens": false
+    },
+    {
+     "unit": "covers.sites#a.com",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "apps and sites to sites alone loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "an app joining beside unchanged sites tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers.apps#com.b",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "an app leaving beside unchanged sites loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a",
+      "com.b"
+     ],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers.apps#com.b",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "apps to all-except beside unchanged sites tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "allAppsExcept": [],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "all-except to apps beside unchanged sites loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "allAppsExcept": [],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "apps": [
+      "com.a"
+     ],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers",
+     "loosens": true
+    }
+   ]
+  },
+  {
+   "name": "sites alone to all-except tightens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "allAppsExcept": [],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers",
+     "loosens": false
+    }
+   ]
+  },
+  {
+   "name": "all-except to sites alone loosens",
+   "kind": "block",
+   "old": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "allAppsExcept": [],
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "new": {
+    "schema": 2,
+    "id": "b",
+    "name": "B",
+    "covers": {
+     "sites": [
+      "a.com"
+     ]
+    },
+    "rules": [
+     {
+      "id": "r1",
+      "kind": "always"
+     }
+    ],
+    "door": {
+     "kind": "wait",
+     "seconds": 30
+    },
+    "pass": {
+     "length": "minutes",
+     "minutes": 10,
+     "scope": "block",
+     "perDay": 3,
+     "risingCost": "none"
+    },
+    "lock": {
+     "level": "open"
+    }
+   },
+   "expect": [
+    {
+     "unit": "covers",
+     "loosens": true
+    }
+   ]
+  }
+ ]
+}

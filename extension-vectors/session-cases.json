@@ -1,0 +1,1188 @@
+{
+  "description": "Cases for session rules, made for Leko Enforcer. They are not the phone's cases: the phone 0.3 refuses a file that has a session rule. A session counts as no rule once its end is at or before the moment of the change. Judged with the extended schema.",
+  "zone": "America/New_York",
+  "defaultAt": "2026-11-02T10:00:00-05:00",
+  "diff": [
+    {
+      "name": "a later end tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T20:00:00Z"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#s",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "an earlier end loosens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T20:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#s",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "the same end is no change",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "expect": []
+    },
+    {
+      "name": "removing a running session loosens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#s",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "adding a running session tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#s",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a session on its own can be added",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": []
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#s",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "removing an ended session is no change",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T14:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ]
+      },
+      "expect": []
+    },
+    {
+      "name": "adding an ended session is no change",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T14:00:00Z"
+          }
+        ]
+      },
+      "expect": []
+    },
+    {
+      "name": "a session ending at the exact moment of the change has ended: removing it is no change",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T15:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ]
+      },
+      "expect": []
+    },
+    {
+      "name": "a session ending at the exact moment of the change has ended: adding it is no change",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T15:00:00Z"
+          }
+        ]
+      },
+      "expect": []
+    },
+    {
+      "name": "a session ending one second after the change is running: removing it loosens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T15:00:01Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#s",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "a session ending one second after the change is running: adding it tightens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T15:00:01Z"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#s",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "moving an ended session to another ended end is no change",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T14:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-01T00:00:00Z"
+          }
+        ]
+      },
+      "expect": []
+    },
+    {
+      "name": "an ended session made to run again counts as adding one",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T14:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#s",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a running session cut to an ended time counts as removing it",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T14:00:00Z"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#s",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "an ended session beside a changed rule does not hide the change",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T14:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 60,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T14:00:00Z"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#m",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "a session and another rule change are judged each on their own",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 60,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T20:00:00Z"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#m",
+          "loosens": true
+        },
+        {
+          "unit": "rules#s",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a session renamed is one removed and one added",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s1",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s2",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#s1",
+          "loosens": true
+        },
+        {
+          "unit": "rules#s2",
+          "loosens": false
+        }
+      ]
+    },
+    {
+      "name": "a running session replaced by an always rule of the same id loosens or tightens as any kind change does",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "always"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#s",
+          "loosens": true
+        }
+      ]
+    },
+    {
+      "name": "asked later, the same session has ended: removing it is no change",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ]
+      },
+      "expect": [],
+      "at": "2026-11-02T13:00:00-05:00"
+    },
+    {
+      "name": "asked just before it ends, the same session is running: removing it loosens",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#s",
+          "loosens": true
+        }
+      ],
+      "at": "2026-11-02T12:59:59-05:00"
+    },
+    {
+      "name": "asked later, a later end of a session that has ended is no change",
+      "kind": "block",
+      "old": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T18:00:00Z"
+          }
+        ]
+      },
+      "new": {
+        "schema": 2,
+        "id": "b",
+        "name": "B",
+        "covers": {
+          "apps": [
+            "com.a"
+          ]
+        },
+        "rules": [
+          {
+            "id": "m",
+            "kind": "minutes",
+            "amount": 30,
+            "per": "day",
+            "scope": "block"
+          },
+          {
+            "id": "s",
+            "kind": "session",
+            "endsAt": "2026-11-02T20:00:00Z"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "unit": "rules#s",
+          "loosens": false
+        }
+      ],
+      "at": "2026-11-02T13:00:00-05:00"
+    }
+  ]
+}

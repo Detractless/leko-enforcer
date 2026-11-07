@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = ["core", "cli"]
+
+[profile.dev]
+# The corpus builds a 70 MB entry; unoptimised deflate would take minutes.
+opt-level = 2

@@ -1,0 +1,241 @@
+/* Leko Minimalist Circle Interface - Zero-Asset CSS */
+:root {
+  --bg-color: #E2E1DD;
+  --ring-color: #141414;
+  --text-color: #111111;
+  --text-muted: #73726E;
+  --card-bg: rgba(255, 255, 255, 0.65);
+  --card-border: rgba(20, 20, 20, 0.08);
+  --btn-bg: #141414;
+  --btn-text: #E2E1DD;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-x: hidden;
+  padding: 24px;
+}
+
+.viewport-container {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Stage & Circle Rings */
+.circle-stage {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-core {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border: 8px solid var(--ring-color);
+  border-radius: 50%;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.4s ease;
+  z-index: 10;
+}
+
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(20, 20, 20, 0.22);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* States */
+/* 1. IDLE (Resting gentle breathing) */
+.circle-stage.state-idle .ring-core {
+  animation: breathe 4s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% { transform: scale(1); border-width: 8px; opacity: 1; }
+  50% { transform: scale(1.025); border-width: 7.5px; opacity: 0.92; }
+}
+
+/* 2. LISTENING (Microphone voice input, ripples contract inward) */
+.circle-stage.state-listening .ring-core {
+  border-width: 9.5px;
+  transform: scale(1.06);
+  border-color: #000;
+}
+.circle-stage.state-listening .ripple-1 {
+  animation: ripple-in 1.8s cubic-bezier(0.2, 0.8, 0.4, 1) infinite;
+}
+.circle-stage.state-listening .ripple-2 {
+  animation: ripple-in 1.8s cubic-bezier(0.2, 0.8, 0.4, 1) infinite 0.6s;
+}
+@keyframes ripple-in {
+  0% { width: 270px; height: 270px; opacity: 0; border-width: 1px; }
+  40% { opacity: 0.35; border-width: 2.5px; }
+  100% { width: 180px; height: 180px; opacity: 0; border-width: 6px; }
+}
+
+/* 3. THINKING (Local LLM reasoning & lock evaluation) */
+.circle-stage.state-thinking .ring-core {
+  border-style: solid;
+  border-width: 6px;
+  border-top-color: transparent;
+  animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 4. SPEAKING (Maeve voice output, ripples expand outward) */
+.circle-stage.state-speaking .ring-core {
+  border-width: 8px;
+  animation: speak-pulse 1.4s ease-in-out infinite;
+}
+.circle-stage.state-speaking .ripple-1 {
+  animation: ripple-out 2s cubic-bezier(0.1, 0.5, 0.2, 1) infinite;
+}
+.circle-stage.state-speaking .ripple-2 {
+  animation: ripple-out 2s cubic-bezier(0.1, 0.5, 0.2, 1) infinite 0.7s;
+}
+.circle-stage.state-speaking .ripple-3 {
+  animation: ripple-out 2s cubic-bezier(0.1, 0.5, 0.2, 1) infinite 1.4s;
+}
+@keyframes speak-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+@keyframes ripple-out {
+  0% { width: 180px; height: 180px; opacity: 0.6; border-width: 4px; }
+  100% { width: 280px; height: 280px; opacity: 0; border-width: 1px; }
+}
+
+/* 5. CONFIRMED (Authoritative lock-in pulse) */
+.circle-stage.state-confirmed .ring-core {
+  animation: confirm-snap 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes confirm-snap {
+  0% { transform: scale(1); border-width: 8px; }
+  35% { transform: scale(0.94); border-width: 12px; border-color: #000; }
+  100% { transform: scale(1); border-width: 8px; border-color: var(--ring-color); }
+}
+
+/* Status Label */
+.status-pill {
+  margin-top: 16px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  text-align: center;
+  height: 20px;
+}
+
+/* Minimalist Draft Confirmation Card */
+.draft-card {
+  margin-top: 24px;
+  width: 100%;
+  max-width: 340px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  padding: 18px 20px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.draft-card.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+}
+.card-badge {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  color: #555;
+  background: rgba(0,0,0,0.06);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.card-details {
+  font-size: 13px;
+  color: #444;
+  line-height: 1.45;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn-primary {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+}
+.btn-secondary {
+  background: rgba(0, 0, 0, 0.05);
+  color: #444;
+}

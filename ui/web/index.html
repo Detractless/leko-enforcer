@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leko</title>
+  <link rel="stylesheet" href="circle.css">
+</head>
+<body>
+  <div class="viewport-container">
+    <div id="stage" class="circle-stage state-idle">
+      <div class="ripple ripple-1"></div>
+      <div class="ripple ripple-2"></div>
+      <div class="ripple ripple-3"></div>
+      <div class="ring-core"></div>
+    </div>
+
+    <div id="status" class="status-pill">Ready</div>
+
+    <!-- Minimalist Plan Confirmation Card -->
+    <div id="draft-card" class="draft-card">
+      <div class="card-header">
+        <span class="card-title">Social Media Block</span>
+        <span class="card-badge">2h Lock</span>
+      </div>
+      <div class="card-details">
+        Blocks reddit.com, twitter.com until 02:45 AM.
+      </div>
+      <div class="card-actions">
+        <button id="btn-cancel" class="btn btn-secondary">Dismiss</button>
+        <button id="btn-confirm" class="btn btn-primary">Confirm & Lock</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    const stageEl = document.getElementById('stage');
+    const statusEl = document.getElementById('status');
+    const cardEl = document.getElementById('draft-card');
+
+    const controller = new CircleController(stageEl, statusEl, cardEl);
+    const bridge = new LekoBridge(controller);
+
+    document.getElementById('btn-confirm').addEventListener('click', () => controller.confirmDraft());
+    document.getElementById('btn-cancel').addEventListener('click', () => controller.cancelDraft());
+
+    // Click/tap the circle to toggle listening state
+    stageEl.addEventListener('click', () => {
+      if (controller.currentState === 'idle') {
+        controller.setState('listening');
+      } else if (controller.currentState === 'listening') {
+        bridge.sendVoiceTurn('Block Reddit and Twitter for 2 hours');
+      }
+    });
+  </script>
+</body>
+</html>

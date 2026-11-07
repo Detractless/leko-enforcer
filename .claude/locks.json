@@ -230,6 +230,22 @@
           "sha256": "96c08cd5b8a8b14d768636c0d892dfd0afc14a3c51bde6ea5e49494487d403ce"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/minimalist-circle-ui.md",
+      "sha256": "fe1061eac8ffef0ada2eb6e2a395fd3ae4e35c9663362bb86b16d4bace552832",
+      "state": "locked",
+      "reason": "contract \"minimalist-circle-ui\" opened by the user: I'm thinking we're gonna go with WebView. Okay, so let's create that contract.",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-07T05:42:49.617Z",
+      "history": [
+        {
+          "at": "2026-11-07T05:42:49.617Z",
+          "event": "lock",
+          "sha256": "fe1061eac8ffef0ada2eb6e2a395fd3ae4e35c9663362bb86b16d4bace552832"
+        }
+      ]
     }
   ]
 }

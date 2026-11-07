@@ -1,4 +1,5 @@
-"""Leko Voice Assistant: Full interactive loop combining Hands-Free STT, Turn-Taking VAD, LLM Tool Calling, CLI execution, Maeve TTS, and Minimalist Circle UI IPC.
+"""Leko Voice Assistant: Full interactive loop combining Hands-Free STT, Zero-Model Turn-Taking,
+LLM Tool Calling, CLI execution, Maeve TTS, and Minimalist Circle UI IPC.
 """
 from __future__ import annotations
 
@@ -32,7 +33,7 @@ sys.path.insert(0, str(HERE))
 
 from llm_router import parse_user_intent, tool_to_cli_args, ensure_server
 from ui_bridge import UIPipelineBridge
-from turn_detector import TurnDetector
+from turn_detector import TurnDetector, TurnBufferMerger, looks_unfinished
 
 LEKO_BIN = REPO_ROOT / "target/release/leko"
 PHONON_25_MODEL = Path("/Users/calibro/.t3/scratch/2026-11-05-can-you-review-this-project-4f6400cb/phonon-2.5-en-mlx")
@@ -202,6 +203,7 @@ class HandsfreeTurnManager:
         self.sample_rate = sample_rate
         self.chunk_size = chunk_size
         self.detector = TurnDetector()
+        self.merger = TurnBufferMerger(grace_period_s=0.9)
         self.stream = None
         self.is_running = False
         self._raw_buf = bytearray()
@@ -211,6 +213,7 @@ class HandsfreeTurnManager:
         with self._lock:
             self.is_running = True
             self.detector.reset()
+            self.merger.clear()
             self._raw_buf.clear()
 
             def _audio_callback(indata, frames, time_info, status):
@@ -226,7 +229,7 @@ class HandsfreeTurnManager:
                     chunk = np.frombuffer(chunk_bytes, dtype=np.int16)
                     ended, audio = self.detector.feed(chunk)
                     if ended and len(audio) > 0:
-                        threading.Thread(target=self.on_turn_complete, args=(audio,), daemon=True).start()
+                        threading.Thread(target=self._handle_turn, args=(audio,), daemon=True).start()
 
             self.stream = sd.RawInputStream(
                 samplerate=self.sample_rate,
@@ -237,9 +240,14 @@ class HandsfreeTurnManager:
             )
             self.stream.start()
 
+    def _handle_turn(self, audio: np.ndarray):
+        full_audio = self.merger.merge_continuation(audio)
+        self.on_turn_complete(full_audio, self.merger)
+
     def stop(self):
         with self._lock:
             self.is_running = False
+            self.merger.clear()
             if self.stream:
                 try:
                     self.stream.stop()
@@ -260,16 +268,29 @@ def main():
     bridge = UIPipelineBridge()
     pending_draft: Dict[str, Any] = {}
 
-    def on_handsfree_speech(audio_f32: np.ndarray):
+    def on_handsfree_speech(audio_f32: np.ndarray, merger: TurnBufferMerger):
         if bridge:
             bridge.emit_state("thinking", "Transcribing...")
         text = transcribe_audio(audio_f32)
         print(f"\n[Transcribed]: \"{text}\"")
-        if text:
-            process_query(text, args.settings, auto_confirm=False, bridge=bridge)
-        else:
+        if not text:
             if bridge:
                 bridge.emit_idle()
+            return
+
+        # Dangling guard: if sentence ends on an unfinished grammatical clause, give 1.0s grace period
+        if looks_unfinished(text):
+            print(f"[Turn Guard]: Sentence ends on incomplete clause ('{text.split()[-1]}'). Holding for continuation...")
+            merger.push_turn(audio_f32)
+            if bridge:
+                bridge.emit_state("listening", "Listening...")
+            time.sleep(1.0)
+            if merger.is_pending_continuation():
+                merger.clear()
+            else:
+                return  # Subsequent speech arrived and was merged!
+
+        process_query(text, args.settings, auto_confirm=False, bridge=bridge)
 
     turn_manager = HandsfreeTurnManager(on_turn_complete=on_handsfree_speech)
 
@@ -283,11 +304,13 @@ def main():
         elif act == "stop":
             stop_playback()
             turn_manager.detector.reset()
+            turn_manager.merger.clear()
             bridge.emit_idle()
             speak("Stopped.")
         elif act == "mute":
             _is_muted = action_data.get("muted", True)
             turn_manager.detector.reset()
+            turn_manager.merger.clear()
             status_text = "Muted" if _is_muted else "Ready"
             bridge.emit_state("idle", status_text)
         elif act == "confirm":
@@ -327,7 +350,7 @@ def main():
     if args.query:
         process_query(args.query, args.settings, auto_confirm=args.confirm, bridge=bridge)
     else:
-        print("\nLeko Voice Assistant ready with hands-free turn detection.")
+        print("\nLeko Voice Assistant ready with zero-model natural turn detection.")
         print("Speak naturally into your mic (or type below, 'exit' to quit):")
         while True:
             try:

@@ -79,7 +79,7 @@ for i in range(0, len(speech), 2560):
 assert not turn_ended, "Turn should not end while active speech is ongoing"
 
 # Feed quiet frames
-silence = np.zeros(16000, dtype=np.int16)
+silence = np.zeros(24000, dtype=np.int16)
 for i in range(0, len(silence), 2560):
     chunk = silence[i:i+2560]
     if len(chunk) == 2560:

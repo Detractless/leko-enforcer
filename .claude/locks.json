@@ -262,6 +262,22 @@
           "sha256": "09f1d7053756c3a190803ac7de956c41d66ed6040b58ea5c2ff47548b0fcd558"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/zero-model-turn-taking.md",
+      "sha256": "1e039996b0facbcd427064f257176eca271955c543e17258f17f5e8b6d377834",
+      "state": "locked",
+      "reason": "contract \"zero-model-turn-taking\" opened by the user: yes",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-07T06:35:48.910Z",
+      "history": [
+        {
+          "at": "2026-11-07T06:35:48.910Z",
+          "event": "lock",
+          "sha256": "1e039996b0facbcd427064f257176eca271955c543e17258f17f5e8b6d377834"
+        }
+      ]
     }
   ]
 }

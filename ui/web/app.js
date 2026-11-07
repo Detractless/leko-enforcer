@@ -3,6 +3,21 @@
  * Provides the state controller, draft card rendering, and IPC/API bridge.
  */
 
+function parseIpcLine(line) {
+  if (typeof line !== 'string') return null;
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return null;
+  }
+}
+
+function formatIpcMessage(msg) {
+  return JSON.stringify(msg) + '\n';
+}
+
 class CircleController {
   constructor(stageEl, statusEl, cardEl) {
     this.stageEl = stageEl;
@@ -64,8 +79,9 @@ class CircleController {
   }
 
   confirmDraft() {
-    if (this.onConfirmCallback && this.currentDraft) {
-      this.onConfirmCallback(this.currentDraft);
+    const draft = this.currentDraft;
+    if (this.onConfirmCallback && draft) {
+      this.onConfirmCallback(draft);
     }
     this.hideDraft();
     this.setState('confirmed');
@@ -75,8 +91,9 @@ class CircleController {
   }
 
   cancelDraft() {
-    if (this.onCancelCallback && this.currentDraft) {
-      this.onCancelCallback(this.currentDraft);
+    const draft = this.currentDraft;
+    if (this.onCancelCallback && draft) {
+      this.onCancelCallback(draft);
     }
     this.hideDraft();
     this.setState('idle');
@@ -88,22 +105,35 @@ class LekoBridge {
   constructor(controller, backendUrl = 'http://127.0.0.1:18080') {
     this.controller = controller;
     this.backendUrl = backendUrl;
+
+    // Attach global listener for native WebView IPC script evaluation
+    if (typeof window !== 'undefined') {
+      window.__leko_on_event = (event) => this.handleIncomingEvent(event);
+    }
   }
 
-  async sendVoiceTurn(text) {
-    this.controller.setState('thinking');
-    try {
-      if (typeof window !== 'undefined' && window.__TAURI__ && window.__TAURI__.invoke) {
-        // Tauri Rust Command
-        const response = await window.__TAURI__.invoke('process_query', { query: text });
-        this.handleResponse(response);
-      } else {
-        // Simulated or HTTP fallback
-        const response = await this.mockProcess(text);
-        this.handleResponse(response);
-      }
-    } catch (err) {
-      this.controller.setState('idle', `Error: ${err.message || 'Failed'}`);
+  sendIpcAction(action, draft = null, extra = {}) {
+    const payload = { action, draft, ...extra };
+    if (typeof window !== 'undefined' && window.ipc && window.ipc.postMessage) {
+      window.ipc.postMessage(JSON.stringify(payload));
+    }
+    return payload;
+  }
+
+  handleIncomingEvent(event) {
+    if (!event || typeof event !== 'object') return;
+
+    if (event.type === 'state') {
+      this.controller.setState(event.state, event.label);
+    } else if (event.type === 'draft') {
+      this.controller.showDraft(
+        event.draft,
+        (draft) => this.sendIpcAction('confirm', draft),
+        (draft) => this.sendIpcAction('cancel', draft)
+      );
+    } else if (event.type === 'reset') {
+      this.controller.hideDraft();
+      this.controller.setState('idle');
     }
   }
 
@@ -111,8 +141,8 @@ class LekoBridge {
     if (response.draft) {
       this.controller.showDraft(
         response.draft,
-        (draft) => this.sendConfirmation(draft, true),
-        (draft) => this.sendConfirmation(draft, false)
+        (draft) => this.sendIpcAction('confirm', draft),
+        (draft) => this.sendIpcAction('cancel', draft)
       );
     }
     if (response.spokenReply) {
@@ -122,11 +152,13 @@ class LekoBridge {
     }
   }
 
-  async sendConfirmation(draft, isConfirmed) {
-    if (isConfirmed) {
-      this.controller.setState('confirmed');
-    } else {
-      this.controller.setState('idle');
+  async sendVoiceTurn(text) {
+    this.controller.setState('thinking');
+    this.sendIpcAction('query', null, { text });
+
+    if (typeof window === 'undefined' || !window.ipc) {
+      const response = await this.mockProcess(text);
+      this.handleResponse(response);
     }
   }
 
@@ -155,5 +187,5 @@ class LekoBridge {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { CircleController, LekoBridge };
+  module.exports = { CircleController, LekoBridge, parseIpcLine, formatIpcMessage };
 }

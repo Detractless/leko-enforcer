@@ -1,13 +1,16 @@
+use std::io::{BufRead, Write};
+use std::thread;
 use tao::{
     dpi::LogicalSize,
     event::{Event, StartCause, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
+    event_loop::{ControlFlow, EventLoopBuilder},
     window::WindowBuilder,
 };
 use wry::WebViewBuilder;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoopBuilder::<String>::with_user_event().build();
+    let proxy = event_loop.create_proxy();
 
     let window = WindowBuilder::new()
         .with_title("Leko")
@@ -19,20 +22,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let css_content = include_str!("../web/circle.css");
     let js_content = include_str!("../web/app.js");
 
-    // Inlined self-contained HTML so the binary has zero external file path dependencies
+    // Inlined self-contained HTML so binary has zero external file dependencies
     let full_html = html_content
         .replace(r#"<link rel="stylesheet" href="circle.css">"#, &format!("<style>{css_content}</style>"))
         .replace(r#"<script src="app.js"></script>"#, &format!("<script>{js_content}</script>"));
 
-    let _webview = WebViewBuilder::new()
+    let webview = WebViewBuilder::new()
         .with_html(full_html)
+        .with_ipc_handler(move |request| {
+            println!("{}", request.body());
+            let _ = std::io::stdout().flush();
+        })
         .build(&window)?;
+
+    // Background thread reading JSON event lines from stdin
+    thread::spawn(move || {
+        let stdin = std::io::stdin();
+        for line in stdin.lock().lines() {
+            if let Ok(line) = line {
+                let trimmed = line.trim();
+                if !trimmed.is_empty() {
+                    let _ = proxy.send_event(trimmed.to_string());
+                }
+            }
+        }
+    });
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
         match event {
             Event::NewEvents(StartCause::Init) => {},
+            Event::UserEvent(json_line) => {
+                let script = format!("window.__leko_on_event && window.__leko_on_event({});", json_line);
+                let _ = webview.evaluate_script(&script);
+            }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..

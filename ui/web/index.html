@@ -49,6 +49,7 @@
     stageEl.addEventListener('click', () => {
       if (controller.currentState === 'idle') {
         controller.setState('listening');
+        bridge.sendIpcAction('listen');
       } else if (controller.currentState === 'listening') {
         bridge.sendVoiceTurn('Block Reddit and Twitter for 2 hours');
       }

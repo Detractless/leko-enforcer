@@ -326,6 +326,22 @@
           "sha256": "1d828f1113271f2c7a0e46fbbee293e8fde123b406af4dce09032ba6b7fdd71c"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/instant-barge-in-and-cancel.md",
+      "sha256": "843676f398f3a5df4b7509422e9041f440770afccc208d55874883c9c7f499bf",
+      "state": "locked",
+      "reason": "contract \"instant-barge-in-and-cancel\" opened by the user: yes",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-07T07:17:08.368Z",
+      "history": [
+        {
+          "at": "2026-11-07T07:17:08.368Z",
+          "event": "lock",
+          "sha256": "843676f398f3a5df4b7509422e9041f440770afccc208d55874883c9c7f499bf"
+        }
+      ]
     }
   ]
 }

@@ -97,15 +97,22 @@ class SerializedTurnWorker:
             finally:
                 self.q.task_done()
 
-def set_playback_state(is_playing: bool, post_mute_s: float = 0.7) -> None:
-    """Manages audio playback state and 0.7s decay mute to prevent room echo into mic."""
-    global _playback_active, _playback_decay_until, _is_speaking
+_active_turn_detector = None
+
+def set_playback_state(is_playing: bool, post_mute_s: float = 0.2) -> None:
+    """Manages audio playback state and echo defense."""
+    global _playback_active, _playback_decay_until, _is_speaking, _active_turn_detector
     _playback_active = is_playing
     _is_speaking = is_playing
     if not is_playing:
         _playback_decay_until = time.time() + post_mute_s
     else:
         _playback_decay_until = 0.0
+    if _active_turn_detector is not None:
+        try:
+            _active_turn_detector.set_playback_active(is_playing)
+        except Exception:
+            pass
 
 def is_audio_muted_for_echo() -> bool:
     """Returns True if mic must be muted due to active playback or room echo decay."""
@@ -181,19 +188,32 @@ def stop_playback():
         pass
     set_playback_state(False, post_mute_s=0.2)
 
-def speak(text: str):
+def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None):
     """Speaks text using Maeve via sounddevice with interrupt support and room echo protection."""
+    if is_cancelled and is_cancelled():
+        return
     print(f"\n[Maeve speaking]: \"{text}\"", flush=True)
     try:
         tts = get_tts()
+        if is_cancelled and is_cancelled():
+            return
         pcm = tts.synth(text, voice=VOICE_NAME)
+        if is_cancelled and is_cancelled():
+            return
         set_playback_state(True)
         sd.play(pcm, samplerate=tts.sample_rate)
-        sd.wait()
+        while True:
+            if is_cancelled and is_cancelled():
+                stop_playback()
+                break
+            stream = sd.get_stream()
+            if stream is None or not stream.active:
+                break
+            time.sleep(0.04)
     except Exception as e:
         print(f"[Maeve audio error]: {e}", file=sys.stderr, flush=True)
     finally:
-        set_playback_state(False, post_mute_s=0.7)
+        set_playback_state(False, post_mute_s=0.2)
 
 def get_stt():
     global _stt_model
@@ -210,27 +230,50 @@ def transcribe_audio(audio_f32: np.ndarray) -> str:
     res = stt.generate(mx.array(audio_f32))
     return getattr(res, "text", str(res)).strip()
 
-def process_query(query: str, settings_zip: str, auto_confirm: bool = False, bridge: Optional[UIPipelineBridge] = None) -> str:
+def process_query(
+    query: str,
+    settings_zip: str,
+    auto_confirm: bool = False,
+    bridge: Optional[UIPipelineBridge] = None,
+    is_cancelled: Optional[Callable[[], bool]] = None,
+    speak_fn: Optional[Callable[[str, Optional[Callable[[], bool]]], None]] = None
+) -> str:
     """Processes a user command through LFM3 safely, executes dry run on CLI, and updates UI bridge."""
+    if is_cancelled and is_cancelled():
+        return ""
+
     print(f"\n[User query]: \"{query}\"")
     if bridge:
         bridge.emit_thinking(query)
 
+    if is_cancelled and is_cancelled():
+        return ""
+
     # 1. Parse intent safely through local LFM3
     intent = parse_user_intent_safe(query)
 
+    if is_cancelled and is_cancelled():
+        return ""
+
+    spk = speak_fn or (lambda txt, cancel=None: speak(txt, is_cancelled=cancel))
+
     if intent["action"] == "reply":
         reply = intent.get("content", "I am ready to help manage your blocks and sessions.")
+        if is_cancelled and is_cancelled():
+            return ""
         if bridge:
             bridge.emit_speaking(reply)
-        speak(reply)
-        if bridge:
+        spk(reply, is_cancelled)
+        if bridge and not (is_cancelled and is_cancelled()):
             bridge.emit_idle()
         return reply
 
     tool = intent.get("tool")
     args = intent.get("arguments", {})
     print(f"[LFM3 Tool Call]: {tool}({args})")
+
+    if is_cancelled and is_cancelled():
+        return ""
 
     # 2. Map to CLI arguments (dry-run first)
     cli_args = tool_to_cli_args(settings_zip, tool, args, write=False)
@@ -243,14 +286,19 @@ def process_query(query: str, settings_zip: str, auto_confirm: bool = False, bri
 
     if proc.returncode != 0:
         msg = f"Sorry, that request could not be prepared: {stderr or stdout}"
+        if is_cancelled and is_cancelled():
+            return ""
         if bridge:
             bridge.emit_speaking(msg)
-        speak(msg)
-        if bridge:
+        spk(msg, is_cancelled)
+        if bridge and not (is_cancelled and is_cancelled()):
             bridge.emit_idle()
         return msg
 
     print(f"[CLI Output]:\n{stdout}")
+
+    if is_cancelled and is_cancelled():
+        return ""
 
     # 3. Formulate concise spoken summary for Maeve & draft metadata for UI card
     if tool == "start_session":
@@ -285,28 +333,33 @@ def process_query(query: str, settings_zip: str, auto_confirm: bool = False, bri
         draft_kind = "Command"
         draft_desc = "Prepared action."
 
+    if is_cancelled and is_cancelled():
+        return ""
+
     if bridge:
         bridge.emit_draft(draft_name, draft_kind, draft_desc, raw_intent=intent)
         bridge.emit_speaking(summary)
 
-    speak(summary)
+    spk(summary, is_cancelled)
 
     # 4. If write is applicable and confirmed
     if auto_confirm and tool in ("add_block", "switch_off"):
+        if is_cancelled and is_cancelled():
+            return ""
         write_args = tool_to_cli_args(settings_zip, tool, args, write=True)
         wproc = subprocess.run([str(LEKO_BIN)] + write_args, capture_output=True, text=True)
         if wproc.returncode == 0:
             if bridge:
                 bridge.emit_confirmed()
-            speak("Changes have been locked and saved.")
+            spk("Changes have been locked and saved.", is_cancelled)
         else:
             if bridge:
                 bridge.emit_idle()
-            speak(f"Could not save changes: {wproc.stderr.strip()}")
+            spk(f"Could not save changes: {wproc.stderr.strip()}", is_cancelled)
     elif not auto_confirm and tool in ("add_block", "switch_off"):
         pass
     else:
-        if bridge:
+        if bridge and not (is_cancelled and is_cancelled()):
             bridge.emit_idle()
 
     return summary
@@ -325,6 +378,8 @@ class HandsfreeTurnManager:
 
     def start(self):
         with self._lock:
+            global _active_turn_detector
+            _active_turn_detector = self.detector
             self.is_running = True
             self.detector.reset()
             self.merger.clear()
@@ -332,7 +387,7 @@ class HandsfreeTurnManager:
 
             def _audio_callback(indata, frames, time_info, status):
                 global _is_muted
-                if not self.is_running or _is_muted or is_audio_muted_for_echo():
+                if not self.is_running or _is_muted:
                     return
 
                 self._raw_buf.extend(bytes(indata))
@@ -357,6 +412,9 @@ class HandsfreeTurnManager:
 
     def stop(self):
         with self._lock:
+            global _active_turn_detector
+            if _active_turn_detector is self.detector:
+                _active_turn_detector = None
             self.is_running = False
             self.merger.clear()
             if self.stream:
@@ -417,7 +475,7 @@ def main():
                 if worker.is_superseded(seq):
                     return
 
-                process_query(text, args.settings, auto_confirm=False, bridge=bridge)
+                process_query(text, args.settings, auto_confirm=False, bridge=bridge, is_cancelled=lambda: worker.is_superseded(seq))
             except Exception as e:
                 print(f"[Assistant Error]: {e}", file=sys.stderr)
             finally:
@@ -430,7 +488,7 @@ def main():
         # As soon as user opens mouth to speak: immediately interrupt any prior audio or generation
         stop_playback()
         worker.cancel_current()
-        if bridge and not is_audio_muted_for_echo():
+        if bridge:
             bridge.emit_state("listening", "Listening...")
 
     turn_manager = HandsfreeTurnManager(
@@ -451,7 +509,6 @@ def main():
             turn_manager.detector.reset()
             turn_manager.merger.clear()
             bridge.emit_idle()
-            speak("Stopped.")
         elif act == "mute":
             _is_muted = action_data.get("muted", True)
             worker.cancel_current()

@@ -31,6 +31,7 @@ class TurnDetector:
         self,
         model_path: Optional[Path] = None,
         speech_threshold: float = 0.010,
+        barge_in_threshold: float = 0.035,
         min_sil_frames: int = 4,   # 4 * 160ms = 640ms quiet before checking acoustic model
         max_sil_frames: int = 8,   # 8 * 160ms = 1.28s quiet ends turn unconditionally
         turn_threshold: float = 0.65,
@@ -38,6 +39,7 @@ class TurnDetector:
         on_speech_onset: Optional[Callable[[], None]] = None
     ):
         self.speech_threshold = speech_threshold
+        self.barge_in_threshold = barge_in_threshold
         self.min_sil_frames = min_sil_frames
         self.max_sil_frames = max_sil_frames
         self.turn_threshold = turn_threshold
@@ -45,7 +47,7 @@ class TurnDetector:
         self.preroll: collections.deque[np.ndarray] = collections.deque(maxlen=preroll_frames)
         self.on_speech_onset = on_speech_onset
         self.ambient_rms = collections.deque(maxlen=100)
-
+        self.playback_active = False
         self.sess = None
         path = model_path or DEFAULT_MODEL
         if path.exists():
@@ -73,6 +75,9 @@ class TurnDetector:
         self.preroll.clear()
         if self.sess:
             self.state = {n: np.zeros(s, np.float32) for n, s in self.shapes.items()}
+
+    def set_playback_active(self, active: bool) -> None:
+        self.playback_active = active
 
     def feed_ambient(self, chunk_i16: np.ndarray) -> None:
         """Dynamically calibrates speech threshold to ambient room noise floor."""
@@ -103,9 +108,12 @@ class TurnDetector:
                 p_end = float(res[0][-1])
                 self.pending = self.pending[STEP:]
 
+        effective_threshold = self.barge_in_threshold if self.playback_active else self.speech_threshold
+
         if not self.in_speech:
-            self.feed_ambient(chunk_i16)
-            if rms > self.speech_threshold:
+            if not self.playback_active:
+                self.feed_ambient(chunk_i16)
+            if rms > effective_threshold:
                 self.in_speech = True
                 self.sil_count = 0
                 self.buf = list(self.preroll) + [x]

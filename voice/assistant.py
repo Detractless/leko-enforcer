@@ -1,10 +1,12 @@
 """Leko Voice Assistant: Full interactive loop combining Hands-Free STT, Zero-Model Turn-Taking,
-LLM Tool Calling, CLI execution, Maeve TTS, and Minimalist Circle UI IPC.
+LLM Tool Calling, CLI execution, Maeve TTS, Single-Instance Lock, and Minimalist Circle UI IPC.
 """
 from __future__ import annotations
 
+import atexit
 import argparse
 import os
+import signal
 import subprocess
 import sys
 import threading
@@ -38,11 +40,73 @@ from turn_detector import TurnDetector, TurnBufferMerger, looks_unfinished
 LEKO_BIN = REPO_ROOT / "target/release/leko"
 PHONON_25_MODEL = Path("/Users/calibro/.t3/scratch/2026-11-05-can-you-review-this-project-4f6400cb/phonon-2.5-en-mlx")
 VOICE_NAME = "Maeve"
+DEFAULT_LOCK_FILE = Path("/tmp/leko_assistant.pid")
 
 _tts_engine = None
 _stt_model = None
 _is_speaking = False
 _is_muted = False
+_playback_active = False
+_playback_decay_until = 0.0
+
+def set_playback_state(is_playing: bool, post_mute_s: float = 0.7) -> None:
+    """Manages audio playback state and 0.7s decay mute to prevent room echo into mic."""
+    global _playback_active, _playback_decay_until, _is_speaking
+    _playback_active = is_playing
+    _is_speaking = is_playing
+    if not is_playing:
+        _playback_decay_until = time.time() + post_mute_s
+    else:
+        _playback_decay_until = 0.0
+
+def is_audio_muted_for_echo() -> bool:
+    """Returns True if mic must be muted due to active playback or room echo decay."""
+    global _playback_active, _playback_decay_until
+    return _playback_active or (time.time() < _playback_decay_until)
+
+def acquire_single_instance_lock(lock_file: Optional[Path] = None) -> bool:
+    """Ensures only a single assistant & UI window run at any time, terminating previous instances."""
+    lock_path = lock_file or DEFAULT_LOCK_FILE
+    current_pid = os.getpid()
+
+    if lock_path.exists():
+        try:
+            old_pid = int(lock_path.read_text().strip())
+            if old_pid != current_pid:
+                # Check if process is still running
+                try:
+                    os.kill(old_pid, 0)
+                    # Terminate old instance
+                    os.kill(old_pid, signal.SIGTERM)
+                    time.sleep(0.3)
+                    try:
+                        os.kill(old_pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                except (ProcessLookupError, PermissionError):
+                    pass
+        except Exception:
+            pass
+
+    # Kill any orphaned leko-ui windows from prior runs
+    try:
+        subprocess.run(["pkill", "-f", "leko-ui"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(0.15)
+    except Exception:
+        pass
+
+    try:
+        lock_path.write_text(str(current_pid))
+        def _cleanup():
+            try:
+                if lock_path.exists() and lock_path.read_text().strip() == str(current_pid):
+                    lock_path.unlink()
+            except Exception:
+                pass
+        atexit.register(_cleanup)
+        return True
+    except Exception:
+        return False
 
 def get_tts():
     global _tts_engine
@@ -57,28 +121,36 @@ def get_tts():
     return _tts_engine
 
 def stop_playback():
-    """Interrupts any active audio playback immediately."""
-    global _is_speaking
+    """Interrupts any active audio playback safely, suppressing AUHAL abort stderr errors."""
     try:
-        sd.stop()
+        # Redirect stderr temporarily to avoid AUHAL -50 noise on abrupt cutoff
+        old_stderr = os.dup(2)
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, 2)
+        try:
+            sd.stop()
+        finally:
+            os.dup2(old_stderr, 2)
+            os.close(old_stderr)
+            os.close(devnull)
     except Exception:
         pass
-    _is_speaking = False
+    set_playback_state(False, post_mute_s=0.2)
 
 def speak(text: str):
-    """Speaks text using Maeve via sounddevice with interrupt support."""
-    global _is_speaking
+    """Speaks text using Maeve via sounddevice with interrupt support and room echo protection."""
     print(f"\n[Maeve speaking]: \"{text}\"", flush=True)
     try:
         tts = get_tts()
         pcm = tts.synth(text, voice=VOICE_NAME)
-        _is_speaking = True
+        set_playback_state(True)
         sd.play(pcm, samplerate=tts.sample_rate)
         sd.wait()
     except Exception as e:
         print(f"[Maeve audio error]: {e}", file=sys.stderr, flush=True)
     finally:
-        _is_speaking = False
+        # Keep mic muted for 0.7s decay after playback to absorb room echo from laptop speakers
+        set_playback_state(False, post_mute_s=0.7)
 
 def get_stt():
     global _stt_model
@@ -198,11 +270,11 @@ def process_query(query: str, settings_zip: str, auto_confirm: bool = False, bri
     return summary
 
 class HandsfreeTurnManager:
-    def __init__(self, on_turn_complete, sample_rate: int = 16000, chunk_size: int = 2560):
+    def __init__(self, on_turn_complete, on_speech_onset=None, sample_rate: int = 16000, chunk_size: int = 2560):
         self.on_turn_complete = on_turn_complete
         self.sample_rate = sample_rate
         self.chunk_size = chunk_size
-        self.detector = TurnDetector()
+        self.detector = TurnDetector(on_speech_onset=on_speech_onset)
         self.merger = TurnBufferMerger(grace_period_s=0.9)
         self.stream = None
         self.is_running = False
@@ -217,8 +289,8 @@ class HandsfreeTurnManager:
             self._raw_buf.clear()
 
             def _audio_callback(indata, frames, time_info, status):
-                global _is_speaking, _is_muted
-                if not self.is_running or _is_muted or _is_speaking:
+                global _is_muted
+                if not self.is_running or _is_muted or is_audio_muted_for_echo():
                     return
 
                 self._raw_buf.extend(bytes(indata))
@@ -258,6 +330,8 @@ class HandsfreeTurnManager:
 
 def main():
     global _is_muted
+    acquire_single_instance_lock()
+
     parser = argparse.ArgumentParser(description="Leko Voice Assistant")
     parser.add_argument("--settings", default=str(REPO_ROOT / "settings.zip"), help="Path to settings.zip")
     parser.add_argument("--query", type=str, help="Single query to process")
@@ -292,7 +366,15 @@ def main():
 
         process_query(text, args.settings, auto_confirm=False, bridge=bridge)
 
-    turn_manager = HandsfreeTurnManager(on_turn_complete=on_handsfree_speech)
+    def on_speech_onset():
+        # As soon as voice energy starts, snap UI to Listening state immediately
+        if bridge and not is_audio_muted_for_echo():
+            bridge.emit_state("listening", "Listening...")
+
+    turn_manager = HandsfreeTurnManager(
+        on_turn_complete=on_handsfree_speech,
+        on_speech_onset=on_speech_onset
+    )
 
     def on_ui_action(action_data: Dict[str, Any]):
         global _is_muted
@@ -350,7 +432,7 @@ def main():
     if args.query:
         process_query(args.query, args.settings, auto_confirm=args.confirm, bridge=bridge)
     else:
-        print("\nLeko Voice Assistant ready with zero-model natural turn detection.")
+        print("\nLeko Voice Assistant ready with single-instance and echo defense.")
         print("Speak naturally into your mic (or type below, 'exit' to quit):")
         while True:
             try:

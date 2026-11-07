@@ -278,6 +278,22 @@
           "sha256": "1e039996b0facbcd427064f257176eca271955c543e17258f17f5e8b6d377834"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/single-instance-and-echo-defense.md",
+      "sha256": "284bd6047098104c664611ff939d3d3105c878fa1e647cba2ef6b15f3da73d26",
+      "state": "locked",
+      "reason": "contract \"single-instance-and-echo-defense\" opened by the user: First of all, for some reason I have two open at the same time. Two windows shouldn't be possible to open at the same time; one should automatically be closed.",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-07T06:46:36.140Z",
+      "history": [
+        {
+          "at": "2026-11-07T06:46:36.140Z",
+          "event": "lock",
+          "sha256": "284bd6047098104c664611ff939d3d3105c878fa1e647cba2ef6b15f3da73d26"
+        }
+      ]
     }
   ]
 }

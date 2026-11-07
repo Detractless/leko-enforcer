@@ -8,7 +8,7 @@ import os
 import re
 import time
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Callable
 import numpy as np
 
 STEP = 2560
@@ -33,12 +33,14 @@ class TurnDetector:
         speech_threshold: float = 0.010,
         min_sil_frames: int = 4,   # 4 * 160ms = 640ms quiet before checking acoustic model
         max_sil_frames: int = 8,   # 8 * 160ms = 1.28s quiet ends turn unconditionally
-        turn_threshold: float = 0.65
+        turn_threshold: float = 0.65,
+        on_speech_onset: Optional[Callable[[], None]] = None
     ):
         self.speech_threshold = speech_threshold
         self.min_sil_frames = min_sil_frames
         self.max_sil_frames = max_sil_frames
         self.turn_threshold = turn_threshold
+        self.on_speech_onset = on_speech_onset
         self.ambient_rms = collections.deque(maxlen=100)
 
         self.sess = None
@@ -76,7 +78,6 @@ class TurnDetector:
         self.ambient_rms.append(rms)
 
         if len(self.ambient_rms) >= 5:
-            # Set speech threshold to 3.5x the 20th percentile of ambient floor
             p20 = float(np.percentile(self.ambient_rms, 20))
             new_thr = min(0.04, max(0.005, p20 * 3.5))
             self.speech_threshold = new_thr
@@ -104,6 +105,11 @@ class TurnDetector:
                 self.in_speech = True
                 self.sil_count = 0
                 self.buf = [x]
+                if self.on_speech_onset:
+                    try:
+                        self.on_speech_onset()
+                    except Exception:
+                        pass
             return False, np.zeros(0, dtype=np.float32)
 
         # In active speech turn
@@ -112,7 +118,6 @@ class TurnDetector:
 
         if is_quiet:
             self.sil_count += 1
-            # Require minimum silence (min_sil_frames >= 4 -> 640ms) before allowing acoustic classifier to decide
             if self.sil_count >= self.min_sil_frames:
                 if (p_end is not None and p_end > self.turn_threshold) or self.sil_count >= self.max_sil_frames:
                     full_audio = np.concatenate(self.buf)

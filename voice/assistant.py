@@ -1,18 +1,20 @@
 """Leko Voice Assistant: Full interactive loop combining Hands-Free STT, Zero-Model Turn-Taking,
-LLM Tool Calling, CLI execution, Maeve TTS, Single-Instance Lock, and Minimalist Circle UI IPC.
+LLM Tool Calling, CLI execution, Maeve TTS, Single-Instance Lock, Serialized Turn Execution,
+and Minimalist Circle UI IPC.
 """
 from __future__ import annotations
 
 import atexit
 import argparse
 import os
+import queue
 import signal
 import subprocess
 import sys
 import threading
 import time
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Callable
 
 # Ensure we use talk-venv if system python lacks ptts or mlx_audio
 TALK_VENV_PYTHON = Path("/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3")
@@ -33,7 +35,7 @@ HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 
-from llm_router import parse_user_intent, tool_to_cli_args, ensure_server
+from llm_router import parse_user_intent_safe, tool_to_cli_args, ensure_server
 from ui_bridge import UIPipelineBridge
 from turn_detector import TurnDetector, TurnBufferMerger, looks_unfinished
 
@@ -48,6 +50,52 @@ _is_speaking = False
 _is_muted = False
 _playback_active = False
 _playback_decay_until = 0.0
+
+class SerializedTurnWorker:
+    """Serializes turn execution on a single worker thread and supersedes stale turns."""
+    def __init__(self):
+        self.q = queue.Queue()
+        self.seq = 0
+        self.current_seq = 0
+        self.alive = True
+        self.lock = threading.Lock()
+        self.thread = threading.Thread(target=self._run, daemon=True, name="serialized-turn-worker")
+        self.thread.start()
+
+    def submit(self, fn: Callable[[int], None]) -> int:
+        with self.lock:
+            self.seq += 1
+            seq = self.seq
+            self.q.put((seq, fn))
+            return seq
+
+    def is_superseded(self, seq: int) -> bool:
+        with self.lock:
+            return seq < self.seq
+
+    def cancel_current(self):
+        with self.lock:
+            self.seq += 1
+
+    def stop(self):
+        self.alive = False
+        self.q.put(None)
+
+    def _run(self):
+        while self.alive:
+            item = self.q.get()
+            if item is None or not self.alive:
+                break
+            seq, fn = item
+            with self.lock:
+                self.current_seq = seq
+            try:
+                if not self.is_superseded(seq):
+                    fn(seq)
+            except Exception as e:
+                print(f"[Turn Worker Error]: {e}", file=sys.stderr)
+            finally:
+                self.q.task_done()
 
 def set_playback_state(is_playing: bool, post_mute_s: float = 0.7) -> None:
     """Manages audio playback state and 0.7s decay mute to prevent room echo into mic."""
@@ -73,10 +121,8 @@ def acquire_single_instance_lock(lock_file: Optional[Path] = None) -> bool:
         try:
             old_pid = int(lock_path.read_text().strip())
             if old_pid != current_pid:
-                # Check if process is still running
                 try:
                     os.kill(old_pid, 0)
-                    # Terminate old instance
                     os.kill(old_pid, signal.SIGTERM)
                     time.sleep(0.3)
                     try:
@@ -88,7 +134,6 @@ def acquire_single_instance_lock(lock_file: Optional[Path] = None) -> bool:
         except Exception:
             pass
 
-    # Kill any orphaned leko-ui windows from prior runs
     try:
         subprocess.run(["pkill", "-f", "leko-ui"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(0.15)
@@ -123,7 +168,6 @@ def get_tts():
 def stop_playback():
     """Interrupts any active audio playback safely, suppressing AUHAL abort stderr errors."""
     try:
-        # Redirect stderr temporarily to avoid AUHAL -50 noise on abrupt cutoff
         old_stderr = os.dup(2)
         devnull = os.open(os.devnull, os.O_WRONLY)
         os.dup2(devnull, 2)
@@ -149,7 +193,6 @@ def speak(text: str):
     except Exception as e:
         print(f"[Maeve audio error]: {e}", file=sys.stderr, flush=True)
     finally:
-        # Keep mic muted for 0.7s decay after playback to absorb room echo from laptop speakers
         set_playback_state(False, post_mute_s=0.7)
 
 def get_stt():
@@ -168,13 +211,13 @@ def transcribe_audio(audio_f32: np.ndarray) -> str:
     return getattr(res, "text", str(res)).strip()
 
 def process_query(query: str, settings_zip: str, auto_confirm: bool = False, bridge: Optional[UIPipelineBridge] = None) -> str:
-    """Processes a user command through LFM3, executes dry run on CLI, and updates UI bridge."""
+    """Processes a user command through LFM3 safely, executes dry run on CLI, and updates UI bridge."""
     print(f"\n[User query]: \"{query}\"")
     if bridge:
         bridge.emit_thinking(query)
 
-    # 1. Parse intent through local LFM3
-    intent = parse_user_intent(query)
+    # 1. Parse intent safely through local LFM3
+    intent = parse_user_intent_safe(query)
 
     if intent["action"] == "reply":
         reply = intent.get("content", "I am ready to help manage your blocks and sessions.")
@@ -185,8 +228,8 @@ def process_query(query: str, settings_zip: str, auto_confirm: bool = False, bri
             bridge.emit_idle()
         return reply
 
-    tool = intent["tool"]
-    args = intent["arguments"]
+    tool = intent.get("tool")
+    args = intent.get("arguments", {})
     print(f"[LFM3 Tool Call]: {tool}({args})")
 
     # 2. Map to CLI arguments (dry-run first)
@@ -261,7 +304,6 @@ def process_query(query: str, settings_zip: str, auto_confirm: bool = False, bri
                 bridge.emit_idle()
             speak(f"Could not save changes: {wproc.stderr.strip()}")
     elif not auto_confirm and tool in ("add_block", "switch_off"):
-        # UI confirmation card remains visible waiting for user confirm/cancel action
         pass
     else:
         if bridge:
@@ -301,7 +343,8 @@ class HandsfreeTurnManager:
                     chunk = np.frombuffer(chunk_bytes, dtype=np.int16)
                     ended, audio = self.detector.feed(chunk)
                     if ended and len(audio) > 0:
-                        threading.Thread(target=self._handle_turn, args=(audio,), daemon=True).start()
+                        full_audio = self.merger.merge_continuation(audio)
+                        self.on_turn_complete(full_audio, self.merger)
 
             self.stream = sd.RawInputStream(
                 samplerate=self.sample_rate,
@@ -311,10 +354,6 @@ class HandsfreeTurnManager:
                 callback=_audio_callback
             )
             self.stream.start()
-
-    def _handle_turn(self, audio: np.ndarray):
-        full_audio = self.merger.merge_continuation(audio)
-        self.on_turn_complete(full_audio, self.merger)
 
     def stop(self):
         with self._lock:
@@ -340,34 +379,57 @@ def main():
     args = parser.parse_args()
 
     bridge = UIPipelineBridge()
+    worker = SerializedTurnWorker()
     pending_draft: Dict[str, Any] = {}
 
     def on_handsfree_speech(audio_f32: np.ndarray, merger: TurnBufferMerger):
-        if bridge:
-            bridge.emit_state("thinking", "Transcribing...")
-        text = transcribe_audio(audio_f32)
-        print(f"\n[Transcribed]: \"{text}\"")
-        if not text:
-            if bridge:
-                bridge.emit_idle()
-            return
+        def _execute_turn(seq: int):
+            if worker.is_superseded(seq):
+                return
 
-        # Dangling guard: if sentence ends on an unfinished grammatical clause, give 1.0s grace period
-        if looks_unfinished(text):
-            print(f"[Turn Guard]: Sentence ends on incomplete clause ('{text.split()[-1]}'). Holding for continuation...")
-            merger.push_turn(audio_f32)
             if bridge:
-                bridge.emit_state("listening", "Listening...")
-            time.sleep(1.0)
-            if merger.is_pending_continuation():
-                merger.clear()
-            else:
-                return  # Subsequent speech arrived and was merged!
+                bridge.emit_state("thinking", "Transcribing...")
 
-        process_query(text, args.settings, auto_confirm=False, bridge=bridge)
+            try:
+                text = transcribe_audio(audio_f32)
+                print(f"\n[Transcribed]: \"{text}\"")
+
+                if worker.is_superseded(seq):
+                    return
+
+                if not text:
+                    return
+
+                # Dangling guard: if sentence ends on an unfinished grammatical clause, give 1.0s grace period
+                if looks_unfinished(text):
+                    print(f"[Turn Guard]: Sentence ends on incomplete clause ('{text.split()[-1]}'). Holding for continuation...")
+                    merger.push_turn(audio_f32)
+                    if bridge:
+                        bridge.emit_state("listening", "Listening...")
+                    time.sleep(1.0)
+                    if worker.is_superseded(seq):
+                        return
+                    if merger.is_pending_continuation():
+                        merger.clear()
+                    else:
+                        return
+
+                if worker.is_superseded(seq):
+                    return
+
+                process_query(text, args.settings, auto_confirm=False, bridge=bridge)
+            except Exception as e:
+                print(f"[Assistant Error]: {e}", file=sys.stderr)
+            finally:
+                if bridge and not worker.is_superseded(seq) and not _is_speaking:
+                    bridge.emit_idle()
+
+        worker.submit(_execute_turn)
 
     def on_speech_onset():
-        # As soon as voice energy starts, snap UI to Listening state immediately
+        # As soon as user opens mouth to speak: immediately interrupt any prior audio or generation
+        stop_playback()
+        worker.cancel_current()
         if bridge and not is_audio_muted_for_echo():
             bridge.emit_state("listening", "Listening...")
 
@@ -385,12 +447,14 @@ def main():
             bridge.emit_state("listening", "Listening...")
         elif act == "stop":
             stop_playback()
+            worker.cancel_current()
             turn_manager.detector.reset()
             turn_manager.merger.clear()
             bridge.emit_idle()
             speak("Stopped.")
         elif act == "mute":
             _is_muted = action_data.get("muted", True)
+            worker.cancel_current()
             turn_manager.detector.reset()
             turn_manager.merger.clear()
             status_text = "Muted" if _is_muted else "Ready"
@@ -415,7 +479,7 @@ def main():
         elif act == "query":
             q = action_data.get("text", "")
             if q:
-                process_query(q, args.settings, auto_confirm=False, bridge=bridge)
+                worker.submit(lambda seq: process_query(q, args.settings, auto_confirm=False, bridge=bridge))
 
     if args.ui:
         print("Launching native Minimalist UI window...")
@@ -432,7 +496,7 @@ def main():
     if args.query:
         process_query(args.query, args.settings, auto_confirm=args.confirm, bridge=bridge)
     else:
-        print("\nLeko Voice Assistant ready with single-instance and echo defense.")
+        print("\nLeko Voice Assistant ready with single-instance lock and serialized turn control.")
         print("Speak naturally into your mic (or type below, 'exit' to quit):")
         while True:
             try:
@@ -444,6 +508,7 @@ def main():
                 break
 
     turn_manager.stop()
+    worker.stop()
     if args.ui:
         bridge.close()
 

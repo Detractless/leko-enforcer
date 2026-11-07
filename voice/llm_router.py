@@ -1,8 +1,9 @@
+from __future__ import annotations
+import sys
 """Local LLM tool caller using LiquidAI LFM3-1.7B.
 
 Parses natural speech or typed requests into structured Leko CLI commands.
 """
-from __future__ import annotations
 
 import datetime
 import json
@@ -264,3 +265,23 @@ def tool_to_cli_args(settings_zip: str, tool_name: str, args: Dict[str, Any], wr
         raise ValueError(f"Unknown tool: {tool_name}")
     
     return cli_args
+
+def parse_user_intent_safe(user_text: str, endpoint_url: Optional[str] = None) -> Dict[str, Any]:
+    """Safe wrapper around parse_user_intent handling HTTP and connection errors gracefully."""
+    try:
+        if endpoint_url:
+            req = urllib.request.Request(
+                endpoint_url,
+                data=json.dumps({"model": "lfm3", "messages": [{"role": "user", "content": user_text}]}).encode("utf-8"),
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                return {"action": "reply", "content": data["choices"][0]["message"].get("content", "")}
+        return parse_user_intent(user_text)
+    except Exception as e:
+        print(f"[LLM Router Warning]: {e}", file=sys.stderr)
+        return {
+            "action": "reply",
+            "content": "Sorry, I ran into an issue communicating with the local model. Please try again."
+        }

@@ -294,6 +294,22 @@
           "sha256": "284bd6047098104c664611ff939d3d3105c878fa1e647cba2ef6b15f3da73d26"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/serialized-turn-execution.md",
+      "sha256": "01fba80afc1f751a3258ce201145635c179a682a07a01273528006865bbba149",
+      "state": "locked",
+      "reason": "contract \"serialized-turn-execution\" opened by the user: The other thing was that as I was talking, stopped as I was talking, after my first time that I cut myself off, it didn't let me cut it off again in terms of the UI and also, I don't know, it still said it was like transcribing or whatever.",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-07T06:52:36.935Z",
+      "history": [
+        {
+          "at": "2026-11-07T06:52:36.935Z",
+          "event": "lock",
+          "sha256": "01fba80afc1f751a3258ce201145635c179a682a07a01273528006865bbba149"
+        }
+      ]
     }
   ]
 }

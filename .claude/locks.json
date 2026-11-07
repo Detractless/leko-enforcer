@@ -310,6 +310,22 @@
           "sha256": "01fba80afc1f751a3258ce201145635c179a682a07a01273528006865bbba149"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/rolling-preroll-buffer.md",
+      "sha256": "1d828f1113271f2c7a0e46fbbee293e8fde123b406af4dce09032ba6b7fdd71c",
+      "state": "locked",
+      "reason": "contract \"rolling-preroll-buffer\" opened by the user: And so what I'm thinking is, maybe have it always recording so it doesn't miss what you say and then, once it's ready, or I don't know, once it detects you're actually talking, it goes back to that recording to collect what you said.",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-07T07:00:03.039Z",
+      "history": [
+        {
+          "at": "2026-11-07T07:00:03.039Z",
+          "event": "lock",
+          "sha256": "1d828f1113271f2c7a0e46fbbee293e8fde123b406af4dce09032ba6b7fdd71c"
+        }
+      ]
     }
   ]
 }

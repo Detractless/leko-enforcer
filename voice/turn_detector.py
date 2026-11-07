@@ -34,12 +34,15 @@ class TurnDetector:
         min_sil_frames: int = 4,   # 4 * 160ms = 640ms quiet before checking acoustic model
         max_sil_frames: int = 8,   # 8 * 160ms = 1.28s quiet ends turn unconditionally
         turn_threshold: float = 0.65,
+        preroll_frames: int = 5,   # 5 * 160ms = 800ms rolling lead-in audio buffer
         on_speech_onset: Optional[Callable[[], None]] = None
     ):
         self.speech_threshold = speech_threshold
         self.min_sil_frames = min_sil_frames
         self.max_sil_frames = max_sil_frames
         self.turn_threshold = turn_threshold
+        self.preroll_frames = preroll_frames
+        self.preroll: collections.deque[np.ndarray] = collections.deque(maxlen=preroll_frames)
         self.on_speech_onset = on_speech_onset
         self.ambient_rms = collections.deque(maxlen=100)
 
@@ -67,6 +70,7 @@ class TurnDetector:
         self.sil_count = 0
         self.buf = []
         self.pending = np.zeros(0, np.float32)
+        self.preroll.clear()
         if self.sess:
             self.state = {n: np.zeros(s, np.float32) for n, s in self.shapes.items()}
 
@@ -104,12 +108,15 @@ class TurnDetector:
             if rms > self.speech_threshold:
                 self.in_speech = True
                 self.sil_count = 0
-                self.buf = [x]
+                self.buf = list(self.preroll) + [x]
+                self.preroll.clear()
                 if self.on_speech_onset:
                     try:
                         self.on_speech_onset()
                     except Exception:
                         pass
+            else:
+                self.preroll.append(x)
             return False, np.zeros(0, dtype=np.float32)
 
         # In active speech turn

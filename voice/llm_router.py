@@ -123,9 +123,14 @@ TOOLS = [
     }
 ]
 
-SYSTEM_PROMPT = """You are Leko Voice Assistant, an on-device privacy-first focus and distraction enforcer.
-You translate the user's spoken voice requests into concrete, structured tool calls.
-Always pick the most specific tool:
+def get_system_prompt() -> str:
+    now = datetime.datetime.now()
+    time_str = now.strftime("%I:%M %p").lstrip("0")
+    date_str = now.strftime("%A, %B %d, %Y")
+    return f"""You are Leko Voice Assistant, an on-device privacy-first focus and distraction enforcer.
+The current local time is {time_str} on {date_str}.
+You translate the user's spoken voice requests into concrete, structured tool calls, or answer general conversational questions (such as asking for the current local time) concisely.
+Always pick the most specific tool when managing focus or blocks:
 - If the user wants to focus for a period, use `start_session`.
 - If the user wants to block certain apps or sites, use `add_block`.
 - If the user wants to remove or turn off a block, use `switch_off`.
@@ -133,6 +138,8 @@ Always pick the most specific tool:
 Extract clean domain names (e.g. reddit.com) and clean app identifiers.
 CRITICAL: All durations must be expressed as lengths with units, such as '30m', '2h', '90m'. If the user says 'until 5pm', convert it to a duration length (e.g. '2h' or '3h').
 """
+
+SYSTEM_PROMPT = get_system_prompt()
 
 def is_server_running() -> bool:
     try:
@@ -195,7 +202,7 @@ def parse_user_intent(user_text: str) -> Dict[str, Any]:
     payload = {
         "model": "lfm3",
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": get_system_prompt()},
             {"role": "user", "content": user_text}
         ],
         "tools": TOOLS,

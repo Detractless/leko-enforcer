@@ -1,0 +1,11 @@
+[package]
+name = "leko-ui"
+version = "0.0.1"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "Minimalist WebKit desktop window for Leko Enforcer"
+
+[dependencies]
+wry = "0.47"
+tao = "0.30"
+

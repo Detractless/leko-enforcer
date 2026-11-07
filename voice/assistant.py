@@ -36,6 +36,7 @@ REPO_ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 
 from llm_router import parse_user_intent_safe, tool_to_cli_args, ensure_server
+from verbalizer import verbalize_for_speech
 from ui_bridge import UIPipelineBridge
 from turn_detector import TurnDetector, TurnBufferMerger, looks_unfinished
 
@@ -192,12 +193,15 @@ def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None):
     """Speaks text using Maeve via sounddevice with interrupt support and room echo protection."""
     if is_cancelled and is_cancelled():
         return
-    print(f"\n[Maeve speaking]: \"{text}\"", flush=True)
+    spoken_text = verbalize_for_speech(text)
+    if not spoken_text:
+        return
+    print(f"\n[Maeve speaking]: \"{spoken_text}\"", flush=True)
     try:
         tts = get_tts()
         if is_cancelled and is_cancelled():
             return
-        pcm = tts.synth(text, voice=VOICE_NAME)
+        pcm = tts.synth(spoken_text, voice=VOICE_NAME)
         if is_cancelled and is_cancelled():
             return
         set_playback_state(True)

@@ -342,6 +342,22 @@
           "sha256": "843676f398f3a5df4b7509422e9041f440770afccc208d55874883c9c7f499bf"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/speech-verbalizer-and-pronunciation.md",
+      "sha256": "2a6dd3aa9f5c8234fde479a902b93de0516d3965b76f0b3f7a2aa7b2bec485ed",
+      "state": "locked",
+      "reason": "contract \"speech-verbalizer-and-pronunciation\" opened by the user: Let's create that review so I can listen to stuff and see how it forms that.",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-07T07:29:24.537Z",
+      "history": [
+        {
+          "at": "2026-11-07T07:29:24.537Z",
+          "event": "lock",
+          "sha256": "2a6dd3aa9f5c8234fde479a902b93de0516d3965b76f0b3f7a2aa7b2bec485ed"
+        }
+      ]
     }
   ]
 }

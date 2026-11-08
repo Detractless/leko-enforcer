@@ -54,10 +54,11 @@ class UIPipelineBridge:
             payload["query"] = query
         self.emit(payload)
 
-    def emit_draft(self, name: str, kind: str, description: str, raw_intent: Optional[Dict[str, Any]] = None) -> None:
+    def emit_draft(self, name: str, kind: str, description: str, raw_intent: Optional[Dict[str, Any]] = None, action_id: Optional[str] = None) -> None:
         self.emit({
             "type": "draft",
             "draft": {
+                "id": action_id,
                 "name": name,
                 "kind": kind,
                 "description": description,
@@ -108,6 +109,8 @@ class UIPipelineBridge:
                         self._on_action_callback(data)
                 except json.JSONDecodeError:
                     pass
+            if self._on_action_callback:
+                self._on_action_callback({"action": "window_closed"})
 
         self._reader_thread = threading.Thread(target=_read_loop, daemon=True)
         self._reader_thread.start()

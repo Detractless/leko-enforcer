@@ -9,6 +9,7 @@ use crate::session::session_report::shown;
 use crate::waiting_changes::status_waiting::{waiting_json, waiting_lines};
 use leko_core::config_time::zone_time::ZoneTime;
 use leko_core::decision::decide_target::{Decision, RuleRef};
+use leko_core::models::specs::DeviceAction;
 use leko_core::decision::next_change::LOOK_AHEAD_DAYS;
 use leko_core::delayed_changes::settle_plan::SettleStep;
 use leko_core::sessions::utc_moment::format_utc_moment;
@@ -28,6 +29,23 @@ pub struct Answer<'a> {
     pub waiting: Option<&'a [SettleStep]>,
 }
 
+/// Everything one device answer is made of.
+pub struct DeviceAnswer<'a> {
+    pub at_ms: i64,
+    pub zone_name: &'a str,
+    pub zone: &'a ZoneTime,
+    /// The strongest action the device blocks ask for, or `None` when none is closed.
+    pub action: Option<DeviceAction>,
+    /// Every closed device rule, as (block, rule, kind, action).
+    pub closing: &'a [(String, String, String, DeviceAction)],
+    /// The next moment the action changes, within the look-ahead.
+    pub until: Option<i64>,
+}
+
+fn device_rules(rules: &[(String, String, String, DeviceAction)]) -> Vec<RuleRef> {
+    rules.iter().map(|(block, rule, kind, _)| RuleRef { block_id: block.clone(), rule_id: rule.clone(), kind: kind.clone() }).collect()
+}
+
 fn rules_text(rules: &[RuleRef]) -> String {
     let parts: Vec<String> = rules.iter().map(|rule| format!("block {} rule {} ({})", shown(&rule.block_id), shown(&rule.rule_id), rule.kind)).collect();
     parts.join("; ")
@@ -42,6 +60,7 @@ pub fn sentence(answer: &Answer) -> String {
     let (kind, name) = match answer.target {
         StatusTarget::App(name) => ("App", name),
         StatusTarget::Site(host) => ("Site", host),
+        StatusTarget::Device => unreachable!("a device answer has its own sentence"),
     };
     let state = if answer.decision.closed { "closed" } else { "open" };
     let span = match answer.until {
@@ -64,12 +83,55 @@ pub fn sentence(answer: &Answer) -> String {
     text
 }
 
+/// The sentence about the whole computer; ends with a newline.
+pub fn device_sentence(answer: &DeviceAnswer) -> String {
+    let at = answer.zone.local_text(answer.at_ms);
+    let mut text = match answer.action {
+        None => format!("Device: no device block is closed, judged at {at} in {}. For at least the next {LOOK_AHEAD_DAYS} days nothing will lock, log out or shut down.", answer.zone_name),
+        Some(action) => {
+            let what = match action {
+                DeviceAction::Lock => "the screen is locked",
+                DeviceAction::Logoff => "the user is logged out",
+                DeviceAction::Shutdown => "the computer is shut down",
+            };
+            let span = match answer.until {
+                Some(until) => format!("until {}", answer.zone.local_text(until)),
+                None => format!("for at least the next {LOOK_AHEAD_DAYS} days"),
+            };
+            format!("Device: {what} {span}, judged at {at} in {}. Closed by {}.", answer.zone_name, rules_text(&device_rules(answer.closing)))
+        }
+    };
+    text.push_str(" Nothing was saved or changed.\n");
+    text
+}
+
+/// The one line of JSON for a device answer, with UTC times (`null` when a moment has no UTC text);
+/// ends with a newline.
+pub fn device_json(answer: &DeviceAnswer) -> String {
+    let closing: Vec<Value> = answer
+        .closing
+        .iter()
+        .map(|(block, rule, kind, action)| json!({"block": block, "rule": rule, "kind": kind, "device": action.word()}))
+        .collect();
+    let line = json!({
+        "target": {"kind": "device", "name": ""},
+        "at": format_utc_moment(answer.at_ms),
+        "zone": answer.zone_name,
+        "closed": answer.action.is_some(),
+        "action": answer.action.map(DeviceAction::word),
+        "closing": closing,
+        "until": answer.until.and_then(format_utc_moment),
+    });
+    format!("{line}\n")
+}
+
 /// The one line of JSON for a script, with UTC times (`null` when a moment has no UTC text); ends
 /// with a newline.
 pub fn json_line(answer: &Answer) -> String {
     let (kind, name) = match answer.target {
         StatusTarget::App(name) => ("app", name),
         StatusTarget::Site(host) => ("site", host),
+        StatusTarget::Device => unreachable!("a device answer has its own JSON line"),
     };
     let line = json!({
         "target": {"kind": kind, "name": name},

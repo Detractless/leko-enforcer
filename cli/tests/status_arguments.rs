@@ -19,9 +19,9 @@ fn words(args: &[&str]) -> run_capture::Outcome {
 fn wrong_or_missing_status_arguments_print_usage_on_stderr_and_exit_2() {
     let flag_like = "--\u{1b}[2J";
     let cases: Vec<(Vec<&str>, &str)> = vec![
-        (vec!["status"], "Say what to look at: --app NAME or --site HOST."),
-        (vec!["status", "f.zip"], "Say what to look at: --app NAME or --site HOST."),
-        (vec!["status", "--json"], "Say what to look at: --app NAME or --site HOST."),
+        (vec!["status"], "Say what to look at: --app NAME, --site HOST or --device."),
+        (vec!["status", "f.zip"], "Say what to look at: --app NAME, --site HOST or --device."),
+        (vec!["status", "--json"], "Say what to look at: --app NAME, --site HOST or --device."),
         (vec!["status", "--app", "x"], "No settings file was given."),
         (vec!["status", "--site", "x"], "No settings file was given."),
         (vec!["status", "a.zip", "b.zip", "--app", "x"], "Only one settings file can be given."),

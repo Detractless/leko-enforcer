@@ -6,7 +6,7 @@ use leko_core::models::specs::{AppCover, BlockSpec, Door, Lock, ReadSet, Rule};
 fn set(cover: AppCover, kind: &str) -> ReadSet {
     let mut set = ReadSet::default();
     set.blocks.insert("block".into(), BlockSpec {
-        id: "block".into(), on: true, apps: cover, sites: vec![],
+        id: "block".into(), on: true, apps: cover, sites: vec![], device: None,
         rules: vec![Rule { id: "rule".into(), kind: kind.into(), days: vec![], allowed: vec![], ends_at: None }],
         door: Door::Wall, pass: None, earn: None, lock: Lock::open(),
     });

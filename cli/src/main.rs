@@ -26,7 +26,8 @@ fn main() {
         let started = std::time::Instant::now(); let code = leko_cli::enforcement::enforcement_loop::run(
             args[1].to_str().unwrap(), now_ms, computer_zone,
             leko_cli::enforcement::macos_applications::running, leko_cli::enforcement::macos_applications::terminate, std::process::id() as i32,
-            || started.elapsed().as_millis().min(u64::MAX as u128) as u64, |ms| std::thread::sleep(std::time::Duration::from_millis(ms)), &mut std::io::stderr(),
+            || started.elapsed().as_millis().min(u64::MAX as u128) as u64, |ms| std::thread::sleep(std::time::Duration::from_millis(ms)),
+            leko_cli::enforcement::macos_device_lock::perform, &mut std::io::stderr(),
         );
         std::process::exit(code);
     }

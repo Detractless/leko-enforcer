@@ -14,7 +14,7 @@ use zip_writer::zip_of;
 const NOW: i64 = 1_793_000_000_000;
 
 fn request(name: &str) -> BlockRequest {
-    BlockRequest { name: name.to_string(), apps: vec!["com.example.app".to_string()], sites: vec![], rule: RuleChoice::Always, days: vec![], door: DoorChoice::Default, message: None }
+    BlockRequest { name: name.to_string(), apps: vec!["com.example.app".to_string()], sites: vec![], device: None, rule: RuleChoice::Always, days: vec![], door: DoorChoice::Default, message: None }
 }
 
 fn empty_settings() -> Vec<u8> {

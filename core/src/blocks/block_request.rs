@@ -2,6 +2,8 @@
 //! gets past it. The command line fills this in from flags; a voice layer or a model can fill in the
 //! same thing. It holds values and checks nothing: the drafter and the readers judge them.
 
+use crate::models::specs::DeviceAction;
+
 /// When the block closes what it covers.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RuleChoice {
@@ -31,6 +33,8 @@ pub struct BlockRequest {
     pub apps: Vec<String>,
     /// Sites by host name.
     pub sites: Vec<String>,
+    /// What the block does to the whole computer instead of covering apps or sites.
+    pub device: Option<DeviceAction>,
     pub rule: RuleChoice,
     /// Weekdays `mon` to `sun`; none means every day. A timed block has none.
     pub days: Vec<String>,

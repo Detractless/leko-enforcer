@@ -16,13 +16,15 @@ import os
 import tempfile
 from pathlib import Path
 from voice.assistant import acquire_single_instance_lock
+from unittest.mock import patch
 
 lock_path = Path("/tmp/leko_assistant_test.pid")
 if lock_path.exists():
     lock_path.unlink()
 
 # First acquisition should succeed
-ok1 = acquire_single_instance_lock(lock_file=lock_path)
+with patch("voice.assistant.subprocess.run"), patch("voice.assistant.os.kill"):
+    ok1 = acquire_single_instance_lock(lock_file=lock_path)
 assert ok1 == True, "First lock acquisition should succeed"
 assert lock_path.exists(), "Lock file should be written"
 assert lock_path.read_text().strip() == str(os.getpid())
@@ -58,11 +60,11 @@ set_playback_state(True)
 assert is_audio_muted_for_echo() == True
 
 # Right after playback stops, 0.7s decay mute is active
-set_playback_state(False, post_mute_s=0.2)
+set_playback_state(False, post_mute_s=0.7)
 assert is_audio_muted_for_echo() == True, "Must stay muted during post-playback decay"
 
 # After decay window, mic is re-armed
-time.sleep(0.25)
+time.sleep(0.75)
 assert is_audio_muted_for_echo() == False, "Must re-arm mic after decay window"
 print("OK")
 `;
@@ -88,7 +90,7 @@ import numpy as np
 from voice.turn_detector import TurnDetector
 
 onsets = []
-detector = TurnDetector(on_speech_onset=lambda: onsets.append(True))
+detector = TurnDetector(speech_detector=False, on_speech_onset=lambda: onsets.append(True))
 
 # 400 Hz tone for speech
 t = np.linspace(0, 0.2, 3200, endpoint=False)

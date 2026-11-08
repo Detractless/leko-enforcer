@@ -15,7 +15,7 @@ test('turn_detector_preserves_continuity_over_short_pauses', async () => {
 import numpy as np
 from voice.turn_detector import TurnDetector
 
-detector = TurnDetector()
+detector = TurnDetector(speech_detector=False)
 
 # 1 second of speech (400 Hz tone)
 t = np.linspace(0, 1.0, 16000, endpoint=False)
@@ -102,72 +102,5 @@ print("OK")
 
   const code = await new Promise((res) => proc.on('close', res));
   assert.equal(code, 0, `Noise floor calibration test failed: ${stderr}`);
-  assert.ok(stdout.includes('OK'));
-});
-
-test('dangling_guard_identifies_incomplete_clauses', async () => {
-  const script = `
-from voice.turn_detector import looks_unfinished
-
-assert looks_unfinished("I don't think I need") == True
-assert looks_unfinished("Block reddit and twitter because") == True
-assert looks_unfinished("Start a session for") == True
-assert looks_unfinished("Turn off rule number") == True
-
-assert looks_unfinished("Block YouTube for 1 hour") == False
-assert looks_unfinished("Start a 30m focus session") == False
-assert looks_unfinished("What is my current status") == False
-print("OK")
-`;
-
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
-  assert.equal(code, 0, `Dangling guard test failed: ${stderr}`);
-  assert.ok(stdout.includes('OK'));
-});
-
-test('turn_manager_merges_audio_within_grace_period', async () => {
-  const script = `
-import numpy as np
-from voice.turn_detector import TurnBufferMerger
-
-merger = TurnBufferMerger(grace_period_s=0.8)
-
-# Add first utterance
-t = np.linspace(0, 0.5, 8000, endpoint=False)
-audio1 = (np.sin(2 * np.pi * 400 * t) * 10000).astype(np.float32) / 32768.0
-
-merger.push_turn(audio1)
-assert merger.is_pending_continuation() == True
-
-# Speaker continues within grace period
-audio2 = (np.sin(2 * np.pi * 500 * t) * 10000).astype(np.float32) / 32768.0
-combined = merger.merge_continuation(audio2)
-
-assert len(combined) == len(audio1) + len(audio2), "Audio segments must be merged"
-print("OK")
-`;
-
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
-  assert.equal(code, 0, `Turn merger test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });

@@ -32,6 +32,7 @@ fn request(app: Option<&str>, site: Option<&str>) -> BlockRequest {
         name: "X".into(),
         apps: app.map(str::to_string).into_iter().collect(),
         sites: site.map(str::to_string).into_iter().collect(),
+        device: None,
         rule: RuleChoice::Always,
         days: vec![],
         door: DoorChoice::Default,

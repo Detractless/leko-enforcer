@@ -52,6 +52,21 @@ class CircleController {
     if (this.statusEl) {
       this.statusEl.textContent = customLabel || defaultLabels[state];
     }
+
+    if (typeof document !== 'undefined') {
+      const btnStop = document.getElementById('btn-stop');
+      if (btnStop) {
+        if (state === 'speaking') {
+          btnStop.textContent = 'Interrupt';
+          btnStop.classList.add('btn-interrupt');
+          btnStop.title = 'Interrupt speech (Space)';
+        } else {
+          btnStop.textContent = 'Stop';
+          btnStop.classList.remove('btn-interrupt');
+          btnStop.title = 'Interrupt speech or reset draft (Space)';
+        }
+      }
+    }
   }
 
   showDraft(draft, onConfirm, onCancel) {
@@ -85,10 +100,7 @@ class CircleController {
       this.onConfirmCallback(draft);
     }
     this.hideDraft();
-    this.setState('confirmed');
-    setTimeout(() => {
-      this.setState('idle');
-    }, 1800);
+    if (draft) this.setState('thinking', 'Saving...');
   }
 
   cancelDraft() {

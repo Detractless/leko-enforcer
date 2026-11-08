@@ -4,7 +4,7 @@
 use super::read_door::{read_door, read_earn, read_pass};
 use super::read_key_lock::read_lock;
 use super::strict_fields::{Read, StrictFields, MAX_INT, MINUTES_PER_DAY};
-use crate::models::specs::{AppCover, BlockSpec, Door, ReadMode, Rule};
+use crate::models::specs::{AppCover, BlockSpec, DeviceAction, Door, ReadMode, Rule};
 use crate::sessions::session_rule::read_session;
 use crate::sites::site_name::read_sites;
 use serde_json::Value;
@@ -62,8 +62,14 @@ fn read_packages(fields: &mut StrictFields, name: &str, minimum: i64) -> Read<Ve
 
 /// The covers object. Returns the apps it covers and its sites, which only the extended mode reads:
 /// there `sites` may stand alone or beside `apps` or `allAppsExcept`; in the phone's mode it is an
-/// unknown field.
-fn read_covers(parent: &mut StrictFields, context: &ReadContext) -> Read<(AppCover, Vec<String>)> {
+/// unknown field. A device block has no covers at all.
+fn read_covers(parent: &mut StrictFields, context: &ReadContext, device: bool) -> Read<(AppCover, Vec<String>)> {
+    if device {
+        if parent.has("covers") {
+            return parent.fail("covers", "is not used: a device block covers no app or site");
+        }
+        return Ok((AppCover::Nothing, Vec::new()));
+    }
     let mut fields = parent.child_required("covers")?;
     let has_sites = fields.mode() == ReadMode::Extended && fields.has("sites");
     let has_apps = fields.has("apps");
@@ -85,6 +91,21 @@ fn read_covers(parent: &mut StrictFields, context: &ReadContext) -> Read<(AppCov
     let sites = if has_sites { read_sites(&mut fields)? } else { Vec::new() };
     fields.finish()?;
     Ok((apps, sites))
+}
+
+/// The extended-only `device` field: what the block does to the whole computer while its rule is
+/// closed. The phone's mode has no such field, so it is refused there by name.
+fn read_device(fields: &mut StrictFields) -> Read<Option<DeviceAction>> {
+    let Some(text) = fields.text_opt("device", 1, MAX_INT)? else {
+        return Ok(None);
+    };
+    if fields.mode() != ReadMode::Extended {
+        return fields.fail("device", "is not a field of this file");
+    }
+    match DeviceAction::from_word(&text) {
+        Some(action) => Ok(Some(action)),
+        None => fields.fail("device", "must be lock, logoff or shutdown"),
+    }
 }
 
 fn read_per(fields: &mut StrictFields, allowed: &[&str]) -> Read<()> {
@@ -196,6 +217,12 @@ fn read_rules(parent: &mut StrictFields) -> Read<Vec<Rule>> {
 }
 
 fn check_pass(fields: &StrictFields, block: &BlockSpec) -> Read<()> {
+    if block.device.is_some() {
+        if block.pass.is_some() {
+            return fields.fail("pass", "is not used: a device block has no way in");
+        }
+        return Ok(());
+    }
     let closes = block.rules.iter().any(|rule| CLOSES_BY_DOOR.contains(&rule.kind.as_str()));
     let walking = matches!(block.door, Door::Walking { .. });
     // A walking door gives no pass: the pace keeps the app open.
@@ -237,14 +264,15 @@ pub fn read_block(fields: &mut StrictFields, context: &ReadContext) -> Read<Bloc
     fields.text_len("name", 1, MAX_NAME)?;
     let on = fields.flag("on")?.unwrap_or(true);
     fields.text_opt("message", 0, MAX_MESSAGE)?;
-    let (apps, sites) = read_covers(fields, context)?;
+    let device = read_device(fields)?;
+    let (apps, sites) = read_covers(fields, context, device.is_some())?;
     let rules = read_rules(fields)?;
     let door = read_door(fields)?;
     let pass = read_pass(fields)?;
     let earn = read_earn(fields)?;
     let lock = read_lock(fields)?;
     fields.finish()?;
-    let block = BlockSpec { id, on, apps, sites, rules, door, pass, earn, lock };
+    let block = BlockSpec { id, on, apps, sites, device, rules, door, pass, earn, lock };
     check_pass(fields, &block)?;
     check_earn(fields, &block)?;
     Ok(block)

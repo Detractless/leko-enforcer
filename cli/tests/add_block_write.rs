@@ -24,7 +24,7 @@ use zip_writer::Method;
 const FLAGS: [&str; 5] = ["--name", "Social Media", "--app", APP, "--always"];
 
 fn the_request() -> BlockRequest {
-    BlockRequest { name: "Social Media".into(), apps: vec![APP.into()], sites: vec![], rule: RuleChoice::Always, days: vec![], door: DoorChoice::Default, message: None }
+    BlockRequest { name: "Social Media".into(), apps: vec![APP.into()], sites: vec![], device: None, rule: RuleChoice::Always, days: vec![], door: DoorChoice::Default, message: None }
 }
 
 /// Runs `--write` on the zip `bytes` in a fresh folder; returns the folder and the file's path.

@@ -104,27 +104,34 @@ print("OK")
   assert.ok(stdout.includes('OK'));
 });
 
-test('barge_in_detects_speech_during_playback_and_halts_audio', async () => {
+test('playback_audio_is_discarded_and_user_speech_rearms_after_decay', async () => {
   const script = `
 import numpy as np
+import time
 from voice.turn_detector import TurnDetector
-import voice.assistant as assistant
-
-halted = []
-def mock_stop():
-    halted.append(True)
-
-assistant.stop_playback = mock_stop
-detector = TurnDetector(barge_in_threshold=0.035)
+onsets = []
+detector = TurnDetector(speech_detector=False, on_speech_onset=lambda: onsets.append(True))
 
 # Simulate assistant playback active
 detector.set_playback_active(True)
 
-# Feed loud user speech interrupting assistant (RMS ~ 0.12)
-user_voice = (np.ones(2560, dtype=np.int16) * 4000)
-detector.feed(user_voice)
+# Feed loud audio while assistant playback is active.
+playback = (np.ones(2560, dtype=np.int16) * 12000)
+ended, audio = detector.feed(playback)
+assert detector.in_speech == False
+assert len(audio) == 0 and ended == False
+assert len(detector.preroll) == 0, "Playback audio must not enter pre-roll"
 
-assert detector.in_speech == True, "Barge-in speech should be detected during playback"
+# Keep the acoustic decay interval active, then re-arm with direct speech.
+detector.set_playback_active(False, post_mute_s=0.05)
+detector.set_playback_active(False, post_mute_s=0.05)
+human_voice = (np.ones(2560, dtype=np.int16) * 4000)
+detector.feed(human_voice)
+assert detector.in_speech == False, "Room echo decay must remain guarded"
+time.sleep(0.06)
+detector.feed(human_voice)
+assert detector.in_speech == True, "Microphone should re-arm after playback decay"
+assert len(onsets) == 1
 print("OK")
 `;
 
@@ -143,23 +150,20 @@ print("OK")
   assert.ok(stdout.includes('OK'));
 });
 
-test('barge_in_threshold_distinguishes_bleed_from_direct_voice', async () => {
+test('playback_guard_ignores_loud_and_quiet_playback_equally', async () => {
   const script = `
 import numpy as np
 from voice.turn_detector import TurnDetector
 
-detector = TurnDetector(barge_in_threshold=0.035, speech_threshold=0.010)
+detector = TurnDetector(speech_threshold=0.010)
 detector.set_playback_active(True)
 
-# Low level speaker bleed (RMS ~ 0.018: 600 / 32768 ≈ 0.0183)
-speaker_bleed = (np.ones(2560, dtype=np.int16) * 600)
-detector.feed(speaker_bleed)
-assert detector.in_speech == False, "Speaker bleed must NOT trigger speech onset during playback"
-
-# Direct human voice barge-in (RMS ~ 0.061: 2000 / 32768 ≈ 0.061)
-human_voice = (np.ones(2560, dtype=np.int16) * 2000)
-detector.feed(human_voice)
-assert detector.in_speech == True, "Direct voice above barge-in threshold MUST trigger speech onset"
+for level in (600, 2000, 12000):
+    audio = np.ones(2560, dtype=np.int16) * level
+    ended, buffered = detector.feed(audio)
+    assert not ended and len(buffered) == 0
+    assert detector.in_speech == False
+    assert len(detector.preroll) == 0
 
 print("OK")
 `;
@@ -176,5 +180,42 @@ print("OK")
 
   const code = await new Promise((res) => proc.on('close', res));
   assert.equal(code, 0, `Threshold bleed vs voice test failed: ${stderr}`);
+  assert.ok(stdout.includes('OK'));
+});
+
+test('aec_clean_audio_allows_interruptions_at_normal_voice_threshold', async () => {
+  const script = `
+import numpy as np
+from voice.turn_detector import TurnDetector
+
+onsets = []
+detector = TurnDetector(speech_detector=False, speech_threshold=0.010, barge_in_threshold=0.035,
+                        on_speech_onset=lambda: onsets.append(True))
+detector.set_echo_cancellation_enabled(True)
+detector.set_playback_active(True)
+
+# This represents cleaned near-end speech: RMS is below the old bleed threshold.
+speech = np.ones(2560, dtype=np.int16) * 600
+detector.feed(speech)
+assert detector.in_speech == False, "Microphone must be muted during playback to prevent self-interruption"
+assert len(onsets) == 0
+
+detector.set_playback_active(False, post_mute_s=0.0)
+ended, out = detector.feed(speech)
+assert detector.in_speech == True
+assert len(onsets) == 1
+print("OK")
+`;
+
+  const proc = spawn(PYTHON_BIN, ['-c', script], {
+    cwd: REPO_ROOT,
+    env: { ...process.env, PYTHONPATH: REPO_ROOT }
+  });
+  let stdout = '';
+  let stderr = '';
+  for await (const chunk of proc.stdout) stdout += chunk;
+  for await (const chunk of proc.stderr) stderr += chunk;
+  const code = await new Promise((res) => proc.on('close', res));
+  assert.equal(code, 0, `AEC barge-in test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });

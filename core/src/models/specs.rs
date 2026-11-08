@@ -92,6 +92,45 @@ pub enum AppCover {
     AllExcept(Vec<String>),
 }
 
+/// What a device block does to the whole computer while its rule is closed. It covers no app and no
+/// site: the settings file names it with an extended-only `device` field.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeviceAction {
+    Lock,
+    Logoff,
+    Shutdown,
+}
+
+impl DeviceAction {
+    /// The word the settings file writes for this action.
+    pub fn word(self) -> &'static str {
+        match self {
+            DeviceAction::Lock => "lock",
+            DeviceAction::Logoff => "logoff",
+            DeviceAction::Shutdown => "shutdown",
+        }
+    }
+
+    /// How strong the action is. When two device blocks are closed at once, the stronger one acts.
+    pub fn strength(self) -> i64 {
+        match self {
+            DeviceAction::Lock => 1,
+            DeviceAction::Logoff => 4,
+            DeviceAction::Shutdown => 5,
+        }
+    }
+
+    /// The action the word names, or `None` when it names none.
+    pub fn from_word(word: &str) -> Option<DeviceAction> {
+        match word {
+            "lock" => Some(DeviceAction::Lock),
+            "logoff" => Some(DeviceAction::Logoff),
+            "shutdown" => Some(DeviceAction::Shutdown),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct BlockSpec {
     pub id: String,
@@ -100,6 +139,8 @@ pub struct BlockSpec {
     pub apps: AppCover,
     /// The sites the block covers (extended mode only; empty otherwise).
     pub sites: Vec<String>,
+    /// What the block does to the whole computer instead of covering apps or sites (extended mode only).
+    pub device: Option<DeviceAction>,
     pub rules: Vec<Rule>,
     pub door: Door,
     pub pass: Option<Pass>,

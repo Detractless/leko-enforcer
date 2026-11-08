@@ -1,14 +1,15 @@
 //! Reads the words after `leko add-block` into one request: the settings file, the name, the apps and
-//! sites, exactly one rule, the days, the door, the message and the write switch. Nothing is guessed:
-//! a missing, repeated, unknown or odd argument is a one-sentence problem and no request. Only the
-//! shape of the words is judged here (a day name, HH:MM-HH:MM, a length, a whole number); whether a
-//! value is good enough to be saved (a wait of 900 seconds, an app name with a space) is the core's
-//! judgment. This file opens no file and reads no clock.
+//! sites or the device action, exactly one rule, the days, the door, the message and the write switch.
+//! Nothing is guessed: a missing, repeated, unknown or odd argument is a one-sentence problem and no
+//! request. Only the shape of the words is judged here (a day name, HH:MM-HH:MM, a length, a whole
+//! number); whether a value is good enough to be saved (a wait of 900 seconds, an app name with a
+//! space) is the core's judgment. This file opens no file and reads no clock.
 
 use crate::session::session_length::{count_of, read_length};
 use crate::session::session_report::shown;
 use leko_core::blocks::block_request::{BlockRequest, DoorChoice, RuleChoice};
 use leko_core::config::strict_fields::{parse_minutes, WEEKDAYS};
+use leko_core::models::specs::DeviceAction;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AddBlockRequest {
@@ -76,12 +77,17 @@ fn minutes_of(text: &str) -> Result<i64, String> {
     read_length(text).ok_or_else(|| format!("{} is not a length: write whole minutes, or a whole number with m, h or d (90, 90m, 2h, 7d).", shown(text)))
 }
 
+fn device_of(text: &str) -> Result<DeviceAction, String> {
+    DeviceAction::from_word(text).ok_or_else(|| format!("{} is not a device action: write lock, logoff or shutdown.", shown(text)))
+}
+
 /// Every flag of the command and what it was given; `check` turns them into a request.
 #[derive(Default)]
 struct Found<'a> {
     name: Option<&'a str>,
     apps: Vec<&'a str>,
     sites: Vec<&'a str>,
+    device: Option<DeviceAction>,
     always: bool,
     hours: Option<Vec<(String, String)>>,
     length: Option<i64>,
@@ -114,6 +120,7 @@ fn collect<'a>(words: &[&'a str]) -> Result<Found<'a>, String> {
             "--name" => once(&mut found.name, flag, value("a name")?)?,
             "--app" => add_once(&mut found.apps, flag, value("an app name")?)?,
             "--site" => add_once(&mut found.sites, flag, value("a website host")?)?,
+            "--device" => once(&mut found.device, flag, device_of(value("a device action such as lock")?)?)?,
             "--open-hours" => once(&mut found.hours, flag, hours_of(value("hours such as 09:00-17:00")?)?)?,
             "--for" => once(&mut found.length, flag, minutes_of(value("a length such as 90m")?)?)?,
             "--days" => once(&mut found.days, flag, days_of(value("weekdays such as mon,tue")?)?)?,
@@ -137,8 +144,15 @@ fn check(found: Found) -> Result<AddBlockRequest, String> {
         _ => return Err("Only one settings file can be given.".to_string()),
     };
     let name = found.name.ok_or("Say what to call the block: --name NAME.")?;
-    if found.apps.is_empty() && found.sites.is_empty() {
-        return Err("Say what to close: --app ID or --site HOST (more than one is fine).".to_string());
+    if found.device.is_some() {
+        if !found.apps.is_empty() || !found.sites.is_empty() {
+            return Err("Give --device alone: a device block covers no app or site.".to_string());
+        }
+        if found.wall || found.wait.is_some() {
+            return Err("--wall and --wait cannot be used with --device: a device block has no way in.".to_string());
+        }
+    } else if found.apps.is_empty() && found.sites.is_empty() {
+        return Err("Say what to close: --app ID or --site HOST (more than one is fine), or --device lock|logoff|shutdown.".to_string());
     }
     let rule = match (found.always, found.hours, found.length) {
         (true, None, None) => RuleChoice::Always,
@@ -160,6 +174,7 @@ fn check(found: Found) -> Result<AddBlockRequest, String> {
         name: name.to_string(),
         apps: found.apps.iter().map(|app| (*app).to_string()).collect(),
         sites: found.sites.iter().map(|site| (*site).to_string()).collect(),
+        device: found.device,
         rule,
         days: found.days.unwrap_or_default(),
         door,

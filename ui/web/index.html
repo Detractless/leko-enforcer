@@ -52,12 +52,35 @@
     document.getElementById('btn-mute').addEventListener('click', () => bridge.toggleMute());
     document.getElementById('btn-stop').addEventListener('click', () => bridge.stop());
 
-    // Tap circle to force start listening or cancel
+    // Tap circle to toggle listening or interrupt speech back to Ready
     stageEl.addEventListener('click', () => {
       if (controller.currentState === 'idle') {
         controller.setState('listening', 'Listening...');
         bridge.sendIpcAction('listen_start');
-      } else if (controller.currentState === 'listening') {
+      } else {
+        // In speaking, listening, or thinking: interrupt/stop back to Ready
+        bridge.stop();
+      }
+    });
+
+    // Space key acts as a toggle:
+    // If idle -> start listening
+    // If speaking, thinking, or listening -> interrupt/stop back to Ready
+    // Escape key always interrupts/resets to Ready
+    window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        return;
+      }
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (controller.currentState === 'idle') {
+          controller.setState('listening', 'Listening...');
+          bridge.sendIpcAction('listen_start');
+        } else {
+          bridge.stop();
+        }
+      } else if (e.code === 'Escape') {
+        e.preventDefault();
         bridge.stop();
       }
     });

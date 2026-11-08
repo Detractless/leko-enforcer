@@ -15,7 +15,7 @@ test('preroll_buffer_captures_leadin_audio_before_voice_onset', async () => {
 import numpy as np
 from voice.turn_detector import TurnDetector
 
-detector = TurnDetector(preroll_frames=5)
+detector = TurnDetector(preroll_frames=5, speech_detector=False)
 
 # Feed 4 frames of soft lead-in audio below speech threshold
 soft_chunk = (np.ones(2560, dtype=np.int16) * 150)
@@ -54,7 +54,7 @@ test('leadin_syllables_are_preserved_in_captured_turn', async () => {
 import numpy as np
 from voice.turn_detector import TurnDetector
 
-detector = TurnDetector(preroll_frames=5, min_sil_frames=2, max_sil_frames=4)
+detector = TurnDetector(preroll_frames=5, min_sil_frames=2, max_sil_frames=4, speech_detector=False, continuation_s=0)
 
 # Feed 5 pre-roll frames
 for _ in range(5):

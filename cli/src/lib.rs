@@ -64,6 +64,7 @@ pub mod status {
 pub mod enforcement {
     pub mod enforcement_loop;
     pub mod macos_applications;
+    pub mod macos_device_lock;
 }
 
 pub mod launch_agent {

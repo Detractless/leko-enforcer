@@ -1,11 +1,13 @@
-//! Applies the core's decisions to an injected list of running applications.
+//! Applies the core's decisions to an injected list of running applications, and the device action a
+//! closed device block asks for, to an injected system request.
 use super::macos_applications::Application;
 use crate::status::settings_file::read_settings_and_bytes;
 use crate::status::zone_choice::choose_zone;
 use leko_core::config_time::zone_time::ZoneTime;
 use leko_core::decision::block_cover::Target;
 use leko_core::decision::decide_target::decide;
-use leko_core::models::specs::ReadSet;
+use leko_core::decision::device_action::device_action;
+use leko_core::models::specs::{DeviceAction, ReadSet};
 use std::collections::HashSet;
 use std::io::Write;
 
@@ -38,9 +40,10 @@ pub fn judge_apps<F: FnMut(&Application) -> Result<(), String>>(
     }
 }
 
-pub fn run<C, Z, A, T, M, S>(path: &str, mut clock: C, mut zone_name: Z, mut apps: A, mut terminate: T, own_pid: i32, mut monotonic_ms: M, mut sleep: S, err: &mut dyn Write) -> i32
+pub fn run<C, Z, A, T, M, S, D>(path: &str, mut clock: C, mut zone_name: Z, mut apps: A, mut terminate: T, own_pid: i32, mut monotonic_ms: M, mut sleep: S, mut device: D, err: &mut dyn Write) -> i32
 where C: FnMut() -> Result<i64, String>, Z: FnMut() -> Option<String>,
-      A: FnMut() -> Result<Vec<Application>, String>, T: FnMut(&Application) -> Result<(), String>, M: FnMut() -> u64, S: FnMut(u64) {
+      A: FnMut() -> Result<Vec<Application>, String>, T: FnMut(&Application) -> Result<(), String>, M: FnMut() -> u64, S: FnMut(u64),
+      D: FnMut(DeviceAction) -> Result<(), String> {
     let (_, mut settings) = match read_settings_and_bytes(path) {
         Ok(value) => value,
         Err(_) => { let _ = writeln!(err, "The settings file could not be read or is invalid; enforcement did not start."); return 1; }
@@ -49,6 +52,7 @@ where C: FnMut() -> Result<i64, String>, Z: FnMut() -> Option<String>,
         let _ = writeln!(err, "{problem}"); return 1;
     }
     let mut last_problem = String::new();
+    let mut last_device_error: Option<DeviceAction> = None;
     let mut previous_start: Option<u64> = None;
     loop {
         let started = monotonic_ms();
@@ -76,6 +80,17 @@ where C: FnMut() -> Result<i64, String>, Z: FnMut() -> Option<String>,
         match apps() {
             Ok(current) => judge_apps(&settings, &current, now, &zone, own_pid, &mut terminate, err),
             Err(problem) => { let _ = writeln!(err, "{problem}"); }
+        }
+        match device_action(&settings, now, &zone) {
+            Some(action) => match device(action) {
+                Ok(()) => last_device_error = None,
+                Err(problem) if last_device_error != Some(action) => {
+                    let _ = writeln!(err, "Could not {}: {problem}; will retry.", action.word());
+                    last_device_error = Some(action);
+                }
+                Err(_) => {}
+            },
+            None => last_device_error = None,
         }
         let elapsed = monotonic_ms().saturating_sub(started);
         if elapsed >= 1000 { let _ = writeln!(err, "Enforcement check took {elapsed} ms; the one-second interval was missed."); }

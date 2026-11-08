@@ -28,6 +28,12 @@ s2 = format_status_summary(raw_app_output, target_type="app", name="Discord")
 assert not s2.startswith("App "), f"Should not start with redundant 'App ': {s2}"
 assert "Discord is open" in s2, f"Expected clean natural sentence, got: {s2}"
 
+# Test a device status: the redundant prefix goes, the action stays.
+raw_device_output = "Device: the screen is locked until 04:00 PM, judged at 02:00 PM in America/New_York. Closed by block \\"freeze\\" rule \\"always\\" (always). Nothing was saved or changed."
+s3 = format_status_summary(raw_device_output, target_type="device")
+assert not s3.startswith("Device"), f"Should not start with redundant 'Device': {s3}"
+assert s3 == "the screen is locked until 04:00 PM.", f"Expected clean device sentence, got: {s3}"
+
 print("OK")
 `;
 
@@ -123,12 +129,12 @@ def mock_speak(txt, is_cancelled=None):
 
 # Mock parse_user_intent_safe to avoid flaky HTTP 500 when llama-server is bombarded concurrently
 orig_parse = assistant.parse_user_intent_safe
-assistant.parse_user_intent_safe = lambda q: {"action": "tool_call", "tool": "start_session", "arguments": {"length": "30m"}}
+assistant.parse_user_intent_safe = lambda q, **kwargs: {"action": "tool_call", "tool": "start_session", "arguments": {"length": "30m"}}
 
 try:
     summary = assistant.process_query("Start a 30m focus session", "/tmp/settings.zip", bridge=bridge, speak_fn=mock_speak)
     assert not summary.startswith("Action prepared:"), f"Summary should be natural, got: {summary}"
-    assert "Starting a focus session of 30m." in summary or "Starting a focus session" in summary
+    assert "Prepared a focus session of 30m." in summary
     assert any("30 minutes" in s for s in spoken_takes), f"Spoken take should pronounce '30 minutes': {spoken_takes}"
     print("OK")
 finally:

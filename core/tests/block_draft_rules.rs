@@ -24,6 +24,7 @@ fn request(rule: RuleChoice, days: &[&str]) -> BlockRequest {
         name: "Focus".to_string(),
         apps: vec![APP.to_string()],
         sites: vec![SITE.to_string()],
+        device: None,
         rule,
         days: days.iter().map(|day| day.to_string()).collect(),
         door: DoorChoice::Default,

@@ -1,0 +1,141 @@
+"""Compare playback paths without transcription, command execution, or saved mic audio."""
+
+import json
+from collections import Counter
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import assistant as voice
+from audio_io.echo_canceller import EchoAudioProcessor, VoiceOutputPlayer
+
+
+def run_case(name, pcm, rate):
+    events = []
+    timings = {"input": [], "output": []}
+    statuses = []
+    stream_details = []
+    frame_sizes = {"input": Counter(), "output": Counter()}
+    energy = {"raw": 0.0, "cleaned": 0.0, "samples": 0}
+    start = time.monotonic()
+    original_input = voice.sd.RawInputStream
+    original_output = voice.sd.OutputStream
+
+    def event(kind, **details):
+        events.append({"seconds": round(time.monotonic() - start, 4), "event": kind, **details})
+
+    def wrap_stream(factory, direction):
+        def create(*args, **kwargs):
+            callback = kwargs.get("callback")
+            sample_rate = kwargs.get("samplerate", rate)
+            if callback is not None:
+                def measured(data, frames, clock, status):
+                    began = time.perf_counter()
+                    frame_sizes[direction][frames] += 1
+                    if status:
+                        statuses.append({"direction": direction, "status": str(status),
+                                         "seconds": round(time.monotonic() - start, 4)})
+                    try:
+                        return callback(data, frames, clock, status)
+                    finally:
+                        timings[direction].append((time.perf_counter() - began, frames / sample_rate))
+                kwargs["callback"] = measured
+            stream = factory(*args, **kwargs)
+            stream_details.append({"direction": direction, "sample_rate": stream.samplerate,
+                                   "blocksize": stream.blocksize, "latency": stream.latency})
+            return stream
+        return create
+
+    voice.sd.RawInputStream = wrap_stream(original_input, "input")
+    voice.sd.OutputStream = wrap_stream(original_output, "output")
+    manager = None
+    voice._echo_audio.close()
+    voice._echo_audio = EchoAudioProcessor()
+    voice._output_player = VoiceOutputPlayer(voice._echo_audio)
+    clean_capture = voice._echo_audio.clean_capture
+
+    def measured_capture(samples):
+        cleaned = clean_capture(samples)
+        if voice._playback_active and cleaned is not None:
+            raw = samples.astype(np.float32) / 32768.0
+            result = cleaned.astype(np.float32) / 32768.0
+            energy["raw"] += float(np.dot(raw, raw))
+            energy["cleaned"] += float(np.dot(result, result))
+            energy["samples"] += len(raw)
+        return cleaned
+
+    voice._echo_audio.clean_capture = measured_capture
+
+    def onset():
+        event("speech_onset", during_playback=voice._playback_active)
+        if name == "cancel" and voice._playback_active:
+            event("stop_requested", reason="speech_onset")
+            voice.stop_playback()
+
+    try:
+        if name != "baseline":
+            if not voice._echo_audio.available:
+                raise RuntimeError("Native AEC library unavailable")
+            manager = voice.HandsfreeTurnManager(
+                lambda audio, merger: event("turn_complete", samples=len(audio)), onset
+            )
+            manager.start()
+            time.sleep(0.5)
+        event("playback_start", expected_seconds=len(pcm) / rate)
+        began = time.monotonic()
+        if name == "baseline":
+            voice.sd.play(pcm, samplerate=rate)
+            voice.sd.wait()
+            success = True
+        else:
+            voice.set_echo_cancellation_enabled(True)
+            voice.set_playback_state(True)
+            success = voice._output_player.play(pcm, rate)
+            voice.set_playback_state(False)
+        elapsed = time.monotonic() - began
+        event("playback_return", elapsed_seconds=elapsed, returned_success=success)
+        time.sleep(0.8)
+    finally:
+        if manager is not None:
+            manager.stop()
+        voice._output_player.stop()
+        voice._echo_audio.close()
+        voice.sd.RawInputStream = original_input
+        voice.sd.OutputStream = original_output
+
+    summary = {}
+    for direction, samples in timings.items():
+        summary[direction] = {
+            "callbacks": len(samples),
+            "max_ms": round(max((t for t, _ in samples), default=0) * 1000, 3),
+            "over_budget": sum(t > budget for t, budget in samples),
+            "frame_sizes": dict(frame_sizes[direction]),
+        }
+    count = max(energy["samples"], 1)
+    return {"case": name, "events": events, "statuses": statuses, "streams": stream_details,
+            "callback_timing": summary,
+            "playback_mic_rms": {key: (energy[key] / count) ** 0.5 for key in ("raw", "cleaned")}}
+
+
+def main():
+    tts = voice.get_tts()
+    pcm = VoiceOutputPlayer._mono_float(tts.synth(
+        "This is an audio check. The same sentence should play smoothly from beginning to end.",
+        voice=voice.VOICE_NAME,
+    ))
+    results = []
+    for name in ("baseline", "observe", "cancel"):
+        print(f"Audio comparison: {name}", flush=True)
+        results.append(run_case(name, pcm, int(tts.sample_rate)))
+        time.sleep(0.5)
+    path = Path("/tmp/leko-audio-diagnosis.json")
+    path.write_text(json.dumps(results, indent=2))
+    print(json.dumps(results, indent=2))
+    print(f"Timing report: {path}")
+
+
+if __name__ == "__main__":
+    main()

@@ -7,12 +7,20 @@
 use crate::session::session_report::shown;
 use leko_core::blocks::block_request::{BlockRequest, RuleChoice};
 use leko_core::blocks::draft_block::{Draft, DEFAULT_WAIT_SECONDS};
+use leko_core::models::specs::DeviceAction;
 
 fn list(items: &[String]) -> String {
     items.iter().map(|item| shown(item)).collect::<Vec<_>>().join(", ")
 }
 
 fn covers_in_words(request: &BlockRequest) -> String {
+    if let Some(action) = request.device {
+        return match action {
+            DeviceAction::Lock => "the whole computer: the screen is locked".to_string(),
+            DeviceAction::Logoff => "the whole computer: the user is logged out".to_string(),
+            DeviceAction::Shutdown => "the whole computer: it is shut down".to_string(),
+        };
+    }
     let mut parts = Vec::new();
     if !request.apps.is_empty() {
         parts.push(format!("{} {}", if request.apps.len() == 1 { "the app" } else { "the apps" }, list(&request.apps)));
@@ -71,7 +79,9 @@ pub fn draft_text(request: &BlockRequest, draft: &Draft, file: &str, phone_warni
     if let Some(message) = &request.message {
         lines.push(format!("When someone tries to open it, it says {}.", shown(message)));
     }
-    lines.push("Apps that are never blocked are not checked yet.".to_string());
+    if request.device.is_none() {
+        lines.push("Apps that are never blocked are not checked yet.".to_string());
+    }
     if let Some(why) = phone_warning {
         lines.push(phone_warning_line(why));
     }

@@ -25,6 +25,9 @@ pub fn extension_uses(docs: &[(String, Value)]) -> Vec<ExtensionUse> {
         if doc.get("covers").is_some_and(|covers| covers.get("sites").is_some()) {
             add("covers.sites".to_string(), "sites");
         }
+        if doc.get("device").is_some() {
+            add("device".to_string(), "device block");
+        }
         for (index, rule) in doc.get("rules").and_then(Value::as_array).into_iter().flatten().enumerate() {
             if rule.get("kind").and_then(Value::as_str) == Some("session") {
                 add(format!("rules[{index}].kind"), "session rule");

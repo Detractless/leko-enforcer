@@ -2,6 +2,7 @@ mod scratch_folder;
 mod settings_builder;
 use leko_cli::enforcement::enforcement_loop::run;
 use leko_cli::enforcement::macos_applications::Application;
+use leko_core::models::specs::DeviceAction;
 use scratch_folder::Scratch;
 use serde_json::json;
 use settings_builder::{always, block, write_settings};
@@ -19,7 +20,7 @@ fn exercise(change_file: bool) -> (usize, String) {
     }, || Some("UTC".into()), || Ok(vec![Application { pid: 42, bundle: Some("com.example.app".into()) }]),
     |_| { calls.set(calls.get() + 1); Err("refused".into()) }, 99, || 0, |_| {
         if change_file { std::fs::write(&file, b"broken").unwrap(); }
-    }, &mut err);
+    }, |_| Ok(()), &mut err);
     assert_eq!(code, 1);
     (calls.get(), String::from_utf8(err).unwrap())
 }
@@ -33,7 +34,7 @@ fn each_tick_uses_the_current_time_and_apps() {
     let mut err = Vec::new();
     run(file.to_str().unwrap(), || { let n = ticks.get(); ticks.set(n + 1); if n < 4 { Ok(1_700_000_000_000 + n * 1000) } else { Err("done".into()) } }, || Some("UTC".into()),
         || if ticks.get() == 1 { Ok(vec![]) } else { Ok(vec![Application { pid: 42, bundle: Some("com.example.app".into()) }]) },
-        |_| { calls.set(calls.get() + 1); Ok(()) }, 99, || 0, |_| {}, &mut err);
+        |_| { calls.set(calls.get() + 1); Ok(()) }, 99, || 0, |_| {}, |_| Ok(()), &mut err);
     assert_eq!(calls.get(), 1, "a later launch closes before the session end, then opens at its boundary");
 }
 
@@ -66,7 +67,7 @@ fn ticks_allow_for_processing_time() {
         starts.borrow_mut().push(std::time::Instant::now());
         std::thread::sleep(std::time::Duration::from_millis(200));
         Ok(vec![])
-    }, |_| Ok(()), 99, || origin.elapsed().as_millis() as u64, |ms| std::thread::sleep(std::time::Duration::from_millis(ms)), &mut err);
+    }, |_| Ok(()), 99, || origin.elapsed().as_millis() as u64, |ms| std::thread::sleep(std::time::Duration::from_millis(ms)), |_| Ok(()), &mut err);
     let starts = starts.into_inner();
     let interval = starts[1].duration_since(starts[0]);
     println!("Measured check interval: {interval:?}");
@@ -85,7 +86,7 @@ fn reevaluates_after_clock_jumps_and_a_delayed_wakeup() {
         let n = tick.get(); tick.set(n + 1);
         match n { 0 | 2 => Ok(1_700_000_000_000), 1 => Ok(1_700_003_600_000), _ => Err("done".into()) }
     }, || Some("UTC".into()), || Ok(vec![Application { pid: 42, bundle: Some("com.example.app".into()) }]),
-    |_| { calls.set(calls.get() + 1); Ok(()) }, 99, || monotonic.get(), |ms| monotonic.set(monotonic.get() + ms + 60_000), &mut errors);
+    |_| { calls.set(calls.get() + 1); Ok(()) }, 99, || monotonic.get(), |ms| monotonic.set(monotonic.get() + ms + 60_000), |_| Ok(()), &mut errors);
     assert_eq!(calls.get(), 2, "the forward jump opens the app and the backward jump closes it again");
     assert!(String::from_utf8(errors).unwrap().contains("checks were 60900 ms apart"));
 }
@@ -102,7 +103,41 @@ fn a_slow_check_is_reported_and_retried_without_extra_delay() {
         let n = ticks.get(); ticks.set(n + 1);
         if n == 0 { Ok(1_700_000_000_000) } else { Err("done".into()) }
     }, || Some("UTC".into()), || { time.set(time.get() + 1200); Ok(vec![]) }, |_| Ok(()), 99,
-    || time.get(), |ms| delays.borrow_mut().push(ms), &mut errors);
+    || time.get(), |ms| delays.borrow_mut().push(ms), |_| Ok(()), &mut errors);
     assert_eq!(*delays.borrow(), [0]);
     assert!(String::from_utf8(errors).unwrap().contains("1200 ms; the one-second interval was missed"));
+}
+
+#[test]
+fn a_closed_device_block_acts_on_every_tick() {
+    let scratch = Scratch::new("enforcement-device");
+    let freeze = json!({"schema": 2, "id": "freeze", "name": "Freeze", "on": true, "device": "lock", "rules": [always("a", &[])], "door": {"kind": "wall"}});
+    let file = write_settings(scratch.path(), "settings.zip", &[freeze]);
+    let ticks = Cell::new(0);
+    let actions = std::cell::RefCell::new(Vec::new());
+    let mut err = Vec::new();
+    run(file.to_str().unwrap(), || {
+        let n = ticks.get(); ticks.set(n + 1);
+        if n < 3 { Ok(1_700_000_000_000) } else { Err("done".into()) }
+    }, || Some("UTC".into()), || Ok(vec![]), |_| Ok(()), 99, || 0, |_| {},
+    |action| { actions.borrow_mut().push(action); Ok(()) }, &mut err);
+    assert_eq!(*actions.borrow(), [DeviceAction::Lock, DeviceAction::Lock, DeviceAction::Lock], "the screen is locked again on every check");
+}
+
+#[test]
+fn a_refused_device_action_is_reported_once_and_retried() {
+    let scratch = Scratch::new("enforcement-device-refused");
+    let freeze = json!({"schema": 2, "id": "freeze", "name": "Freeze", "on": true, "device": "shutdown", "rules": [always("a", &[])], "door": {"kind": "wall"}});
+    let file = write_settings(scratch.path(), "settings.zip", &[freeze]);
+    let ticks = Cell::new(0);
+    let tries = Cell::new(0);
+    let mut err = Vec::new();
+    run(file.to_str().unwrap(), || {
+        let n = ticks.get(); ticks.set(n + 1);
+        if n < 3 { Ok(1_700_000_000_000) } else { Err("done".into()) }
+    }, || Some("UTC".into()), || Ok(vec![]), |_| Ok(()), 99, || 0, |_| {},
+    |_| { tries.set(tries.get() + 1); Err("refused".into()) }, &mut err);
+    let errors = String::from_utf8(err).unwrap();
+    assert_eq!(tries.get(), 3, "every check retries");
+    assert_eq!(errors.matches("Could not shutdown").count(), 1, "{errors}");
 }

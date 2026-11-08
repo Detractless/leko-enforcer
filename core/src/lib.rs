@@ -73,6 +73,7 @@ pub mod config_time {
 pub mod decision {
     pub mod block_cover;
     pub mod decide_target;
+    pub mod device_action;
     pub mod next_change;
     pub mod rule_closes;
 }

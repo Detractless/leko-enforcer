@@ -88,13 +88,25 @@ fn rule_of(request: &BlockRequest, now_ms: i64) -> Result<(Value, Option<Value>,
 /// The block `request` asks for, made at the moment `now_ms`, or the sentence saying why it cannot be made.
 pub fn draft_block(request: &BlockRequest, now_ms: i64) -> Result<Draft, String> {
     let id = id_from_name(&request.name)?;
-    if request.apps.is_empty() && request.sites.is_empty() {
+    if request.device.is_some() {
+        if !request.apps.is_empty() || !request.sites.is_empty() {
+            return Err("A device block covers no app or site: it acts on the whole computer.".to_string());
+        }
+    } else if request.apps.is_empty() && request.sites.is_empty() {
         return Err("A block needs at least one app or site to close.".to_string());
     }
     if let Some(problem) = request.message.as_deref().and_then(message_problem) {
         return Err(problem);
     }
-    let (door, lets_in) = door_of(request)?;
+    let (door, lets_in) = match request.device {
+        Some(_) => {
+            if matches!(request.door, DoorChoice::Wait(_)) {
+                return Err("A device block has no way in, so a wait cannot be set on it.".to_string());
+            }
+            (json!({"kind": "wall"}), false)
+        }
+        None => door_of(request)?,
+    };
     let (rule, seal, ends_at) = rule_of(request, now_ms)?;
     let mut covers = Map::new();
     if !request.apps.is_empty() {
@@ -111,7 +123,14 @@ pub fn draft_block(request: &BlockRequest, now_ms: i64) -> Result<Draft, String>
     if let Some(message) = &request.message {
         block.insert("message".to_string(), json!(message));
     }
-    block.insert("covers".to_string(), Value::Object(covers));
+    match request.device {
+        Some(action) => {
+            block.insert("device".to_string(), json!(action.word()));
+        }
+        None => {
+            block.insert("covers".to_string(), Value::Object(covers));
+        }
+    }
     block.insert("rules".to_string(), json!([rule]));
     block.insert("door".to_string(), door);
     if lets_in {

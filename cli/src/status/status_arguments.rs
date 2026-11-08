@@ -1,7 +1,8 @@
-//! Reads the words after `leko status` into one request: the settings file, one app or one site, an
-//! optional zone name and the JSON switch. Nothing is guessed: a missing, repeated, unknown or empty
-//! argument, both or neither of `--app` and `--site`, and two files are each a one-sentence problem
-//! and no request. This file opens no file and reads no clock; it only looks at the words it is given.
+//! Reads the words after `leko status` into one request: the settings file, one app, one site or the
+//! whole computer, an optional zone name and the JSON switch. Nothing is guessed: a missing, repeated,
+//! unknown or empty argument, more than one of `--app`, `--site` and `--device`, and two files are
+//! each a one-sentence problem and no request. This file opens no file and reads no clock; it only
+//! looks at the words it is given.
 
 use crate::session::session_report::shown;
 
@@ -10,6 +11,8 @@ use crate::session::session_report::shown;
 pub enum StatusTarget {
     App(String),
     Site(String),
+    /// The whole computer: the strongest action of the device blocks that are closed.
+    Device,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,7 +46,7 @@ fn once(slot: &mut Option<String>, flag: &str, value: &str) -> Result<(), String
 pub fn read_status_arguments(words: &[String]) -> Result<StatusRequest, String> {
     let words: Vec<&str> = words.iter().map(String::as_str).collect();
     let (mut app, mut site, mut zone) = (None, None, None);
-    let (mut json, mut files) = (false, Vec::new());
+    let (mut json, mut files, mut device) = (false, Vec::new(), false);
     let mut index = 0;
     while index < words.len() {
         match words[index] {
@@ -57,6 +60,8 @@ pub fn read_status_arguments(words: &[String]) -> Result<StatusRequest, String> 
                 once(&mut site, "--site", value_after(&words, index, "--site", "a website host")?)?;
                 index += 1;
             }
+            "--device" if device => return Err("--device was given twice.".to_string()),
+            "--device" => device = true,
             "--zone" => {
                 once(&mut zone, "--zone", value_after(&words, index, "--zone", "a time zone name")?)?;
                 index += 1;
@@ -66,13 +71,16 @@ pub fn read_status_arguments(words: &[String]) -> Result<StatusRequest, String> 
         }
         index += 1;
     }
-    let target = match (app, site) {
-        (Some(_), Some(_)) => return Err("Give either --app or --site, not both.".to_string()),
-        (None, None) => return Err("Say what to look at: --app NAME or --site HOST.".to_string()),
-        (Some(name), None) if name.is_empty() => return Err("--app needs an app name that is not empty.".to_string()),
-        (None, Some(host)) if host.is_empty() => return Err("--site needs a website host that is not empty.".to_string()),
-        (Some(name), None) => StatusTarget::App(name),
-        (None, Some(host)) => StatusTarget::Site(host),
+    let target = match (app, site, device) {
+        (Some(_), Some(_), _) => return Err("Give either --app or --site, not both.".to_string()),
+        (Some(_), None, true) => return Err("Give either --app or --device, not both.".to_string()),
+        (None, Some(_), true) => return Err("Give either --site or --device, not both.".to_string()),
+        (None, None, false) => return Err("Say what to look at: --app NAME, --site HOST or --device.".to_string()),
+        (Some(name), None, false) if name.is_empty() => return Err("--app needs an app name that is not empty.".to_string()),
+        (None, Some(host), false) if host.is_empty() => return Err("--site needs a website host that is not empty.".to_string()),
+        (Some(name), None, false) => StatusTarget::App(name),
+        (None, Some(host), false) => StatusTarget::Site(host),
+        (None, None, true) => StatusTarget::Device,
     };
     match files.as_slice() {
         [file] => Ok(StatusRequest { file: (*file).to_string(), target, zone, json }),

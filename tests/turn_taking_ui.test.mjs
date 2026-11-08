@@ -62,7 +62,7 @@ import sys
 import numpy as np
 from voice.turn_detector import TurnDetector
 
-detector = TurnDetector()
+detector = TurnDetector(speech_detector=False)
 
 # Feed 1 second of speech-level audio (sine wave 400Hz at 16kHz)
 t = np.linspace(0, 1.0, 16000, endpoint=False)

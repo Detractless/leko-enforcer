@@ -38,7 +38,7 @@ fn real_mac_scheduled_app_termination() {
     };
     let child = TestApp(app.clone());
     let mut set = ReadSet::default();
-    set.blocks.insert("test".into(), BlockSpec { id: "test".into(), on: true, apps: AppCover::Named(vec![app.bundle.clone().unwrap()]), sites: vec![], rules: vec![Rule { id: "session".into(), kind: "session".into(), days: vec![], allowed: vec![], ends_at: Some(1_700_000_001_000) }], door: Door::Wall, pass: None, earn: None, lock: Lock::open() });
+    set.blocks.insert("test".into(), BlockSpec { id: "test".into(), on: true, apps: AppCover::Named(vec![app.bundle.clone().unwrap()]), sites: vec![], device: None, rules: vec![Rule { id: "session".into(), kind: "session".into(), days: vec![], allowed: vec![], ends_at: Some(1_700_000_001_000) }], door: Door::Wall, pass: None, earn: None, lock: Lock::open() });
     let zone = ZoneTime::new("UTC").unwrap();
     let mut errors = Vec::new();
     judge_apps(&set, &[app.clone()], 1_700_000_001_000, &zone, std::process::id() as i32, terminate, &mut errors);

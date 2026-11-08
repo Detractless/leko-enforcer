@@ -32,6 +32,13 @@ t3 = verbalize_for_speech("Visiting https://www.reddit.com/r/all")
 assert "https://" not in t3
 assert "reddit dot com" in t3.lower()
 
+assert verbalize_for_speech("block/unblock") == "block and or unblock"
+assert verbalize_for_speech("and/or") == "and or"
+assert verbalize_for_speech("w/o sound") == "without sound"
+assert verbalize_for_speech("w/ sound") == "with sound"
+assert verbalize_for_speech("1/2 on 10/20/2026") == "1/2 on 10/20/2026"
+assert verbalize_for_speech("/Users/me/file") == "/Users/me/file"
+
 print("OK")
 `;
 

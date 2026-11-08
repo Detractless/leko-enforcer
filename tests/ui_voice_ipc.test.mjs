@@ -133,6 +133,7 @@ test('draft_event_renders_card_and_transmits_user_action', async () => {
   bridge.handleIncomingEvent({
     type: 'draft',
     draft: {
+      id: 'backend-action-1',
       name: 'Focus Session',
       kind: 'Session',
       description: 'Immediate focus session for 30 minutes.'
@@ -149,7 +150,14 @@ test('draft_event_renders_card_and_transmits_user_action', async () => {
   assert.notEqual(postedIpcMessage, null);
   assert.equal(postedIpcMessage.action, 'confirm');
   assert.equal(postedIpcMessage.draft.name, 'Focus Session');
+  assert.equal(postedIpcMessage.draft.id, 'backend-action-1');
+  assert.equal(controller.currentState, 'thinking');
+  controller.confirmDraft();
+  bridge.handleIncomingEvent({ type: 'state', state: 'confirmed' });
   assert.equal(controller.currentState, 'confirmed');
+  bridge.handleIncomingEvent({ type: 'reset' });
+  assert.equal(controller.currentDraft, null);
+  delete globalThis.window;
 });
 
 test('native_launcher_handles_bidirectional_stdio_ipc', async () => {

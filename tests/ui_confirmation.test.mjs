@@ -51,7 +51,7 @@ test('draft_card_renders_and_handles_confirm_actions', () => {
   controller.confirmDraft();
   assert.equal(confirmedDraft, sampleDraft, 'Confirm callback received the draft');
   assert.equal(card.classList.contains('visible'), false, 'Card is hidden on confirm');
-  assert.equal(controller.currentState, 'confirmed', 'Circle snaps to confirmed state');
+  assert.equal(controller.currentState, 'thinking', 'Waits for backend confirmation');
 
   // 3. Test cancel path
   controller.showDraft(

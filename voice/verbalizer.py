@@ -66,7 +66,13 @@ def verbalize_for_speech(text: str) -> str:
     t = re.sub(r"\*([^*]+)\*", r"\1", t)
     t = re.sub(r"__([^_]+)__", r"\1", t)
     t = re.sub(r"_([^_]+)_", r"\1", t)
+    # Strip markdown headers (e.g. #, ##, ###)
+    t = re.sub(r"^\s*#{1,6}\s*", "", t, flags=re.MULTILINE)
     t = re.sub(r"^[-*+]\s+", "", t, flags=re.MULTILINE)
+    # Replace symbols and brackets that vocoders speak aloud
+    t = t.replace("→", " meaning ").replace("->", " meaning ")
+    t = re.sub(r"[\[\]{}<>]", " ", t)
+    t = re.sub(r"#+", "", t)
     t = t.replace("\\", " ")
     t = t.replace("|", " ")
 
@@ -87,8 +93,13 @@ def verbalize_for_speech(text: str) -> str:
     t = re.sub(r"\bi\.e\.,?\s*", "that is, ", t, flags=re.IGNORECASE)
     t = re.sub(r"\betc\b\.?", "and more", t, flags=re.IGNORECASE)
     t = re.sub(r"\bvs\b\.?", "versus", t, flags=re.IGNORECASE)
-    t = re.sub(r"\bw/\b", "with", t, flags=re.IGNORECASE)
     t = re.sub(r"\bw/o\b", "without", t, flags=re.IGNORECASE)
+    t = re.sub(r"\bw/(?=\s|$)", "with", t, flags=re.IGNORECASE)
+    t = re.sub(r"\band\s*/\s*or\b", "and or", t, flags=re.IGNORECASE)
+    # A single slash between words commonly means alternatives. Leave paths,
+    # dates, fractions, and multi-part slash expressions intact.
+    t = re.sub(r"(?<![\w/])([A-Za-z]+)\s*/\s*([A-Za-z]+)(?![\w/])",
+               r"\1 and or \2", t)
 
     # 6. Units and durations
     def _hours(m):

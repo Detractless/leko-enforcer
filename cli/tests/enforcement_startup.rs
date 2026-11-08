@@ -10,7 +10,7 @@ fn invalid_startup_inputs_stop_enforcement() {
     let file = write_settings(folder.path(), "settings.zip", &[]);
     for (path, zone) in [("/no/such/leko-settings.zip", Some("UTC".to_string())), (file.to_str().unwrap(), None)] {
         let mut err = Vec::new();
-        let code = run(path, || panic!("clock must not be read"), || zone.clone(), || panic!("apps must not be read"), |_| panic!("nothing may terminate"), 99, || 0, |_| {}, &mut err);
+        let code = run(path, || panic!("clock must not be read"), || zone.clone(), || panic!("apps must not be read"), |_| panic!("nothing may terminate"), 99, || 0, |_| {}, |_| Ok(()), &mut err);
         assert_eq!(code, 1);
         assert!(!err.is_empty());
     }

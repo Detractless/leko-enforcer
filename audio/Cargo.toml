@@ -1,0 +1,10 @@
+[package]
+name = "leko-audio"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+webrtc-audio-processing = { version = "~2.1", features = ["bundled"] }

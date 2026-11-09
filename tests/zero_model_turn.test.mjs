@@ -36,9 +36,9 @@ assert detector.in_speech, "Detector must preserve in_speech across 320ms pause"
 # Feed continuation speech chunk
 detector.feed(chunk_speech)
 
-# Feed sustained silence (> 1.2s = 8 chunks of 160ms)
+# Feed sustained silence past the 5s continuation window (~32 chunks of 160ms)
 turn_ended = False
-for _ in range(9):
+for _ in range(34):
     ended, audio = detector.feed(silence_chunk)
     if ended:
         turn_ended = True

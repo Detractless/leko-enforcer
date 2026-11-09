@@ -8,7 +8,9 @@ from test_capture_gate import eventually
 
 
 class ContinuationTests(unittest.TestCase):
-    setUp = capture_fixtures.CaptureTests.setUp
+    def setUp(self):
+        capture_fixtures.CaptureTests.setUp(self)
+        self.gate.detector.continuation_s = 5.0  # Quiet frames needed before submitting.
 
     def acoustic_endpoint(self):
         detector = self.gate.detector
@@ -33,10 +35,10 @@ class ContinuationTests(unittest.TestCase):
         self.assertFalse(detector.endpoint_pending)
         self.feed(0, 5)
         self.assertFalse(self.turns)
-        self.feed(0)
+        self.feed(0, 27)
         self.assertEqual(len(self.turns), 1)
         expected = np.concatenate([np.full(2560, 5000), np.zeros(2560 * 5),
-                                   np.full(2560, 9000), np.zeros(2560 * 6)]) / 32768
+                                   np.full(2560, 9000), np.zeros(2560 * 32)]) / 32768
         np.testing.assert_array_equal(self.turns[0][0], expected)
         self.assertEqual(len(self.onsets), 1)
 
@@ -49,7 +51,7 @@ class ContinuationTests(unittest.TestCase):
         self.feed(0)
         self.assertFalse(self.turns)
         self.assertFalse(self.gate.busy)
-        self.feed(0)  # Sixth quiet frame = 960ms, first boundary >= 900ms.
+        self.feed(0, 27)  # 32nd quiet frame = 5.12s, first boundary >= 5s.
         self.assertEqual(len(self.turns), 1)
         self.assertTrue(self.gate.busy)
         eventually(lambda: self.streams[0].closed)
@@ -59,11 +61,11 @@ class ContinuationTests(unittest.TestCase):
         self.assertFalse(detector.endpoint_pending)
         self.assertEqual(detector.quiet_samples, 0)
 
-    def test_fallback_does_not_add_window_to_existing_1280ms(self):
+    def test_fallback_uses_full_continuation_window(self):
         self.feed(5000)
         self.feed(0, 7)
         self.assertFalse(self.turns)
-        self.feed(0)
+        self.feed(0, 25)  # 32nd quiet frame = 5.12s.
         self.assertEqual(len(self.turns), 1)
 
     def test_pending_window_cleared_by_mute_cancel_reset_and_shutdown(self):

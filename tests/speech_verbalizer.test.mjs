@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
+import { VOICE_BRIDGE_PRELUDE } from './voice-script-fixtures.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -103,16 +104,7 @@ test('preserves_raw_ui_text_while_verbalizing_audio', async () => {
   const script = `
 from voice.verbalizer import verbalize_for_speech
 from voice.assistant import process_query
-from voice.ui_bridge import UIPipelineBridge
-
-bridge = UIPipelineBridge()
-emitted = []
-bridge.emit = lambda ev: emitted.append(ev)
-
-spoken_takes = []
-def mock_speak(txt, is_cancelled=None):
-    spoken_takes.append(txt)
-
+${VOICE_BRIDGE_PRELUDE}
 # Simulate process_query with custom mock intent
 process_query("status check", "/tmp/settings.zip", bridge=bridge, speak_fn=mock_speak)
 

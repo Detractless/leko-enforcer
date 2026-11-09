@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
+import { VOICE_BRIDGE_PRELUDE } from './voice-script-fixtures.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -112,16 +113,7 @@ print("OK")
 test('raw_ui_text_preserves_original_punctuation_and_em_dashes', async () => {
   const script = `
 from voice.assistant import process_query
-from voice.ui_bridge import UIPipelineBridge
-
-bridge = UIPipelineBridge()
-emitted = []
-bridge.emit = lambda ev: emitted.append(ev)
-
-spoken_takes = []
-def mock_speak(txt, is_cancelled=None):
-    spoken_takes.append(txt)
-
+${VOICE_BRIDGE_PRELUDE}
 # Test that process_query emits clean UI text without ellipses
 summary = process_query("tell me what time it is", "/tmp/settings.zip", bridge=bridge, speak_fn=mock_speak)
 

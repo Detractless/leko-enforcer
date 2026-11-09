@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
+import { VOICE_BRIDGE_PRELUDE } from './voice-script-fixtures.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -117,16 +118,7 @@ print("OK")
 test('e2e_status_and_block_workflows_deliver_clean_spoken_takes', async () => {
   const script = `
 import voice.assistant as assistant
-from voice.ui_bridge import UIPipelineBridge
-
-bridge = UIPipelineBridge()
-emitted = []
-bridge.emit = lambda ev: emitted.append(ev)
-
-spoken_takes = []
-def mock_speak(txt, is_cancelled=None):
-    spoken_takes.append(txt)
-
+${VOICE_BRIDGE_PRELUDE}
 # Mock parse_user_intent_safe to avoid flaky HTTP 500 when llama-server is bombarded concurrently
 orig_parse = assistant.parse_user_intent_safe
 assistant.parse_user_intent_safe = lambda q, **kwargs: {"action": "tool_call", "tool": "start_session", "arguments": {"length": "30m"}}

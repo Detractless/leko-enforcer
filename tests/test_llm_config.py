@@ -11,7 +11,6 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "voice"))
 import unittest
-from unittest.mock import patch, MagicMock
 
 import llm_router
 

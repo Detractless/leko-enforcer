@@ -7,13 +7,12 @@ Parses natural speech or typed requests into structured Leko CLI commands.
 
 import datetime
 import json
-import os
 import re
 import subprocess
 import time
 import urllib.request
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 try:
     from .intent_validation import tool_to_cli_args

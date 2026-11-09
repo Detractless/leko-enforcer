@@ -7,21 +7,10 @@ use leko_core::models::specs::DeviceAction;
 
 #[cfg(target_os = "macos")]
 mod platform {
+    use crate::enforcement::macos_objc::{objc_autoreleasePoolPop, objc_autoreleasePoolPush, objc_getClass, objc_msgSend, sel_registerName, Id, Sel};
     use super::DeviceAction;
     use std::ffi::{c_char, c_int, c_void, CString};
     use std::ptr;
-
-    type Id = *mut c_void;
-    type Sel = *const c_void;
-
-    #[link(name = "objc")]
-    extern "C" {
-        fn objc_getClass(name: *const c_char) -> Id;
-        fn sel_registerName(name: *const c_char) -> Sel;
-        fn objc_msgSend();
-        fn objc_autoreleasePoolPush() -> Id;
-        fn objc_autoreleasePoolPop(pool: Id);
-    }
 
     extern "C" {
         fn dlopen(path: *const c_char, mode: c_int) -> *mut c_void;

@@ -106,3 +106,8 @@ pub fn parse(words: &[String]) -> Result<Request, String> {
     }
     Ok(Request { file, id, rule, days, stretches, zone, write })
 }
+
+impl crate::edit_prologue::EditPrologueRequest for Request {
+    fn file(&self) -> &str { &self.file }
+    fn zone(&self) -> Option<&str> { self.zone.as_deref() }
+}

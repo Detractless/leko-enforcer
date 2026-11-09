@@ -6,6 +6,8 @@
 //! parked changes that touch what `leko status` is asked about. Only `--write` changes a file. The clock
 //! is read only by the program's `main.rs`; everything here is given the moment as an argument.
 
+pub mod edit_prologue;
+
 pub mod session {
     pub mod run_command;
     pub mod session_arguments;

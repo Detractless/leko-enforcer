@@ -66,6 +66,7 @@ pub mod config_diff {
 
 pub mod config_time {
     pub mod due_time;
+    pub mod stretch_overlap;
     pub mod window_mask;
     pub mod zone_time;
 }

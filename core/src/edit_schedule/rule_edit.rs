@@ -1,5 +1,5 @@
 //! Applies schedule changes to an existing outsideHours rule and validates the resulting zip.
-use crate::config_time::zone_time::MINUTES_PER_DAY;
+use crate::config_time::stretch_overlap::stretches_overlap;
 use crate::io::zip_check::{check_zip, ZipVerdict};
 use crate::io::zip_reader::open_zip;
 use crate::io::zip_writer::write_zip;
@@ -38,21 +38,6 @@ pub fn validate_days(days: &[String]) -> Result<Vec<String>, String> {
     }
     let ordered: Vec<String> = WEEKDAYS.iter().filter(|d| days.iter().any(|named| named == *d)).map(|d| d.to_string()).collect();
     Ok(ordered)
-}
-
-pub fn stretches_overlap(stretches: &[(i64, i64)]) -> bool {
-    let mut covered = vec![false; MINUTES_PER_DAY as usize];
-    for &(from, to) in stretches {
-        let mut minute = from;
-        while minute != to % MINUTES_PER_DAY {
-            if covered[minute as usize] {
-                return true;
-            }
-            covered[minute as usize] = true;
-            minute = (minute + 1) % MINUTES_PER_DAY;
-        }
-    }
-    false
 }
 
 pub fn validate_stretches(stretches: &[(i64, i64)]) -> Result<(), String> {

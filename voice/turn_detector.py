@@ -39,41 +39,51 @@ class TurnDetector:
         self.max_turn_duration_s = max_turn_duration_s
         self.preroll: collections.deque[np.ndarray] = collections.deque(maxlen=preroll_frames)
         self.on_speech_onset = on_speech_onset
-        self.speech_detector = None
-        if speech_detector is not False:
-            try:
-                if speech_detector is None:
-                    try:
-                        from .audio_io.silero_vad import SileroVAD
-                    except ImportError:
-                        from audio_io.silero_vad import SileroVAD
-                    speech_detector = SileroVAD()
-                self.speech_detector = speech_detector
-            except Exception as exc:
-                print(f"[Speech detector unavailable; using loudness fallback]: {exc}", file=sys.stderr, flush=True)
+        self.speech_detector = self._load_speech_detector(speech_detector)
         self.ambient_rms = collections.deque(maxlen=100)
         self.playback_active = False
         self.echo_cancellation_enabled = False
         self.echo_guard_until = 0.0
         self._echo_guard_reset = False
         self.sess = None
-        path = model_path or DEFAULT_MODEL
-        if path.exists():
-            try:
-                import onnxruntime as ort
-                so = ort.SessionOptions()
-                so.intra_op_num_threads = so.inter_op_num_threads = 1
-                self.sess = ort.InferenceSession(str(path), so, providers=["CPUExecutionProvider"])
-                self.shapes = {i.name: tuple(i.shape) for i in self.sess.get_inputs() if i.name.startswith("state_")}
-                self.out = ["probs"] + [f"new_state_{s}" for s in STATE]
-                self.state = {n: np.zeros(s, np.float32) for n, s in self.shapes.items()}
-            except Exception:
-                self.sess = None
+        self._load_turn_model(model_path)
 
         self.in_speech = False
         self.sil_count = 0
         self.buf: list[np.ndarray] = []
         self.pending = np.zeros(0, np.float32)
+
+    def _load_speech_detector(self, speech_detector):
+        """Load the speech detector, or None to use the loudness fallback."""
+        if speech_detector is False:
+            return None
+        try:
+            if speech_detector is None:
+                try:
+                    from .audio_io.silero_vad import SileroVAD
+                except ImportError:
+                    from audio_io.silero_vad import SileroVAD
+                speech_detector = SileroVAD()
+            return speech_detector
+        except Exception as exc:
+            print(f"[Speech detector unavailable; using loudness fallback]: {exc}", file=sys.stderr, flush=True)
+            return None
+
+    def _load_turn_model(self, model_path):
+        """Load the turn-1-mini ONNX model and its zeroed recurrent state, or stay sess=None."""
+        path = model_path or DEFAULT_MODEL
+        if not path.exists():
+            return
+        try:
+            import onnxruntime as ort
+            so = ort.SessionOptions()
+            so.intra_op_num_threads = so.inter_op_num_threads = 1
+            self.sess = ort.InferenceSession(str(path), so, providers=["CPUExecutionProvider"])
+            self.shapes = {i.name: tuple(i.shape) for i in self.sess.get_inputs() if i.name.startswith("state_")}
+            self.out = ["probs"] + [f"new_state_{s}" for s in STATE]
+            self.state = {n: np.zeros(s, np.float32) for n, s in self.shapes.items()}
+        except Exception:
+            self.sess = None
 
     def reset(self) -> None:
         self.quiet_samples = 0
@@ -120,6 +130,81 @@ class TurnDetector:
             new_thr = min(0.04, max(0.005, p20 * 3.5))
             self.speech_threshold = new_thr
 
+    def _effective_threshold(self) -> float:
+        """The speech threshold in effect, given playback state and detector availability."""
+        if self.playback_active:
+            # Neural speech detectors classify speaker playback as speech, so barge-in needs
+            # energy above the echo floor; after echo cancellation the normal threshold is enough.
+            if self.speech_detector is not None or not self.echo_cancellation_enabled:
+                return self.barge_in_threshold
+        return self.speech_threshold
+
+    def _turn_model_prob(self, x: np.ndarray):
+        """Feed the pending audio through turn-1-mini; the end probability, or None when unloaded."""
+        p_end = None
+        if not self.sess:
+            return None
+        self.pending = np.concatenate([self.pending, x])
+        while len(self.pending) >= STEP:
+            res = self.sess.run(self.out, {"audio": self.pending[:STEP].reshape(1, STEP), **self.state})
+            self.state = {f"state_{s}": r for s, r in zip(STATE, res[1:])}
+            p_end = float(res[0][-1])
+            self.pending = self.pending[STEP:]
+        return p_end
+
+    def _detector_probability(self, x: np.ndarray):
+        """The speech detector's own probability, or None after a failure."""
+        if self.speech_detector is None:
+            return None
+        try:
+            return self.speech_detector.process(x)
+        except Exception as exc:
+            print(f"[Speech detector failed; using loudness fallback]: {exc}", file=sys.stderr, flush=True)
+            self.speech_detector = None
+            return None
+
+    def _speech_started(self, x: np.ndarray, rms: float, detector_prob, effective_threshold: float) -> bool:
+        """Whether this frame starts a turn, given playback state and detector evidence."""
+        if self.playback_active:
+            started = rms > effective_threshold
+            if self.speech_detector is not None and detector_prob is not None:
+                started = started and (detector_prob >= 0.5)
+            return started
+        if self.speech_detector is not None and detector_prob is not None:
+            return detector_prob >= 0.5
+        return rms > effective_threshold
+
+    def _begin_turn(self, x: np.ndarray) -> None:
+        self.in_speech = True
+        self.sil_count = 0
+        self.buf = list(self.preroll) + [x]
+        self.preroll.clear()
+        if self.on_speech_onset:
+            try:
+                self.on_speech_onset()
+            except Exception:
+                pass
+
+    def _quiet_frame(self, x: np.ndarray, is_quiet: bool, p_end) -> np.ndarray | None:
+        """Count a quiet frame; end the turn when the endpoint model and the quiet window agree."""
+        if not is_quiet:
+            # Continued speech keeps the same buffer and invalidates any endpoint.
+            self.sil_count = 0
+            self.quiet_samples = 0
+            self.endpoint_pending = False
+            return None
+        self.sil_count += 1
+        self.quiet_samples += len(x)
+        if self.sil_count >= self.min_sil_frames:
+            if (p_end is not None and p_end > self.turn_threshold) or self.sil_count >= self.max_sil_frames:
+                self.endpoint_pending = True
+        # Keep one quiet window after the last detected speech; resumed speech resets it.
+        if self.endpoint_pending and self.quiet_samples >= self.continuation_s * 16000:
+            full_audio = np.concatenate(self.buf)
+            self.reset()
+            return full_audio
+        return None
+
     def feed(self, chunk_i16: np.ndarray) -> Tuple[bool, np.ndarray]:
         """Feeds an audio chunk (16 kHz int16).
         Returns (turn_ended, full_turn_audio_f32).
@@ -136,61 +221,15 @@ class TurnDetector:
         a = np.asarray(chunk_i16)
         x = a.astype(np.float32) / 32768.0 if a.dtype == np.int16 else a.astype(np.float32)
         rms = float(np.sqrt(np.mean(x ** 2))) if len(x) > 0 else 0.0
-
-        p_end = None
-        if self.sess:
-            self.pending = np.concatenate([self.pending, x])
-            while len(self.pending) >= STEP:
-                res = self.sess.run(self.out, {"audio": self.pending[:STEP].reshape(1, STEP), **self.state})
-                self.state = {f"state_{s}": r for s, r in zip(STATE, res[1:])}
-                p_end = float(res[0][-1])
-                self.pending = self.pending[STEP:]
-
-        if self.playback_active:
-            if self.speech_detector is not None:
-                # Neural speech detectors classify speaker playback as speech.
-                # Barge-in requires acoustic energy above the speaker echo floor.
-                effective_threshold = self.barge_in_threshold
-            elif not self.echo_cancellation_enabled:
-                effective_threshold = self.barge_in_threshold
-            else:
-                effective_threshold = self.speech_threshold
-        else:
-            effective_threshold = self.speech_threshold
-
-        detector_prob = None
-        if self.speech_detector is not None:
-            try:
-                detector_prob = self.speech_detector.process(x)
-            except Exception as exc:
-                print(f"[Speech detector failed; using loudness fallback]: {exc}", file=sys.stderr, flush=True)
-                self.speech_detector = None
+        p_end = self._turn_model_prob(x)
+        effective_threshold = self._effective_threshold()
+        detector_prob = self._detector_probability(x)
 
         if not self.in_speech:
             if not self.playback_active:
                 self.feed_ambient(chunk_i16)
-
-            if self.playback_active:
-                # During playback, Maeve's own speaker echo will trigger neural VADs.
-                # Barge-in requires genuine vocal energy above the echo floor.
-                speech_started = rms > effective_threshold
-                if self.speech_detector is not None and detector_prob is not None:
-                    speech_started = speech_started and (detector_prob >= 0.5)
-            else:
-                if self.speech_detector is not None and detector_prob is not None:
-                    speech_started = detector_prob >= 0.5
-                else:
-                    speech_started = rms > effective_threshold
-            if speech_started:
-                self.in_speech = True
-                self.sil_count = 0
-                self.buf = list(self.preroll) + [x]
-                self.preroll.clear()
-                if self.on_speech_onset:
-                    try:
-                        self.on_speech_onset()
-                    except Exception:
-                        pass
+            if self._speech_started(x, rms, detector_prob, effective_threshold):
+                self._begin_turn(x)
             else:
                 self.preroll.append(x)
             return False, np.zeros(0, dtype=np.float32)
@@ -205,30 +244,13 @@ class TurnDetector:
             self.reset()
             return True, full_audio
 
-        # Determine if current frame is quiet
         if self.speech_detector is not None and detector_prob is not None:
             is_quiet = detector_prob < 0.35
         else:
             is_quiet = rms < self.speech_threshold
-
-        if is_quiet:
-            self.sil_count += 1
-            self.quiet_samples += len(x)
-            if self.sil_count >= self.min_sil_frames:
-                if (p_end is not None and p_end > self.turn_threshold) or self.sil_count >= self.max_sil_frames:
-                    self.endpoint_pending = True
-            # Keep one five-second quiet window after the last detected speech.
-            # Existing quiet counts toward it; resumed speech resets the window.
-            if self.endpoint_pending and self.quiet_samples >= self.continuation_s * 16000:
-                full_audio = np.concatenate(self.buf)
-                self.reset()
-                return True, full_audio
-        else:
-            # Continued speech keeps the same buffer and invalidates any endpoint.
-            self.sil_count = 0
-            self.quiet_samples = 0
-            self.endpoint_pending = False
-
+        full_audio = self._quiet_frame(x, is_quiet, p_end)
+        if full_audio is not None:
+            return True, full_audio
         return False, np.zeros(0, dtype=np.float32)
 
     def _reset_for_echo_guard(self) -> None:

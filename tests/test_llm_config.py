@@ -29,7 +29,7 @@ class TestLlmConfig(unittest.TestCase):
     """Evidence: "sampling params present" """
     def test_sampling_params_present(self):
         import inspect
-        src = inspect.getsource(llm_router.parse_user_intent)
+        src = inspect.getsource(llm_router._chat_completion)
         self.assertIn('"top_k": 50', src)
         self.assertIn('"repetition_penalty": 1.1', src)
         self.assertIn('"max_tokens": 1624', src)
@@ -57,12 +57,12 @@ class TestLlmConfig(unittest.TestCase):
     """Evidence: "history and memory caps" """
     def test_history_and_memory_caps(self):
         import inspect
-        src = inspect.getsource(llm_router.parse_user_intent)
+        src = inspect.getsource(llm_router._build_messages)
         self.assertIn("memories[:2]", src)
         self.assertIn("[-4:]", src)
 
     """Evidence: "preserve thinking enabled" """
     def test_preserve_thinking_enabled(self):
         import inspect
-        src = inspect.getsource(llm_router.parse_user_intent)
+        src = inspect.getsource(llm_router._chat_completion)
         self.assertIn("preserve_thinking", src)

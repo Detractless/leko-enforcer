@@ -13,48 +13,45 @@ import assistant as voice
 from audio_io.echo_canceller import EchoAudioProcessor, VoiceOutputPlayer
 
 
-def run_case(name, pcm, rate):
-    events = []
-    timings = {"input": [], "output": []}
-    statuses = []
-    stream_details = []
-    frame_sizes = {"input": Counter(), "output": Counter()}
-    energy = {"raw": 0.0, "cleaned": 0.0, "samples": 0}
-    start = time.monotonic()
-    original_input = voice.sd.RawInputStream
-    original_output = voice.sd.OutputStream
+def _state(name):
+    """Fresh measurement state for one case."""
+    return {
+        "events": [],
+        "timings": {"input": [], "output": []},
+        "statuses": [],
+        "stream_details": [],
+        "frame_sizes": {"input": Counter(), "output": Counter()},
+        "energy": {"raw": 0.0, "cleaned": 0.0, "samples": 0},
+        "start": time.monotonic(),
+    }
 
-    def event(kind, **details):
-        events.append({"seconds": round(time.monotonic() - start, 4), "event": kind, **details})
 
-    def wrap_stream(factory, direction):
-        def create(*args, **kwargs):
-            callback = kwargs.get("callback")
-            sample_rate = kwargs.get("samplerate", rate)
-            if callback is not None:
-                def measured(data, frames, clock, status):
-                    began = time.perf_counter()
-                    frame_sizes[direction][frames] += 1
-                    if status:
-                        statuses.append({"direction": direction, "status": str(status),
-                                         "seconds": round(time.monotonic() - start, 4)})
-                    try:
-                        return callback(data, frames, clock, status)
-                    finally:
-                        timings[direction].append((time.perf_counter() - began, frames / sample_rate))
-                kwargs["callback"] = measured
-            stream = factory(*args, **kwargs)
-            stream_details.append({"direction": direction, "sample_rate": stream.samplerate,
-                                   "blocksize": stream.blocksize, "latency": stream.latency})
-            return stream
-        return create
+def _wrap_stream(factory, direction, rate, state):
+    def create(*args, **kwargs):
+        callback = kwargs.get("callback")
+        sample_rate = kwargs.get("samplerate", rate)
+        start = state["start"]
+        if callback is not None:
+            def measured(data, frames, clock, status):
+                began = time.perf_counter()
+                state["frame_sizes"][direction][frames] += 1
+                if status:
+                    state["statuses"].append({"direction": direction, "status": str(status),
+                                              "seconds": round(time.monotonic() - start, 4)})
+                try:
+                    return callback(data, frames, clock, status)
+                finally:
+                    state["timings"][direction].append((time.perf_counter() - began, frames / sample_rate))
+            kwargs["callback"] = measured
+        stream = factory(*args, **kwargs)
+        state["stream_details"].append({"direction": direction, "sample_rate": stream.samplerate,
+                                        "blocksize": stream.blocksize, "latency": stream.latency})
+        return stream
+    return create
 
-    voice.sd.RawInputStream = wrap_stream(original_input, "input")
-    voice.sd.OutputStream = wrap_stream(original_output, "output")
-    manager = None
-    voice._echo_audio.close()
-    voice._echo_audio = EchoAudioProcessor()
-    voice._output_player = VoiceOutputPlayer(voice._echo_audio)
+
+def _measure_energy(voice, energy):
+    """Wrap clean_capture to accumulate raw and cleaned energy while playback runs."""
     clean_capture = voice._echo_audio.clean_capture
 
     def measured_capture(samples):
@@ -67,13 +64,68 @@ def run_case(name, pcm, rate):
             energy["samples"] += len(raw)
         return cleaned
 
-    voice._echo_audio.clean_capture = measured_capture
+    return measured_capture
 
+
+def _onset_handler(name, voice, event):
     def onset():
         event("speech_onset", during_playback=voice._playback_active)
         if name == "cancel" and voice._playback_active:
             event("stop_requested", reason="speech_onset")
             voice.stop_playback()
+
+    return onset
+
+
+def _playback(name, pcm, rate, voice):
+    """Play through the right path; returns (started_seconds, success)."""
+    if name == "baseline":
+        voice.sd.play(pcm, samplerate=rate)
+        voice.sd.wait()
+        return True
+    voice.set_echo_cancellation_enabled(True)
+    voice.set_playback_state(True)
+    success = voice._output_player.play(pcm, rate)
+    voice.set_playback_state(False)
+    return success
+
+
+def _callback_timing(timings, frame_sizes):
+    summary = {}
+    for direction, samples in timings.items():
+        summary[direction] = {
+            "callbacks": len(samples),
+            "max_ms": round(max((t for t, _ in samples), default=0) * 1000, 3),
+            "over_budget": sum(t > budget for t, budget in samples),
+            "frame_sizes": dict(frame_sizes[direction]),
+        }
+    return summary
+
+
+def run_case(name, pcm, rate):
+    state = _state(name)
+    events = state["events"]
+    timings = state["timings"]
+    statuses = state["statuses"]
+    stream_details = state["stream_details"]
+    frame_sizes = state["frame_sizes"]
+    energy = state["energy"]
+    start = state["start"]
+
+    def event(kind, **details):
+        events.append({"seconds": round(time.monotonic() - start, 4), "event": kind, **details})
+
+    original_input = voice.sd.RawInputStream
+    original_output = voice.sd.OutputStream
+    voice.sd.RawInputStream = _wrap_stream(original_input, "input", rate, state)
+    voice.sd.OutputStream = _wrap_stream(original_output, "output", rate, state)
+
+    manager = None
+    voice._echo_audio.close()
+    voice._echo_audio = EchoAudioProcessor()
+    voice._output_player = VoiceOutputPlayer(voice._echo_audio)
+    voice._echo_audio.clean_capture = _measure_energy(voice, energy)
+    onset = _onset_handler(name, voice, event)
 
     try:
         if name != "baseline":
@@ -86,15 +138,7 @@ def run_case(name, pcm, rate):
             time.sleep(0.5)
         event("playback_start", expected_seconds=len(pcm) / rate)
         began = time.monotonic()
-        if name == "baseline":
-            voice.sd.play(pcm, samplerate=rate)
-            voice.sd.wait()
-            success = True
-        else:
-            voice.set_echo_cancellation_enabled(True)
-            voice.set_playback_state(True)
-            success = voice._output_player.play(pcm, rate)
-            voice.set_playback_state(False)
+        success = _playback(name, pcm, rate, voice)
         elapsed = time.monotonic() - began
         event("playback_return", elapsed_seconds=elapsed, returned_success=success)
         time.sleep(0.8)
@@ -106,17 +150,9 @@ def run_case(name, pcm, rate):
         voice.sd.RawInputStream = original_input
         voice.sd.OutputStream = original_output
 
-    summary = {}
-    for direction, samples in timings.items():
-        summary[direction] = {
-            "callbacks": len(samples),
-            "max_ms": round(max((t for t, _ in samples), default=0) * 1000, 3),
-            "over_budget": sum(t > budget for t, budget in samples),
-            "frame_sizes": dict(frame_sizes[direction]),
-        }
     count = max(energy["samples"], 1)
     return {"case": name, "events": events, "statuses": statuses, "streams": stream_details,
-            "callback_timing": summary,
+            "callback_timing": _callback_timing(timings, frame_sizes),
             "playback_mic_rms": {key: (energy[key] / count) ** 0.5 for key in ("raw", "cleaned")}}
 
 

@@ -5,20 +5,12 @@
 mod block_builder;
 mod zip_writer;
 
-use block_builder::{always, block, block_with, minutes, moment, none_blocked, opens, outside_hours, read_set, session, zone};
+use block_builder::{always, block, block_with, minutes, moment, none_blocked, one_rule, opens, outside_hours, read_set, session, zone, APP, DAY_MS, NEW_YORK};
 use leko_core::decision::block_cover::Target;
 use leko_core::decision::decide_target::{decide, RuleRef};
 use leko_core::decision::next_change::next_change;
 use leko_core::models::specs::ReadSet;
-use serde_json::{json, Value};
-
-const APP: &str = "com.a";
-const NEW_YORK: &str = "America/New_York";
-const DAY_MS: i64 = 86_400_000;
-
-fn one_rule(rule: Value) -> ReadSet {
-    read_set(&[block("b", json!({"apps": [APP]}), json!([rule]))])
-}
+use serde_json::json;
 
 fn closing_at(set: &ReadSet, zone_name: &str, at_ms: i64) -> Vec<RuleRef> {
     decide(set, Target::App(APP), at_ms, &zone(zone_name), &none_blocked()).closing

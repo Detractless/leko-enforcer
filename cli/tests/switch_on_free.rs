@@ -3,25 +3,14 @@
 //! and no parked change. A block with a long wait, a seal, a key or change hours outside their window is
 //! switched on in the same one run, and the answer never mentions a wait or a key.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::*;
 
 use delay_runs::{assert_core_reads, assert_switched_on, block_of, entries_except, snapshot, switch_on, waiting_of, write_zip};
-use delay_sets::{change_hours, locked_block, routine_holding, sealed_at, sealed_until, wait, with_partner_key};
+use delay_sets::{change_hours, routine_holding, sealed_at, sealed_until, wait, with_partner_key};
 use leko_cli::session::session_report::shown;
 use scratch_folder::Scratch;
 use serde_json::{json, Value};
-
-fn off_with(id: &str, lock: Value) -> Value {
-    let mut file = locked_block(id, lock);
-    file["on"] = json!(false);
-    file
-}
 
 /// Every lock the block itself can carry, with a word for the failure message.
 fn own_locks() -> Vec<(&'static str, Value)> {

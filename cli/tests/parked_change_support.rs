@@ -31,3 +31,10 @@ pub fn nothing_saved(sentence: &str) -> String {
     let stop = if sentence.ends_with(['.', '!', '?']) { "" } else { "." };
     format!("{sentence}{stop}{NOTHING_SAVED}")
 }
+
+/// A locked block written as switched off, for the switch-on tests.
+pub fn off_with(id: &str, lock: serde_json::Value) -> serde_json::Value {
+    let mut file = delay_sets::locked_block(id, lock);
+    file["on"] = serde_json::json!(false);
+    file
+}

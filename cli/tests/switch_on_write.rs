@@ -3,25 +3,13 @@
 //! byte for byte the same; the waiting file beside it is not read for a change, not rewritten and not
 //! made; no temporary file is left.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::*;
 
 use delay_runs::{assert_core_reads, assert_switched_on, block_of, entries_except, record, snapshot, switch_on, waiting_of, write_waiting, write_zip};
 use delay_sets::{locked_block, off_block, wait};
 use leko_cli::session::session_report::shown;
 use scratch_folder::Scratch;
-use serde_json::{json, Value};
-
-fn off_with(id: &str, lock: Value) -> Value {
-    let mut file = locked_block(id, lock);
-    file["on"] = json!(false);
-    file
-}
 
 fn saved(id: &str, file: &std::path::Path) -> String {
     format!("Saved: the block \"{id}\" is switched on in {}.\n", shown(&file.to_string_lossy()))

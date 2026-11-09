@@ -6,22 +6,14 @@
 mod block_builder;
 mod zip_writer;
 
-use block_builder::{always, block, block_with, minutes, moment, none_blocked, opens, outside_hours, read_set, session, zone};
+use block_builder::{always, block, block_with, minutes, moment, none_blocked, one_rule, opens, outside_hours, read_set, session, zone, APP, DAY_MS, NEW_YORK};
 use leko_core::decision::block_cover::Target;
 use leko_core::decision::decide_target::decide;
 use leko_core::decision::next_change::next_change;
 use leko_core::models::specs::ReadSet;
 use leko_core::status::next_flip::next_flip;
-use serde_json::{json, Value};
+use serde_json::json;
 use std::collections::HashSet;
-
-const APP: &str = "com.a";
-const NEW_YORK: &str = "America/New_York";
-const DAY_MS: i64 = 86_400_000;
-
-fn one_rule(rule: Value) -> ReadSet {
-    read_set(&[block("b", json!({"apps": [APP]}), json!([rule]))])
-}
 
 fn closed_at(set: &ReadSet, target: Target, never: &HashSet<String>, zone_name: &str, at_ms: i64) -> bool {
     decide(set, target, at_ms, &zone(zone_name), never).closed

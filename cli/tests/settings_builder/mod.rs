@@ -5,7 +5,10 @@
 
 use flate2::write::DeflateEncoder;
 use flate2::Compression;
-use serde_json::{json, Value};
+use serde_json::Value;
+#[allow(unused_imports)]
+pub use leko_core::test_support::{always, block, block_with, minutes, opens, outside_hours, session};
+
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -67,42 +70,6 @@ pub fn zip_of(files: &[(&str, &str)]) -> Vec<u8> {
     put32(&mut out, start);
     put16(&mut out, 0);
     out
-}
-
-/// A block file that covers `covers`, holds `rules`, and has a wall for a door.
-pub fn block(id: &str, covers: Value, rules: Value) -> Value {
-    json!({"schema": 2, "id": id, "name": "B", "covers": covers, "rules": rules, "door": {"kind": "wall"}})
-}
-
-/// A block of `block` with more fields written into it (`on`).
-pub fn block_with(id: &str, covers: Value, rules: Value, more: Value) -> Value {
-    let mut file = block(id, covers, rules);
-    for (name, value) in more.as_object().into_iter().flatten() {
-        file[name] = value.clone();
-    }
-    file
-}
-
-pub fn always(id: &str, days: &[&str]) -> Value {
-    json!({"id": id, "kind": "always", "days": days})
-}
-
-/// An outside-hours rule: `allowed` is a list of (from, to) written HH:MM.
-pub fn outside_hours(id: &str, days: &[&str], allowed: &[(&str, &str)]) -> Value {
-    let stretches: Vec<Value> = allowed.iter().map(|(from, to)| json!({"from": from, "to": to})).collect();
-    json!({"id": id, "kind": "outsideHours", "days": days, "allowed": stretches})
-}
-
-pub fn session(id: &str, ends_at: &str) -> Value {
-    json!({"id": id, "kind": "session", "endsAt": ends_at})
-}
-
-pub fn minutes(id: &str) -> Value {
-    json!({"id": id, "kind": "minutes", "amount": 30, "per": "day", "scope": "block"})
-}
-
-pub fn opens(id: &str) -> Value {
-    json!({"id": id, "kind": "opens", "count": 3, "per": "day", "scope": "block"})
 }
 
 /// The bytes of a settings zip holding `blocks`, written in this order, after the guide and the

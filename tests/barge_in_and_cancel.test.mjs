@@ -10,6 +10,21 @@ const REPO_ROOT = resolve(__dirname, '..');
 const TALK_PYTHON = '/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3';
 const PYTHON_BIN = existsSync(TALK_PYTHON) ? TALK_PYTHON : 'python3';
 
+async function runPython(script) {
+  const proc = spawn(PYTHON_BIN, ['-c', script], {
+    cwd: REPO_ROOT,
+    env: { ...process.env, PYTHONPATH: REPO_ROOT }
+  });
+
+  let stdout = '';
+  let stderr = '';
+  for await (const chunk of proc.stdout) stdout += chunk;
+  for await (const chunk of proc.stderr) stderr += chunk;
+
+  const code = await new Promise((res) => proc.on('close', res));
+  return { code, stdout, stderr };
+}
+
 test('stop_action_aborts_inflight_generation_and_discards_reply', async () => {
   const script = `
 import time
@@ -50,17 +65,7 @@ assert len(speaking_events) == 0, f"Expected no speaking events after stop, got 
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Stop action abort test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
@@ -135,17 +140,7 @@ assert len(onsets) == 1
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Barge-in detection test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
@@ -168,17 +163,7 @@ for level in (600, 2000, 12000):
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Threshold bleed vs voice test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
@@ -207,15 +192,7 @@ assert len(onsets) == 1
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `AEC barge-in test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });

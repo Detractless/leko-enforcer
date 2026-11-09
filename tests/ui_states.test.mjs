@@ -1,18 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CircleController } from '../ui/web/app.js';
-
-class MockElement {
-  constructor(className = '') {
-    this.className = className;
-    this.textContent = '';
-    this.classList = {
-      add: (c) => { if (!this.className.includes(c)) this.className += ` ${c}`; },
-      remove: (c) => { this.className = this.className.replace(c, '').trim(); },
-      contains: (c) => this.className.includes(c)
-    };
-  }
-}
+import { MockElement } from './mock-element.mjs';
 
 test('circle_transitions_across_all_voice_states', () => {
   const stage = new MockElement('circle-stage');

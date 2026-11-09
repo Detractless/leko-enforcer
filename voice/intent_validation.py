@@ -126,16 +126,8 @@ def _clarify_blocked_days() -> str:
     return "Which days should I block those hours? I can set this for every day, weekdays, weekends, or named days."
 
 
-def validate_intent(intent: dict[str, Any], user_text: str) -> dict[str, Any]:
-    """Reject unsafe or incomplete block intents before preview or confirmation."""
-    if not isinstance(intent, dict):
-        return _reply("I couldn't prepare that request. Please say what you want to block.")
-    if intent.get("action") != "tool_call" or intent.get("tool") != "add_block":
-        return intent
-    args = intent.get("arguments")
-    if not isinstance(args, dict):
-        return _reply("I couldn't prepare that block. Please tell me what to block and when.")
-    args = dict(args)
+def _block_target_problem(args: dict[str, Any]) -> dict[str, str] | None:
+    """The cheap block checks: name, targets, device. None means the block passes."""
     name = args.get("name")
     if not isinstance(name, str) or not name.strip():
         return _reply("What should I call this block?")
@@ -148,49 +140,86 @@ def validate_intent(intent: dict[str, Any], user_text: str) -> dict[str, Any]:
         return _reply("A device block must use lock, logoff, or shutdown by itself. Which should I use?")
     if not device and not apps and not sites:
         return _reply("Which app, website, or device should I block?")
+    return None
 
+
+def _blocked_hours_reply(args: dict[str, Any], user_text: str) -> dict[str, str] | None:
+    """The blocked_hours schedule checks; sets args["days"] when the days match. None means ok."""
+    blocked = args.get("blocked_hours")
+    if not _valid_window(blocked) or "," in blocked:
+        return _reply("What exact start and end times should be blocked? Use one time range.")
+    days = _normalize_days(args.get("days"))
+    requested_days = _requested_days(user_text)
+    if requested_days is None:
+        return _reply(_clarify_blocked_days())
+    if days is None:
+        days = requested_days
+    if days != requested_days:
+        return _reply("The days in that schedule do not match what you said. Which days should I use?")
+    start, end = blocked.split("-")
+    if _clock_minutes(start) > _clock_minutes(end) and _clock_minutes(end) != 0 and days != list(WEEKDAYS):
+        return _reply("That blocked window crosses midnight. I can safely schedule it every day; should it repeat daily?")
+    if args.get("duration") or args.get("open_hours"):
+        return _reply("I got conflicting schedule details. Please repeat the blocked time range.")
+    args["days"] = ",".join(days)
+    return None
+
+
+def _open_hours_reply(args: dict[str, Any], user_text: str) -> dict[str, str] | None:
+    """The open_hours schedule checks. None means ok."""
+    if not _valid_window(args.get("open_hours"), allow_24_end=True):
+        return _reply("What exact hours should remain usable? Please give a time range.")
+    if (_BLOCKED_WORDS.search(user_text)
+            and (not _ALLOWED_WORDS.search(user_text) or _NEGATED_ALLOWED.search(user_text))):
+        return _reply("That request sounds like a blocked time, but I got usable hours. Should the computer be blocked during those hours?")
+    if args.get("duration") or args.get("blocked_hours"):
+        return _reply("I got conflicting schedule details. Please repeat the time range.")
+    return None
+
+
+def _duration_reply(args: dict[str, Any], user_text: str) -> dict[str, str] | None:
+    """The for_duration schedule checks. None means ok."""
+    if _has_clock_range(user_text):
+        return _reply("You gave clock times, so I need to know whether you want a repeating blocked-hours schedule or a one-time block.")
+    if not isinstance(args.get("duration"), str) or args.get("days"):
+        return _reply("How long should the block last? Give one duration, such as 2 hours.")
+    if args.get("open_hours") or args.get("blocked_hours"):
+        return _reply("I got conflicting schedule details. Please repeat the duration.")
+    return None
+
+
+def _schedule_reply(args: dict[str, Any], user_text: str) -> dict[str, str] | None:
+    """The schedule checks, dispatched by schedule_type. None means the schedule passes."""
     schedule = args.get("schedule_type")
     if not isinstance(schedule, str) or schedule not in {
             "always", "for_duration", "open_hours", "blocked_hours"}:
         return _reply("When should this block apply: always, for a duration, or during specific hours?")
     if schedule == "blocked_hours":
-        blocked = args.get("blocked_hours")
-        if not _valid_window(blocked) or "," in blocked:
-            return _reply("What exact start and end times should be blocked? Use one time range.")
-        days = _normalize_days(args.get("days"))
-        requested_days = _requested_days(user_text)
-        if requested_days is None:
-            return _reply(_clarify_blocked_days())
-        if days is None:
-            days = requested_days
-        if days != requested_days:
-            return _reply("The days in that schedule do not match what you said. Which days should I use?")
-        start, end = blocked.split("-")
-        if _clock_minutes(start) > _clock_minutes(end) and _clock_minutes(end) != 0 and days != list(WEEKDAYS):
-            return _reply("That blocked window crosses midnight. I can safely schedule it every day; should it repeat daily?")
-        if args.get("duration") or args.get("open_hours"):
-            return _reply("I got conflicting schedule details. Please repeat the blocked time range.")
-        args["days"] = ",".join(days)
-    elif schedule == "open_hours":
-        if not _valid_window(args.get("open_hours"), allow_24_end=True):
-            return _reply("What exact hours should remain usable? Please give a time range.")
-        if (_BLOCKED_WORDS.search(user_text)
-                and (not _ALLOWED_WORDS.search(user_text) or _NEGATED_ALLOWED.search(user_text))):
-            return _reply("That request sounds like a blocked time, but I got usable hours. Should the computer be blocked during those hours?")
-        if args.get("duration") or args.get("blocked_hours"):
-            return _reply("I got conflicting schedule details. Please repeat the time range.")
-    elif schedule == "for_duration":
-        if _has_clock_range(user_text):
-            return _reply("You gave clock times, so I need to know whether you want a repeating blocked-hours schedule or a one-time block.")
-        if not isinstance(args.get("duration"), str) or args.get("days"):
-            return _reply("How long should the block last? Give one duration, such as 2 hours.")
-        if args.get("open_hours") or args.get("blocked_hours"):
-            return _reply("I got conflicting schedule details. Please repeat the duration.")
-    elif schedule == "always" and _has_clock_range(user_text):
+        return _blocked_hours_reply(args, user_text)
+    if schedule == "open_hours":
+        return _open_hours_reply(args, user_text)
+    if schedule == "for_duration":
+        return _duration_reply(args, user_text)
+    if schedule == "always" and _has_clock_range(user_text):
         return _reply("You gave clock times, so I need the exact hours and days before I can prepare the block.")
-    elif any(args.get(key) for key in ("duration", "open_hours", "blocked_hours")):
+    if any(args.get(key) for key in ("duration", "open_hours", "blocked_hours")):
         return _reply("I got conflicting schedule details. Please repeat when the block should apply.")
+    return None
 
+
+def validate_intent(intent: dict[str, Any], user_text: str) -> dict[str, Any]:
+    """Reject unsafe or incomplete block intents before preview or confirmation."""
+    if not isinstance(intent, dict):
+        return _reply("I couldn't prepare that request. Please say what you want to block.")
+    if intent.get("action") != "tool_call" or intent.get("tool") != "add_block":
+        return intent
+    args = intent.get("arguments")
+    if not isinstance(args, dict):
+        return _reply("I couldn't prepare that block. Please tell me what to block and when.")
+    args = dict(args)
+    problem = _block_target_problem(args) or _schedule_reply(args, user_text)
+    if problem is not None:
+        return problem
     intent = dict(intent)
     intent["arguments"] = args
     return intent

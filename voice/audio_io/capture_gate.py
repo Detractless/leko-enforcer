@@ -179,6 +179,71 @@ class CaptureGate:
         return (self.is_running and not self._closed and self._busy is None
                 and not self._muted and time.monotonic() >= self._resume_at)
 
+    def _note_status_warning(self, warning):
+        if self.detector.in_speech:
+            if self._active_status_warnings is None:
+                self._active_status_warnings = {}
+            self._active_status_warnings[warning] = self._active_status_warnings.get(warning, 0) + 1
+        else:
+            self._status_preroll.append(warning)
+
+    def _clean_samples(self, raw_samples):
+        # Echo cancellation on the raw frame; a cancel failure closes the stream and stops the turn.
+        samples = raw_samples
+        if self.echo_audio.available:
+            samples = self.echo_audio.clean_capture(samples)
+            if samples is None:
+                self.echo_audio.close()
+                self.detector.set_echo_cancellation_enabled(False)
+                self._clear()
+                return None, True
+        return samples, False
+
+    def _track_raw_buffer(self, raw_samples, samples):
+        if len(samples) == len(raw_samples):
+            self._pending_raw_buf.extend(raw_samples.tobytes())
+        else:
+            self._raw_buf.clear()
+            self._pending_raw_buf.clear()
+            self._raw_preroll_stats.clear()
+        self._raw_buf.extend(samples.tobytes())
+
+    def _accumulate_chunk(self, raw_chunk, was_in_speech):
+        if was_in_speech:
+            if self._active_raw_stats is None:
+                self._active_raw_stats = _empty_audio_stats()
+            _merge_audio_stats(self._active_raw_stats, _audio_stats(raw_chunk))
+        else:
+            self._raw_preroll_stats.append(_audio_stats(raw_chunk))
+
+    def _speech_onset(self):
+        self._active_raw_stats = _empty_audio_stats()
+        for stats in self._raw_preroll_stats:
+            _merge_audio_stats(self._active_raw_stats, stats)
+        self._raw_preroll_stats.clear()
+        self._active_status_warnings = {}
+        for flag in self._status_preroll:
+            self._active_status_warnings[flag] = self._active_status_warnings.get(flag, 0) + 1
+        self._status_preroll.clear()
+
+    def _finish_turn(self, audio):
+        raw_stats = self._active_raw_stats or _empty_audio_stats()
+        status_warnings = self._active_status_warnings or {}
+        self._last_turn_diagnostics = {
+            "pre_aec": dict(raw_stats),
+            "aec_active": bool(self.echo_audio.available),
+            "callback_warnings": [
+                {"flag": flag, "count": count}
+                for flag, count in status_warnings.items()
+            ],
+        }
+        token = self.begin_response()
+        try:
+            self.on_turn_complete(audio, token)
+        except Exception:
+            self.finish_response(token)
+            raise
+
     def _callback(self, epoch, indata, frames, time_info, status):
         # Gate before AEC, VAD, or pre-roll. Old streams can never feed a new turn.
         with self._cv:
@@ -193,28 +258,12 @@ class CaptureGate:
                         pass
             warning = self._status_warning(status)
             if warning:
-                if self.detector.in_speech:
-                    if self._active_status_warnings is None:
-                        self._active_status_warnings = {}
-                    self._active_status_warnings[warning] = self._active_status_warnings.get(warning, 0) + 1
-                else:
-                    self._status_preroll.append(warning)
+                self._note_status_warning(warning)
             raw_samples = np.frombuffer(bytes(indata), dtype=np.int16)
-            samples = raw_samples
-            if self.echo_audio.available:
-                samples = self.echo_audio.clean_capture(samples)
-                if samples is None:
-                    self.echo_audio.close()
-                    self.detector.set_echo_cancellation_enabled(False)
-                    self._clear()
-                    return
-            if len(samples) == len(raw_samples):
-                self._pending_raw_buf.extend(raw_samples.tobytes())
-            else:
-                self._raw_buf.clear()
-                self._pending_raw_buf.clear()
-                self._raw_preroll_stats.clear()
-            self._raw_buf.extend(samples.tobytes())
+            samples, failed = self._clean_samples(raw_samples)
+            if failed:
+                return
+            self._track_raw_buffer(raw_samples, samples)
             size = self.chunk_size * 2
             while len(self._raw_buf) >= size and len(self._pending_raw_buf) >= size:
                 chunk = np.frombuffer(bytes(self._raw_buf[:size]), dtype=np.int16)
@@ -222,39 +271,12 @@ class CaptureGate:
                 del self._raw_buf[:size]
                 del self._pending_raw_buf[:size]
                 was_in_speech = self.detector.in_speech
-                if was_in_speech:
-                    if self._active_raw_stats is None:
-                        self._active_raw_stats = _empty_audio_stats()
-                    _merge_audio_stats(self._active_raw_stats, _audio_stats(raw_chunk))
-                else:
-                    self._raw_preroll_stats.append(_audio_stats(raw_chunk))
+                self._accumulate_chunk(raw_chunk, was_in_speech)
                 ended, audio = self.detector.feed(chunk)
                 if not was_in_speech and self.detector.in_speech:
-                    self._active_raw_stats = _empty_audio_stats()
-                    for stats in self._raw_preroll_stats:
-                        _merge_audio_stats(self._active_raw_stats, stats)
-                    self._raw_preroll_stats.clear()
-                    self._active_status_warnings = {}
-                    for flag in self._status_preroll:
-                        self._active_status_warnings[flag] = self._active_status_warnings.get(flag, 0) + 1
-                    self._status_preroll.clear()
+                    self._speech_onset()
                 if ended and len(audio):
-                    raw_stats = self._active_raw_stats or _empty_audio_stats()
-                    status_warnings = self._active_status_warnings or {}
-                    self._last_turn_diagnostics = {
-                        "pre_aec": dict(raw_stats),
-                        "aec_active": bool(self.echo_audio.available),
-                        "callback_warnings": [
-                            {"flag": flag, "count": count}
-                            for flag, count in status_warnings.items()
-                        ],
-                    }
-                    token = self.begin_response()
-                    try:
-                        self.on_turn_complete(audio, token)
-                    except Exception:
-                        self.finish_response(token)
-                        raise
+                    self._finish_turn(audio)
                     return
 
     def _control(self):

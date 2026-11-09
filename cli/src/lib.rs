@@ -33,6 +33,7 @@ pub mod edit_block {
 
 pub mod delayed_changes {
     pub mod delay_arguments;
+    pub mod request_files;
     pub mod run_settle;
     pub mod run_switch_off;
     pub mod settle_report;

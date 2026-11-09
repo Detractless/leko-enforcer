@@ -6,13 +6,13 @@
 //! moment and the computer's zone come in as arguments; the clock is never read here.
 
 use super::delay_arguments::{pick_zone, read_delay_arguments, Command};
+use super::request_files::read_request_files;
 use super::switch_off_report::{already_off, already_waiting, cannot_land, draft_now, draft_waits, needs_partner_key, no_such_block, parked, saved_now, Wait};
-use super::waiting_file_disk::{read_waiting_changes, save_waiting, waiting_path};
+use super::waiting_file_disk::save_waiting;
 use crate::add_block::file_replace::{save_file, RealSteps, Steps, SETTINGS_WORDS};
 use crate::session::run_command::{fail, write_result, EXIT_NOT_UNDERSTOOD, EXIT_REFUSED};
 use crate::session::session_arguments::USAGE;
 use crate::session::session_report::{quoted, refusal_line};
-use crate::status::settings_file::read_settings_and_bytes;
 use leko_core::delayed_changes::block_off_zip::switch_block_off;
 use leko_core::delayed_changes::switch_off_plan::{plan_switch_off, request_moment, SwitchOffPlan};
 use leko_core::delayed_changes::waiting_change::{ChangeKind, WaitingChange};
@@ -35,22 +35,17 @@ pub fn run_switch_off_with(words: &[String], now_ms: i64, computer_zone: Option<
         Err((code, text)) => return fail(err, code, &text),
     };
     let id = request.id.as_deref().unwrap_or_default();
-    let (bytes, set) = match read_settings_and_bytes(&request.file) {
-        Ok(read) => read,
-        Err(sentence) => return fail(err, EXIT_REFUSED, &refusal_line(&sentence)),
+    let files = match read_request_files(&request.file, err) {
+        Ok(files) => files,
+        Err(code) => return code,
     };
-    let waiting_file = waiting_path(&request.file);
-    let changes = match read_waiting_changes(&waiting_file) {
-        Ok(found) => found.unwrap_or_default(),
-        Err(sentence) => return fail(err, EXIT_REFUSED, &refusal_line(&sentence)),
-    };
-    if changes.iter().any(|change| change.block == id && change.kind != ChangeKind::SwitchOff) {
+    if files.changes.iter().any(|change| change.block == id && change.kind != ChangeKind::SwitchOff) {
         return fail(err, EXIT_REFUSED, &refusal_line("Another change is waiting for this block; use leko cancel or leko settle first"));
     }
-    let parked_already = changes.iter().find(|change| change.kind == ChangeKind::SwitchOff && change.block == id);
+    let parked_already = files.changes.iter().find(|change| change.kind == ChangeKind::SwitchOff && change.block == id);
     let command = std::iter::once("leko switch-off".to_string()).chain(words.iter().map(|word| quoted(word))).collect::<Vec<_>>().join(" ");
     let local = |ms: i64| zone.local_text(ms);
-    match (plan_switch_off(&set, id, now_ms, &zone), parked_already) {
+    match (plan_switch_off(&files.set, id, now_ms, &zone), parked_already) {
         (SwitchOffPlan::NoSuchBlock, _) => fail(err, EXIT_REFUSED, &refusal_line(&no_such_block(id, &request.file))),
         (SwitchOffPlan::AlreadyOff, _) => write_result(out, err, &already_off(id)),
         (SwitchOffPlan::NeedsPartnerKey, _) => fail(err, EXIT_REFUSED, &refusal_line(&needs_partner_key(id))),
@@ -61,17 +56,17 @@ pub fn run_switch_off_with(words: &[String], now_ms: i64, computer_zone: Option<
         }
         (SwitchOffPlan::LandsNow, None) if !request.write => write_result(out, err, &draft_now(id, &command)),
         (SwitchOffPlan::LandsNow, None) => {
-            let saved = switch_now(id, &request.file, &bytes, steps);
+            let saved = switch_now(id, &request.file, &files.bytes, steps);
             finish(saved, saved_now(id, &request.file), out, err)
         }
         (SwitchOffPlan::Waits { due_at, because }, None) => {
             let wait = Wait { local: &local(due_at), zone: &zone_name, because: &because };
             if !request.write {
-                return write_result(out, err, &draft_waits(id, &wait, &waiting_file, &command));
+                return write_result(out, err, &draft_waits(id, &wait, &files.waiting_file, &command));
             }
             let settle = format!("leko settle {} --write", quoted(&request.file));
-            let saved = park(id, due_at, now_ms, changes, &waiting_file, steps);
-            finish(saved, parked(id, &wait, &waiting_file, &settle), out, err)
+            let saved = park(id, due_at, now_ms, files.changes, &files.waiting_file, steps);
+            finish(saved, parked(id, &wait, &files.waiting_file, &settle), out, err)
         }
     }
 }

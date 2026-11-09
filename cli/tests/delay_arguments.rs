@@ -3,13 +3,8 @@
 //! computer's, and is never guessed: none at all, or an unusable one, is a refusal (exit 1), and a
 //! zone the user named that does not exist is a wrong word (exit 2).
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 
 use delay_runs::{one_line, settle_in, snapshot, switch_off_in, write_zip, NOW, ZONE};
 use delay_sets::{locked_block, wait};

@@ -9,46 +9,13 @@ use leko_core::config_time::zone_time::ZoneTime;
 use leko_core::io::zip_check::{check_zip, ZipVerdict};
 use leko_core::models::specs::ReadSet;
 use serde_json::{json, Value};
+#[allow(unused_imports)]
+pub use leko_core::test_support::{always, block, block_with, minutes, opens, outside_hours, session};
+
 use std::collections::HashSet;
-
-/// A block file that covers `covers`, holds `rules`, and has a wall for a door.
-pub fn block(id: &str, covers: Value, rules: Value) -> Value {
-    json!({"schema": 2, "id": id, "name": "B", "covers": covers, "rules": rules, "door": {"kind": "wall"}})
-}
-
-/// A block of `block` with more fields written into it (`on`, `message`).
-pub fn block_with(id: &str, covers: Value, rules: Value, more: Value) -> Value {
-    let mut file = block(id, covers, rules);
-    for (name, value) in more.as_object().into_iter().flatten() {
-        file[name] = value.clone();
-    }
-    file
-}
-
-pub fn always(id: &str, days: &[&str]) -> Value {
-    json!({"id": id, "kind": "always", "days": days})
-}
 
 pub fn every_open(id: &str, days: &[&str]) -> Value {
     json!({"id": id, "kind": "everyOpen", "days": days})
-}
-
-/// An outside-hours rule: `allowed` is a list of (from, to) written HH:MM.
-pub fn outside_hours(id: &str, days: &[&str], allowed: &[(&str, &str)]) -> Value {
-    let stretches: Vec<Value> = allowed.iter().map(|(from, to)| json!({"from": from, "to": to})).collect();
-    json!({"id": id, "kind": "outsideHours", "days": days, "allowed": stretches})
-}
-
-pub fn session(id: &str, ends_at: &str) -> Value {
-    json!({"id": id, "kind": "session", "endsAt": ends_at})
-}
-
-pub fn minutes(id: &str) -> Value {
-    json!({"id": id, "kind": "minutes", "amount": 30, "per": "day", "scope": "block"})
-}
-
-pub fn opens(id: &str) -> Value {
-    json!({"id": id, "kind": "opens", "count": 3, "per": "day", "scope": "block"})
 }
 
 /// The settings of `blocks`, written in this order, read as the readers read a zip.
@@ -73,4 +40,13 @@ pub fn zone(name: &str) -> ZoneTime {
 
 pub fn none_blocked() -> HashSet<String> {
     HashSet::new()
+}
+
+pub const APP: &str = "com.a";
+pub const NEW_YORK: &str = "America/New_York";
+pub const DAY_MS: i64 = 86_400_000;
+
+/// The settings of one rule of one block that covers APP.
+pub fn one_rule(rule: Value) -> ReadSet {
+    read_set(&[block("b", json!({"apps": [APP]}), json!([rule]))])
 }

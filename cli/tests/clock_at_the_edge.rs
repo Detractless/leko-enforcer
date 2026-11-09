@@ -1,47 +1,19 @@
 //! Only `main.rs` reads the clock (AC-011): the rest of the command line takes the moment as an
 //! argument, so every test can choose it and the same words always make the same session.
 
-use std::path::{Path, PathBuf};
+use leko_core::test_support::{forbidden_reads, rust_files, CLOCK_SCAN_WORDS};
+use std::path::PathBuf;
 
-/// What a source file may not mention outside `main.rs`: a clock, the environment a zone or a name is
-/// taken from, or a time library.
-const FORBIDDEN: [&str; 16] = [
-    "SystemTime",
-    "Instant",
-    "UNIX_EPOCH",
-    "::now(",
-    "Utc::",
-    "Local::",
-    "chrono::",
-    "chrono_tz",
-    "iana_time_zone",
-    "std::env",
-    "env::var",
-    "libc",
-    "std::time",
-    "tzset",
-    "std::process::exit",
-    "std::process::id",
-];
-
-fn rust_files(folder: &Path, found: &mut Vec<PathBuf>) {
-    let mut entries: Vec<PathBuf> = std::fs::read_dir(folder).expect("a source folder").map(|entry| entry.expect("an entry").path()).collect();
-    entries.sort();
-    for path in entries {
-        if path.is_dir() {
-            rust_files(&path, found);
-        } else if path.extension().is_some_and(|extension| extension == "rs") {
-            found.push(path);
-        }
-    }
+/// What a source file may not mention outside `main.rs`: a clock, the environment a zone or a name
+/// is taken from, a time library, or a process exit.
+fn forbidden_words() -> Vec<&'static str> {
+    let mut words = CLOCK_SCAN_WORDS.to_vec();
+    words.extend(["std::process::exit", "std::process::id"]);
+    words
 }
 
-/// The forbidden words in the code lines of `source` (comments are not code).
 fn clock_reads(source: &str) -> Vec<&'static str> {
-    let code = source.lines().filter(|line| !line.trim_start().starts_with("//"));
-    let mut found: Vec<&'static str> = code.flat_map(|line| FORBIDDEN.iter().copied().filter(move |word| line.contains(word))).collect();
-    found.dedup();
-    found
+    forbidden_reads(source, &forbidden_words())
 }
 
 fn crate_folder() -> PathBuf {

@@ -48,17 +48,30 @@ def _flatten_markdown_tables(text: str) -> str:
     flush_table()
     return "\n".join(cleaned_lines)
 
-def verbalize_for_speech(text: str) -> str:
-    """Transforms raw LLM output into fluent, human-ear friendly spoken English."""
-    if not text:
-        return ""
+def _speech_units(text: str) -> str:
+    """Numbers with unit abbreviations become spoken units."""
 
-    t = text
+    def _hours(m):
+        n = int(m.group(1))
+        return f"{n} hour" if n == 1 else f"{n} hours"
 
-    # 1. Tables and structure
-    t = _flatten_markdown_tables(t)
+    def _minutes(m):
+        n = int(m.group(1))
+        return f"{n} minute" if n == 1 else f"{n} minutes"
 
-    # 2. Markdown artifacts
+    def _seconds(m):
+        n = int(m.group(1))
+        return f"{n} second" if n == 1 else f"{n} seconds"
+
+    t = re.sub(r"\b(\d+)\s*(?:h|hr|hrs)\b", _hours, text, flags=re.IGNORECASE)
+    t = re.sub(r"\b(\d+)\s*(?:m|min|mins)\b", _minutes, t, flags=re.IGNORECASE)
+    t = re.sub(r"\b(\d+)\s*(?:s|sec|secs)\b", _seconds, t, flags=re.IGNORECASE)
+    return t
+
+
+def _speech_structure(text: str) -> str:
+    """Tables, markdown artifacts, URLs and domain names."""
+    t = _flatten_markdown_tables(text)
     t = re.sub(r"```[\w-]*\n?", "", t)
     t = t.replace("```", "")
     t = re.sub(r"`([^`]+)`", r"\1", t)
@@ -66,69 +79,50 @@ def verbalize_for_speech(text: str) -> str:
     t = re.sub(r"\*([^*]+)\*", r"\1", t)
     t = re.sub(r"__([^_]+)__", r"\1", t)
     t = re.sub(r"_([^_]+)_", r"\1", t)
-    # Strip markdown headers (e.g. #, ##, ###)
     t = re.sub(r"^\s*#{1,6}\s*", "", t, flags=re.MULTILINE)
     t = re.sub(r"^[-*+]\s+", "", t, flags=re.MULTILINE)
-    # Replace symbols and brackets that vocoders speak aloud
     t = t.replace("→", " meaning ").replace("->", " meaning ")
     t = re.sub(r"[\[\]{}<>]", " ", t)
     t = re.sub(r"#+", "", t)
     t = t.replace("\\", " ")
     t = t.replace("|", " ")
-
-    # 3. URLs
     t = re.sub(r"https?://(?:www\.)?([a-zA-Z0-9.-]+)(?:/[^\s]*)?", r"\1", t)
     t = re.sub(r"\bwww\.([a-zA-Z0-9.-]+)", r"\1", t)
+    t = re.sub(r"\b([a-zA-Z0-9-]+)\.(com|org|net|io|edu|gov|app|dev)\b", r"\1 dot \2", t, flags=re.IGNORECASE)
+    return t
 
-    # 4. Domain names (e.g. reddit.com -> reddit dot com)
-    t = re.sub(
-        r"\b([a-zA-Z0-9-]+)\.(com|org|net|io|edu|gov|app|dev)\b",
-        r"\1 dot \2",
-        t,
-        flags=re.IGNORECASE
-    )
 
-    # 5. Latin abbreviations and conversational acronyms
-    t = re.sub(r"\be\.g\.,?\s*", "for example, ", t, flags=re.IGNORECASE)
+def _speech_words(text: str) -> str:
+    """Latin abbreviations, conversational acronyms, slashes, URLs are left alone here."""
+    t = re.sub(r"\be\.g\.,?\s*", "for example, ", text, flags=re.IGNORECASE)
     t = re.sub(r"\bi\.e\.,?\s*", "that is, ", t, flags=re.IGNORECASE)
     t = re.sub(r"\betc\b\.?", "and more", t, flags=re.IGNORECASE)
     t = re.sub(r"\bvs\b\.?", "versus", t, flags=re.IGNORECASE)
     t = re.sub(r"\bw/o\b", "without", t, flags=re.IGNORECASE)
     t = re.sub(r"\bw/(?=\s|$)", "with", t, flags=re.IGNORECASE)
     t = re.sub(r"\band\s*/\s*or\b", "and or", t, flags=re.IGNORECASE)
-    # A single slash between words commonly means alternatives. Leave paths,
-    # dates, fractions, and multi-part slash expressions intact.
-    t = re.sub(r"(?<![\w/])([A-Za-z]+)\s*/\s*([A-Za-z]+)(?![\w/])",
-               r"\1 and or \2", t)
+    t = re.sub(r"(?<![\w/])([A-Za-z]+)\s*/\s*([A-Za-z]+)(?![\w/])", r"\1 and or \2", t)
+    return t
 
-    # 6. Units and durations
-    def _hours(m):
-        n = int(m.group(1))
-        return f"{n} hour" if n == 1 else f"{n} hours"
-    t = re.sub(r"\b(\d+)\s*(?:h|hr|hrs)\b", _hours, t, flags=re.IGNORECASE)
 
-    def _minutes(m):
-        n = int(m.group(1))
-        return f"{n} minute" if n == 1 else f"{n} minutes"
-    t = re.sub(r"\b(\d+)\s*(?:m|min|mins)\b", _minutes, t, flags=re.IGNORECASE)
-
-    def _seconds(m):
-        n = int(m.group(1))
-        return f"{n} second" if n == 1 else f"{n} seconds"
-    t = re.sub(r"\b(\d+)\s*(?:s|sec|secs)\b", _seconds, t, flags=re.IGNORECASE)
-
-    # 7. Em-dashes and acoustic breathing pauses
-    t = re.sub(r"\s*[—–]\s*", "... ", t)
+def _speech_cadence(text: str) -> str:
+    """Em-dashes, emojis, spacing and punctuation cadence."""
+    t = re.sub(r"\s*[—–]\s*", "... ", text)
     t = re.sub(r"\s*--\s*", "... ", t)
-
-    # 8. Strip emojis that confuse the acoustic vocoder
     t = re.sub(r"[\U00010000-\U0010ffff]", "", t)
-
-    # 9. Cadence and sentence boundary spacing
     t = re.sub(r"([!?,.:;])([A-Za-z])", r"\1 \2", t)
-
-    # 10. Clean up whitespace and punctuation
     t = re.sub(r"[ \t]+", " ", t)
     t = re.sub(r"\s+([.,;:!?])", r"\1", t)
     t = re.sub(r"\n+", " ", t)
+    return t
+
+
+def verbalize_for_speech(text: str) -> str:
+    """Transforms raw LLM output into fluent, human-ear friendly spoken English."""
+    if not text:
+        return ""
+    t = _speech_structure(text)
+    t = _speech_words(t)
+    t = _speech_units(t)
+    t = _speech_cadence(t)
     return t.strip()

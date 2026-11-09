@@ -3,29 +3,19 @@
 //! the folder as they were. A bad waiting file is never replaced by a fresh one (that would lose the
 //! parked changes), an empty file is not "nothing waiting", and a huge file is not read into memory.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::*;
 
 use delay_runs::{one_line, record, settle, switch_off, waiting_of, write_waiting, write_zip, NOW};
 use delay_sets::{locked_block, zip_with};
 use leko_cli::session::session_report::shown;
 use leko_core::delayed_changes::waiting_file::read_waiting;
-use leko_core::io::zip_check::{check_zip, ZipVerdict};
 use leko_core::io::zip_reader::MAX_TOTAL_BYTES;
 use run_capture::Outcome;
 use scratch_folder::Scratch;
 use serde_json::Value;
-use std::collections::HashSet;
 use std::path::Path;
 use zip_writer::zip_of;
-
-const NOTHING_SAVED: &str = " Nothing was saved.\n";
-const LEFT_ALONE: &str = " It was left as it was.";
 
 /// A file as a test sees it: its length, its modified time and (for a small file) its bytes.
 type Seen = (String, u64, Option<std::time::SystemTime>, Option<Vec<u8>>);
@@ -58,19 +48,6 @@ fn assert_left_alone(folder: &Scratch, file: &Path, expected: &str, what: &str) 
         assert_eq!(one_line(&run.err), expected, "{which}");
         assert_eq!(seen(folder.path()), before, "{which}: no file was written, replaced, made or removed");
     }
-}
-
-/// The core's sentence for refusing these bytes as a settings zip.
-fn core_refusal(bytes: &[u8]) -> String {
-    match check_zip(bytes, &HashSet::new()) {
-        ZipVerdict::Refused(refusal) => refusal.sentence,
-        ZipVerdict::Read(_) => panic!("the core was expected to refuse these {} bytes", bytes.len()),
-    }
-}
-
-fn nothing_saved(sentence: &str) -> String {
-    let stop = if sentence.ends_with(['.', '!', '?']) { "" } else { "." };
-    format!("{sentence}{stop}{NOTHING_SAVED}")
 }
 
 #[test]
@@ -126,7 +103,7 @@ fn a_bad_waiting_file_stops_every_change_and_is_never_replaced() {
         ("only spaces", "  \n".to_string()),
         ("not JSON", "{nope".to_string()),
         ("a list", "[]".to_string()),
-        ("a newer format", r#"{"format":3,"changes":[]}"#.to_string()),
+        ("a newer format", r#"{"format":4,"changes":[]}"#.to_string()),
         ("no format", r#"{"changes":[]}"#.to_string()),
         ("a record without its moment", r#"{"format":1,"changes":[{"kind":"switch-off","block":"b"}]}"#.to_string()),
         ("a record with a field of its own", one_record(r#","note":"hi""#)),
@@ -141,8 +118,8 @@ fn a_bad_waiting_file_stops_every_change_and_is_never_replaced() {
         let join = if reason.starts_with("change ") { "was refused: " } else { "" };
         assert_left_alone(&folder, &file, &line(&format!("{join}{reason}")), what);
     }
-    std::fs::write(&waiting, r#"{"format":3,"changes":[]}"#).unwrap();
-    assert_left_alone(&folder, &file, &line("is format 3, which is newer than the format 2 this program reads"), "format 3, in words");
+    std::fs::write(&waiting, r#"{"format":4,"changes":[]}"#).unwrap();
+    assert_left_alone(&folder, &file, &line("is format 4, which is newer than the format 3 this program reads"), "format 4, in words");
     std::fs::write(&waiting, "").unwrap();
     assert_left_alone(&folder, &file, &line("is empty"), "an empty file is not 'nothing waiting'");
 

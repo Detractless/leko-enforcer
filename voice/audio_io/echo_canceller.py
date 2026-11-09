@@ -124,24 +124,9 @@ class VoiceOutputPlayer:
         self._render_failed = False
         self._stop_generation = 0
 
-    def play(self, pcm, sample_rate: int, is_cancelled=None) -> bool:
-        if not self.processor.available:
-            return False
-        with self._lock:
-            generation = self._stop_generation
-        from math import gcd
-        from scipy.signal import resample_poly
-        total_duration_s = len(pcm) / sample_rate
-        play_start_t = time.monotonic()
-        was_interrupted = False
-        import sounddevice as sd
-
-        audio = self._mono_float(pcm)
-        divisor = gcd(int(sample_rate), SAMPLE_RATE)
-        render_reference = resample_poly(audio, SAMPLE_RATE // divisor, int(sample_rate) // divisor).astype(np.float32)
-        self.processor.reset_buffers()
+    def _make_callback(self, audio, render_reference, sample_rate, sd):
+        """The playback callback: write frames and feed the AEC render reference."""
         position = 0
-        self._render_failed = False
 
         def callback(outdata, frames, time_info, status):
             nonlocal position
@@ -159,36 +144,68 @@ class VoiceOutputPlayer:
             if position >= len(audio):
                 raise sd.CallbackStop
 
+        return callback
+
+    def _open_stream(self, sd, sample_rate, callback):
+        """Open the output stream, tolerating PortAudio builds without a blocksize option."""
+        import inspect
+
+        blocksize = int(sample_rate * 0.040)
+        kwargs = {"blocksize": blocksize}
+        sig = inspect.signature(sd.OutputStream.__init__)
+        if "blocksize" not in sig.parameters and not any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
+            kwargs = {}
+        return sd.OutputStream(samplerate=sample_rate, channels=1, dtype="float32", callback=callback, **kwargs)
+
+    def _wait_playing(self, stream, is_cancelled) -> bool:
+        """Sleep until the stream ends, or until the caller cancels; True when it was interrupted."""
+        while stream.active:
+            if is_cancelled and is_cancelled():
+                self.stop()
+                return True
+            time.sleep(0.02)
+        return False
+
+    def _report_playback(self, play_start_t, total_duration_s, interrupted, generation):
+        elapsed_s = time.monotonic() - play_start_t
+        if interrupted or self._stop_generation != generation:
+            print(f"[Maeve playback interrupted]: stopped at {elapsed_s:.2f}s / {total_duration_s:.2f}s", flush=True)
+        else:
+            print(f"[Maeve playback completed]: finished full {elapsed_s:.2f}s / {total_duration_s:.2f}s", flush=True)
+
+    def play(self, pcm, sample_rate: int, is_cancelled=None) -> bool:
+        if not self.processor.available:
+            return False
+        with self._lock:
+            generation = self._stop_generation
+        from math import gcd
+        from scipy.signal import resample_poly
+        total_duration_s = len(pcm) / sample_rate
+        play_start_t = time.monotonic()
+        import sounddevice as sd
+
+        audio = self._mono_float(pcm)
+        divisor = gcd(int(sample_rate), SAMPLE_RATE)
+        render_reference = resample_poly(audio, SAMPLE_RATE // divisor, int(sample_rate) // divisor).astype(np.float32)
+        self.processor.reset_buffers()
+        self._render_failed = False
+        callback = self._make_callback(audio, render_reference, sample_rate, sd)
+
         stream = None
         try:
-            blocksize = int(sample_rate * 0.040)
-            kwargs = {"blocksize": blocksize}
-            import inspect
-            sig = inspect.signature(sd.OutputStream.__init__)
-            if "blocksize" not in sig.parameters and not any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
-                kwargs = {}
-            stream = sd.OutputStream(samplerate=sample_rate, channels=1, dtype="float32", callback=callback, **kwargs)
+            stream = self._open_stream(sd, sample_rate, callback)
             with self._lock:
                 if generation != self._stop_generation or (is_cancelled and is_cancelled()):
                     stream.close()
                     return True
                 self.stream = stream
                 stream.start()
-            while stream.active:
-                if is_cancelled and is_cancelled():
-                    was_interrupted = True
-                    self.stop()
-                    break
-                time.sleep(0.02)
+            interrupted = self._wait_playing(stream, is_cancelled)
             with self._lock:
                 stream.stop()
                 stream.close()
                 self.stream = None
-            elapsed_s = time.monotonic() - play_start_t
-            if was_interrupted or self._stop_generation != generation:
-                print(f"[Maeve playback interrupted]: stopped at {elapsed_s:.2f}s / {total_duration_s:.2f}s", flush=True)
-            else:
-                print(f"[Maeve playback completed]: finished full {elapsed_s:.2f}s / {total_duration_s:.2f}s", flush=True)
+            self._report_playback(play_start_t, total_duration_s, interrupted, generation)
             return not self._render_failed
         except Exception as exc:
             print(f"[Audio AEC playback unavailable; using playback mute]: {exc}", file=sys.stderr)

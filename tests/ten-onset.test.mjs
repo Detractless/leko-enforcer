@@ -1,11 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const python = '/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3';
+import { DETECTOR_FAILURE_TAIL, expectDetectorDisabled, runArgs, runCode } from './onset-detector-scripts.mjs';
 
 test('TEN processes audio frames and disables listening after a detector failure', () => {
   const code = `
@@ -22,18 +17,13 @@ turn.feed(np.zeros(2560, dtype=np.int16))
 assert not onsets
 vad._lib.ten_vad_process = lambda *args: -1
 assert vad.process(np.zeros(256, dtype=np.float32)) == 0.0
-assert vad._failed
-assert vad.process(np.ones(2560, dtype=np.float32)) == 0.0
-print('OK')
+${DETECTOR_FAILURE_TAIL}
 `;
-  const result = spawnSync(python, ['-c', code], { cwd: root, encoding: 'utf8' });
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /OK/);
-  assert.match(result.stderr, /listening disabled/);
+  expectDetectorDisabled(runCode(code));
 });
 
 test('TEN is selectable and a missing library exits before assistant startup', () => {
-  const help = spawnSync(python, ['voice/assistant.py', '--help'], { cwd: root, encoding: 'utf8' });
+  const help = runArgs(['voice/assistant.py', '--help']);
   assert.equal(help.status, 0, help.stderr);
   assert.match(help.stdout, /--speech-detector \{silero,loudness,webrtc,rnnoise,ten\}/);
   const code = `
@@ -49,7 +39,7 @@ try: runtime.main()
 except SystemExit as exc: assert exc.code == 2
 else: raise AssertionError('missing library must stop launch')
 `;
-  const result = spawnSync(python, ['-c', code], { cwd: root, encoding: 'utf8' });
+  const result = runCode(code);
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stderr, /TEN VAD unavailable/);
 });

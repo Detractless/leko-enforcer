@@ -2,8 +2,6 @@
 use crate::config::read_block::is_package;
 use crate::delayed_changes::waiting_change::{CoverageAction, CoverageOperation};
 use crate::io::zip_check::{check_zip, ZipVerdict};
-use crate::io::zip_reader::open_zip;
-use crate::io::zip_writer::write_zip;
 use crate::sites::site_name::is_site;
 use serde_json::Value;
 use std::collections::HashSet;
@@ -61,14 +59,6 @@ pub fn apply_coverage_zip(bytes: &[u8], id: &str, ops: &[CoverageOperation]) -> 
         CoverageDocument::Conflict => return Ok(CoverageApply::Conflict),
         CoverageDocument::Changed(new) => new,
     };
-    let mut files = open_zip(bytes).map_err(|why| format!("The settings file was refused: {why}"))?.files;
-    let entry = files.iter_mut().find(|(name, _)| name == &path).ok_or("The block file is missing.")?;
-    let mut text = serde_json::to_string_pretty(&new).map_err(|e| e.to_string())?;
-    text.push('\n');
-    entry.1 = text.into_bytes();
-    let result = write_zip(&files).map_err(|why| format!("The edited zip could not be made: {why}"))?;
-    match check_zip(&result, &HashSet::new()) {
-        ZipVerdict::Read(_) => Ok(CoverageApply::Changed { bytes: result, old, new }),
-        ZipVerdict::Refused(reason) => Err(format!("The edited settings were refused: {}", reason.sentence)),
-    }
+    let result = crate::blocks::replace_block_zip::replace_block_document_zip(bytes, &path, &new)?;
+    Ok(CoverageApply::Changed { bytes: result, old, new })
 }

@@ -1,0 +1,39 @@
+:root {
+  --color-surface: #E2E1DD;
+  --color-near-black: #141414;
+  --color-ink: #111111;
+  --color-muted: #73726E;
+  --bg-color: var(--color-surface);
+  --ring-color: var(--color-near-black);
+  --text-color: var(--color-ink);
+  --text-muted: var(--color-muted);
+  --card-bg: rgba(255, 255, 255, 0.65);
+  --card-border: rgba(20, 20, 20, 0.08);
+  --btn-bg: var(--color-near-black);
+  --btn-text: var(--color-surface);
+
+  --color-black: #000000;
+  --color-muted-dark: #444444;
+  --color-muted-medium: #555555;
+  --color-white: #FFFFFF;
+  --color-ripple: rgba(20, 20, 20, 0.22);
+  --color-control-bg: rgba(0, 0, 0, 0.05);
+  --color-control-border: rgba(0, 0, 0, 0.08);
+  --color-control-hover: rgba(0, 0, 0, 0.09);
+  --color-card-shadow: rgba(0, 0, 0, 0.04);
+  --color-badge-bg: rgba(0, 0, 0, 0.06);
+  --color-interrupt: #dc2626;
+  --color-interrupt-bg: rgba(220, 38, 38, 0.12);
+  --color-interrupt-border: rgba(220, 38, 38, 0.3);
+  --color-interrupt-shadow: rgba(220, 38, 38, 0.2);
+  --color-interrupt-shadow-clear: rgba(220, 38, 38, 0);
+
+  --font-size-tiny: 11px;
+  --font-size-small: 12px;
+  --font-size-body: 13px;
+  --font-size-medium: 14px;
+
+  --z-ring: 10;
+  --z-status: 15;
+  --z-controls: 20;
+}

@@ -1,15 +1,4 @@
 /* Leko Minimalist Circle Interface - Zero-Asset CSS */
-:root {
-  --bg-color: #E2E1DD;
-  --ring-color: #141414;
-  --text-color: #111111;
-  --text-muted: #73726E;
-  --card-bg: rgba(255, 255, 255, 0.65);
-  --card-border: rgba(20, 20, 20, 0.08);
-  --btn-bg: #141414;
-  --btn-text: #E2E1DD;
-}
-
 * {
   box-sizing: border-box;
   margin: 0;
@@ -61,13 +50,13 @@ body {
               border-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.4s ease,
               opacity 0.3s ease;
-  z-index: 10;
+  z-index: var(--z-ring);
 }
 
 .ripple {
   position: absolute;
   border-radius: 50%;
-  border: 2px solid rgba(20, 20, 20, 0.22);
+  border: 2px solid var(--color-ripple);
   opacity: 0;
   pointer-events: none;
 }
@@ -86,7 +75,7 @@ body {
 .circle-stage.state-listening .ring-core {
   border-width: 9.5px;
   transform: scale(1.06);
-  border-color: #000;
+  border-color: var(--color-black);
 }
 .circle-stage.state-listening .ripple-1 {
   animation: ripple-in 1.8s cubic-bezier(0.2, 0.8, 0.4, 1) infinite;
@@ -141,7 +130,7 @@ body {
 }
 @keyframes confirm-snap {
   0% { transform: scale(1); border-width: 8px; }
-  35% { transform: scale(0.94); border-width: 12px; border-color: #000; }
+  35% { transform: scale(0.94); border-width: 12px; border-color: var(--color-black); }
   100% { transform: scale(1); border-width: 8px; border-color: var(--ring-color); }
 }
 
@@ -157,14 +146,14 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 13px;
+  font-size: var(--font-size-body);
   letter-spacing: 0.08em;
   color: var(--text-color);
   text-transform: uppercase;
   font-weight: 700;
   text-align: center;
   pointer-events: none;
-  z-index: 15;
+  z-index: var(--z-status);
   max-width: 140px;
   line-height: 1.35;
 }
@@ -176,7 +165,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  z-index: 20;
+  z-index: var(--z-controls);
 }
 
 .ctrl-btn {
@@ -184,26 +173,26 @@ body {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--color-control-bg);
+  border: 1px solid var(--color-control-border);
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--font-size-small);
   font-weight: 600;
-  color: #444;
+  color: var(--color-muted-dark);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .ctrl-btn:hover {
-  background: rgba(0, 0, 0, 0.09);
-  color: #111;
+  background: var(--color-control-hover);
+  color: var(--color-ink);
 }
 .ctrl-btn:active {
   transform: scale(0.96);
 }
 .ctrl-btn.active {
-  background: #111;
-  color: #fff;
-  border-color: #111;
+  background: var(--color-ink);
+  color: var(--color-white);
+  border-color: var(--color-ink);
 }
 
 /* Minimalist Draft Confirmation Card */
@@ -217,7 +206,7 @@ body {
   padding: 18px 20px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 10px 25px var(--color-card-shadow);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -239,24 +228,24 @@ body {
   justify-content: space-between;
 }
 .card-title {
-  font-size: 14px;
+  font-size: var(--font-size-medium);
   font-weight: 600;
-  color: #111;
+  color: var(--color-ink);
 }
 .card-badge {
-  font-size: 11px;
+  font-size: var(--font-size-tiny);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-weight: 700;
-  color: #555;
-  background: rgba(0,0,0,0.06);
+  color: var(--color-muted-medium);
+  background: var(--color-badge-bg);
   padding: 3px 8px;
   border-radius: 999px;
 }
 
 .card-details {
-  font-size: 13px;
-  color: #444;
+  font-size: var(--font-size-body);
+  color: var(--color-muted-dark);
   line-height: 1.45;
 }
 
@@ -270,7 +259,7 @@ body {
   flex: 1;
   padding: 10px 14px;
   border-radius: 12px;
-  font-size: 13px;
+  font-size: var(--font-size-body);
   font-weight: 600;
   cursor: pointer;
   border: none;
@@ -287,19 +276,19 @@ body {
   color: var(--btn-text);
 }
 .btn-secondary {
-  background: rgba(0, 0, 0, 0.05);
-  color: #444;
+  background: var(--color-control-bg);
+  color: var(--color-muted-dark);
 }
 
 /* Interrupt Highlight State */
 .ctrl-btn.btn-interrupt {
-  background: rgba(220, 38, 38, 0.12);
-  color: #dc2626;
-  border-color: rgba(220, 38, 38, 0.3);
+  background: var(--color-interrupt-bg);
+  color: var(--color-interrupt);
+  border-color: var(--color-interrupt-border);
   font-weight: 700;
   animation: pulse-interrupt 1.5s ease-in-out infinite;
 }
 @keyframes pulse-interrupt {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.2); }
-  50% { transform: scale(1.04); box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 var(--color-interrupt-shadow); }
+  50% { transform: scale(1.04); box-shadow: 0 0 0 6px var(--color-interrupt-shadow-clear); }
 }

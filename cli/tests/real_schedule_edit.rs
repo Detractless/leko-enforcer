@@ -1,25 +1,9 @@
-mod edit_runs;
-mod run_capture;
-mod scratch_folder;
-mod settings_builder;
-use scratch_folder::Scratch;
+mod edit_support;
+use edit_support::*;
 use serde_json::json;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-fn schedule_fixture(lock_hours: Option<i64>) -> (Scratch, PathBuf) {
-    let folder = Scratch::new("real-schedule-edit");
-    let mut block = settings_builder::block(
-        "one",
-        json!({"apps": ["com.one"]}),
-        json!([settings_builder::outside_hours("h", &["mon", "tue"], &[("09:00", "17:00")])])
-    );
-    if let Some(hours) = lock_hours {
-        block["lock"] = json!({"level": "wait", "hours": hours});
-    }
-    let file = settings_builder::write_settings(folder.path(), "settings.zip", &[block]);
-    (folder, file)
-}
 
 fn waiting(file: &Path) -> PathBuf {
     PathBuf::from(format!("{}.waiting.json", file.display()))

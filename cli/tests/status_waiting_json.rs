@@ -3,13 +3,8 @@
 //! an empty list when nothing applies, so a script can tell "none" from an older program; the moments
 //! are in UTC whatever zone is chosen.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 
 use delay_runs::{covering, record, status_blocks, status_records, write_waiting, write_zip, NOW};
 use delay_sets::{sealed_until, wait};

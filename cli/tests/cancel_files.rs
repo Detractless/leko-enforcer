@@ -3,13 +3,8 @@
 //! that is not JSON, not text, of a newer format, with a record that cannot be read, a folder, and
 //! one over 1 MB; with and without `--write`.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 
 use delay_runs::{cancel, one_line, snapshot, waiting_of, write_zip};
 use delay_sets::{locked_block, wait};
@@ -26,7 +21,7 @@ fn bad_files() -> Vec<(&'static str, Vec<u8>, &'static str)> {
         ("empty", Vec::new(), "is empty"),
         ("not JSON", b"hello there".to_vec(), "is not valid JSON"),
         ("not text", vec![0xFF, 0xFE, 0x00, 0x41], "is not valid JSON"),
-        ("a newer format", format!(r#"{{"format":3,"changes":[{GOOD}]}}"#).into_bytes(), "is format 3, which is newer than the format 2 this program reads"),
+        ("a newer format", format!(r#"{{"format":4,"changes":[{GOOD}]}}"#).into_bytes(), "is format 4, which is newer than the format 3 this program reads"),
         ("a newer format with data of its own", format!(r#"{{"format":2,"changes":[{GOOD}],"extra":{{"keep":[1,2,3]}}}}"#).into_bytes(), "has a field \"extra\" that this file does not have"),
         ("a record the reader cannot read", format!(r#"{{"format":1,"changes":[{GOOD},{{"kind":"switch-off","block":"B!","requestedAt":"x","dueAt":"y"}}]}}"#).into_bytes(), "change 2: requestedAt must be a UTC moment"),
         ("a record of a kind it does not know", format!(r#"{{"format":1,"changes":[{GOOD},{{"kind":"switch-on","block":"b","requestedAt":"2026-11-02T14:00:00Z","dueAt":"2026-11-03T14:00:00Z"}}]}}"#).into_bytes(), "change 2 has a kind \"switch-on\" that this program does not know"),

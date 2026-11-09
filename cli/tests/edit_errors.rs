@@ -1,10 +1,5 @@
-mod edit_runs;
-mod run_capture;
-mod scratch_folder;
-mod settings_builder;
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"] mod delay_sets;
-#[path = "../../core/tests/zip_writer/mod.rs"] mod zip_writer;
+mod edit_support;
+use edit_support::*;
 use edit_runs::{command, fixture, waiting, NOW};
 use leko_cli::edit_block::run_edit_block::run_edit_block_with;
 use delay_runs::{FailAt, Step};

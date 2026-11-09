@@ -1,7 +1,5 @@
-mod edit_runs;
-mod run_capture;
-mod scratch_folder;
-mod settings_builder;
+mod edit_support;
+use edit_support::*;
 use edit_runs::{command, fixture, NOW};
 
 #[test]

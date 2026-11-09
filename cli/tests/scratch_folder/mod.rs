@@ -39,3 +39,21 @@ impl Drop for Scratch {
         let _ = std::fs::remove_dir_all(&self.0);
     }
 }
+
+/// Run the real `leko` program with `args`, with `home` as its home folder and `temp` as its temp
+/// folder, and with stdin closed.
+pub fn run_leko(home: &Scratch, temp: &Scratch, args: &[&str]) -> std::process::Output {
+    std::process::Command::new(env!("CARGO_BIN_EXE_leko"))
+        .args(args)
+        .env("HOME", home.path())
+        .env("TMPDIR", temp.path())
+        .current_dir(home.path())
+        .stdin(std::process::Stdio::null())
+        .output()
+        .expect("the program starts")
+}
+
+/// `leko ARGS...` as a process on a computer whose zone is `tz`, stdin closed; the raw output.
+pub fn run_tz(args: &[&str], tz: &str) -> std::process::Output {
+    std::process::Command::new(env!("CARGO_BIN_EXE_leko")).args(args).stdin(std::process::Stdio::null()).env("TZ", tz).output().expect("the program starts")
+}

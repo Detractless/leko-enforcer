@@ -2,40 +2,26 @@
 //! moment it is given, naming every closing rule (AC-001), and names the rules that count use as not
 //! judged, never as open or closed (AC-002). Every sentence is compared whole.
 
-mod run_capture;
-mod scratch_folder;
-mod settings_builder;
+mod status_support;
+use status_support::*;
 
 use run_capture::{json_of, status, Outcome};
-use scratch_folder::Scratch;
-use serde_json::{json, Value};
-use settings_builder::{always, block, block_with, minutes, opens, outside_hours, session, write_settings};
+use serde_json::json;
+use settings_builder::{always, block, block_with, minutes, opens, outside_hours, session};
 
 const NOON: &str = "2026-11-05T15:00:00Z";
 const ZONE: [&str; 2] = ["--zone", "America/New_York"];
 const NEVER_BLOCKED: &str = "Apps that are never blocked are not applied yet.";
 const TAIL: &str = "Nothing was saved or changed.\n";
 
-fn settings(blocks: &[Value]) -> (Scratch, std::path::PathBuf) {
-    let folder = Scratch::new("status");
-    let file = write_settings(folder.path(), "settings.zip", blocks);
-    (folder, file)
-}
-
 fn ask(file: &std::path::Path, target: [&str; 2], now: &str) -> Outcome {
     let flags = [&target[..], &ZONE[..]].concat();
     status(file, &flags, now, None)
 }
 
-fn answered(run: &Outcome) -> &str {
-    assert_eq!((run.code, run.err.as_str()), (0, ""), "{}", run.err);
-    assert!(run.out.ends_with('\n') && run.out.matches('\n').count() == 1, "one line: {:?}", run.out);
-    &run.out
-}
-
 #[test]
 fn an_app_or_a_site_is_reported_closed_with_its_closing_rules_or_open_when_none_closes() {
-    let (_folder, file) = settings(&[
+    let (_folder, file) = settings("status", &[
         block("zeta", json!({"apps": ["com.a"], "sites": ["example.com"]}), json!([always("z1", &[]), session("z2", "2026-11-05T20:00:00Z")])),
         block("alpha", json!({"apps": ["com.a"]}), json!([always("a1", &[])])),
         block("elsewhere", json!({"apps": ["com.b"], "sites": ["other.org"]}), json!([always("e1", &[])])),
@@ -78,15 +64,15 @@ fn an_app_or_a_site_is_reported_closed_with_its_closing_rules_or_open_when_none_
     assert_eq!(ask(&file, ["--app", "com.h"], NOON).out, morning.out, "the same inputs give the same sentence");
 
     // A settings file with no blocks, with only switched-off blocks, or with none naming the target.
-    let (_empty_folder, empty) = settings(&[]);
+    let (_empty_folder, empty) = settings("status", &[]);
     assert_eq!(answered(&ask(&empty, ["--app", "com.a"], NOON)), format!("App \"com.a\" is open for at least the next 8 days, {judged} {NEVER_BLOCKED} {TAIL}"));
-    let (_off_folder, off) = settings(&[block_with("off", json!({"apps": ["com.a"]}), json!([always("o1", &[])]), json!({"on": false}))]);
+    let (_off_folder, off) = settings("status", &[block_with("off", json!({"apps": ["com.a"]}), json!([always("o1", &[])]), json!({"on": false}))]);
     assert_eq!(answered(&ask(&off, ["--app", "com.a"], NOON)), format!("App \"com.a\" is open for at least the next 8 days, {judged} {NEVER_BLOCKED} {TAIL}"));
 }
 
 #[test]
 fn rules_that_count_use_are_named_as_not_judged_and_never_called_closed_or_checked() {
-    let (_folder, file) = settings(&[
+    let (_folder, file) = settings("status", &[
         block("limits", json!({"apps": ["com.m"]}), json!([minutes("m1"), opens("o1")])),
         block("mixed", json!({"apps": ["com.x"]}), json!([minutes("m2"), outside_hours("h", &[], &[("09:00", "17:00")])])),
     ]);

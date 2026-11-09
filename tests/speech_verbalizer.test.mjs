@@ -1,14 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, '..');
-const TALK_PYTHON = '/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3';
-const PYTHON_BIN = existsSync(TALK_PYTHON) ? TALK_PYTHON : 'python3';
+import { VOICE_BRIDGE_PRELUDE } from './voice-script-fixtures.mjs';
+import { runPython } from './python-runner.mjs';
 
 test('verbalizes_abbreviations_and_durations_for_speech', async () => {
   const script = `
@@ -42,17 +35,7 @@ assert verbalize_for_speech("/Users/me/file") == "/Users/me/file"
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Verbalize abbreviations test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
@@ -84,17 +67,7 @@ assert "\\\\" not in v2
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Strip markdown and tables test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
@@ -103,16 +76,7 @@ test('preserves_raw_ui_text_while_verbalizing_audio', async () => {
   const script = `
 from voice.verbalizer import verbalize_for_speech
 from voice.assistant import process_query
-from voice.ui_bridge import UIPipelineBridge
-
-bridge = UIPipelineBridge()
-emitted = []
-bridge.emit = lambda ev: emitted.append(ev)
-
-spoken_takes = []
-def mock_speak(txt, is_cancelled=None):
-    spoken_takes.append(txt)
-
+${VOICE_BRIDGE_PRELUDE}
 # Simulate process_query with custom mock intent
 process_query("status check", "/tmp/settings.zip", bridge=bridge, speak_fn=mock_speak)
 
@@ -123,17 +87,7 @@ for s in spoken_takes:
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Preserve raw UI text test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
@@ -159,17 +113,7 @@ for item in reviews:
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Review runner test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });

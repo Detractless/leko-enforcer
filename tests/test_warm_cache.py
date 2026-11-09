@@ -7,18 +7,23 @@ import tempfile
 import unittest
 from unittest.mock import Mock
 
-from voice.stt_lifecycle import SttLifecycle
+from voice.stt.stt_lifecycle import SttLifecycle
 
 
 class TestWarmCache(unittest.TestCase):
+    def _warm_manager(self):
+        """A lifecycle over a 1 KB temp file, with a fixed clock and a recorded loader."""
+        handle = tempfile.NamedTemporaryFile(delete=False)
+        handle.write(b"x" * 1024)
+        handle.close()
+        clock = Mock(return_value=0.0)
+        loader = Mock()
+        mgr = SttLifecycle(handle.name, loader, clock=clock)
+        return handle.name, loader, mgr
+
     def test_warm_cache_reads_file(self):
-        with tempfile.NamedTemporaryFile(delete=False) as f:
-            f.write(b"x" * 1024)
-            path = f.name
+        path, _, mgr = self._warm_manager()
         try:
-            clock = Mock(return_value=0.0)
-            loader = Mock()
-            mgr = SttLifecycle(path, loader, clock=clock)
             result = mgr.warm_cache()
             self.assertTrue(result)
         finally:
@@ -44,13 +49,8 @@ class TestWarmCache(unittest.TestCase):
             self.assertTrue(result)
 
     def test_warm_cache_does_not_load_model(self):
-        with tempfile.NamedTemporaryFile(delete=False) as f:
-            f.write(b"x" * 1024)
-            path = f.name
+        path, loader, mgr = self._warm_manager()
         try:
-            clock = Mock(return_value=0.0)
-            loader = Mock()
-            mgr = SttLifecycle(path, loader, clock=clock)
             mgr.warm_cache()
             self.assertFalse(mgr.is_loaded())
             loader.assert_not_called()

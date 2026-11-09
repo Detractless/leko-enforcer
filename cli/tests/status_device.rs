@@ -2,25 +2,17 @@
 //! given: the strongest action, every rule that asks for it, and when the action next changes. Every
 //! sentence is compared whole, and the JSON line is compared as a value.
 
-mod run_capture;
-mod scratch_folder;
-mod settings_builder;
+mod status_support;
+use status_support::*;
 
 use run_capture::{json_of, status, Outcome};
-use scratch_folder::Scratch;
 use serde_json::{json, Value};
-use settings_builder::{always, session, write_settings};
+use settings_builder::{always, session};
 
 const NOON: &str = "2026-11-05T15:00:00Z";
 const ZONE: [&str; 2] = ["--zone", "America/New_York"];
 const TAIL: &str = "Nothing was saved or changed.\n";
 const JUDGED: &str = "judged at 2026-11-05T10:00:00-05:00 in America/New_York.";
-
-fn settings(blocks: &[Value]) -> (Scratch, std::path::PathBuf) {
-    let folder = Scratch::new("status-device");
-    let file = write_settings(folder.path(), "settings.zip", blocks);
-    (folder, file)
-}
 
 fn device_block(id: &str, device: &str, rules: Value) -> Value {
     json!({"schema": 2, "id": id, "name": "B", "on": true, "device": device, "rules": rules, "door": {"kind": "wall"}})
@@ -31,15 +23,9 @@ fn ask(file: &std::path::Path, flags: &[&str], now: &str) -> Outcome {
     status(file, &flags, now, None)
 }
 
-fn answered(run: &Outcome) -> &str {
-    assert_eq!((run.code, run.err.as_str()), (0, ""), "{}", run.err);
-    assert!(run.out.ends_with('\n') && run.out.matches('\n').count() == 1, "one line: {:?}", run.out);
-    &run.out
-}
-
 #[test]
 fn the_strongest_closed_device_block_is_reported_with_its_rules() {
-    let (_folder, file) = settings(&[
+    let (_folder, file) = settings("status-device", &[
         device_block("b-lock", "lock", json!([always("a1", &[])])),
         device_block("a-logoff", "logoff", json!([always("l1", &[])])),
         device_block("c-shutdown", "shutdown", json!([session("s2", "2026-11-05T20:00:00Z")])),
@@ -57,7 +43,7 @@ fn the_strongest_closed_device_block_is_reported_with_its_rules() {
 
 #[test]
 fn an_open_device_is_reported_open_and_a_switched_off_or_ended_block_does_nothing() {
-    let (_folder, file) = settings(&[
+    let (_folder, file) = settings("status-device", &[
         json!({"schema": 2, "id": "off", "name": "B", "on": false, "device": "lock", "rules": [always("o1", &[])], "door": {"kind": "wall"}}),
         device_block("ended", "lock", json!([session("e1", "2026-11-05T14:00:00Z")])),
     ]);
@@ -65,13 +51,13 @@ fn an_open_device_is_reported_open_and_a_switched_off_or_ended_block_does_nothin
     assert_eq!(answered(&empty), format!("Device: no device block is closed, {JUDGED} For at least the next 8 days nothing will lock, log out or shut down. {TAIL}"));
 
     // No blocks at all is the same answer, and the same inputs give the same sentence.
-    let (_other, none) = settings(&[]);
+    let (_other, none) = settings("status-device", &[]);
     assert_eq!(answered(&ask(&none, &["--device"], NOON)), answered(&empty));
 }
 
 #[test]
 fn the_device_line_in_json_carries_the_action_and_the_closing_rules() {
-    let (_folder, file) = settings(&[
+    let (_folder, file) = settings("status-device", &[
         device_block("b-lock", "lock", json!([always("a1", &[])])),
         device_block("a-shutdown", "shutdown", json!([session("s1", "2026-11-05T20:00:00Z")])),
     ]);
@@ -95,7 +81,7 @@ fn the_device_line_in_json_carries_the_action_and_the_closing_rules() {
 
 #[test]
 fn one_of_app_site_or_device_must_be_asked_for() {
-    let (_folder, file) = settings(&[device_block("freeze", "lock", json!([always("a1", &[])]))]);
+    let (_folder, file) = settings("status-device", &[device_block("freeze", "lock", json!([always("a1", &[])]))]);
     for (flags, sentence) in [
         (vec!["--device", "--app", "com.a"], "Give either --app or --device, not both."),
         (vec!["--device", "--site", "example.com"], "Give either --site or --device, not both."),

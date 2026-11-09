@@ -19,13 +19,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build(&event_loop)?;
 
     let html_content = include_str!("../web/index.html");
-    let css_content = include_str!("../web/circle.css");
+    let token_content = include_str!("../web/styles/tokens.css");
+    let css_content = include_str!("../web/styles/circle.css");
     let js_content = include_str!("../web/app.js");
+    let controller_content = include_str!("../web/circle-controller.js");
 
     // Inlined self-contained HTML so binary has zero external file dependencies
     let full_html = html_content
-        .replace(r#"<link rel="stylesheet" href="circle.css">"#, &format!("<style>{css_content}</style>"))
-        .replace(r#"<script src="app.js"></script>"#, &format!("<script>{js_content}</script>"));
+        .replace(r#"<link rel="stylesheet" href="styles/tokens.css">"#, &format!("<style>{token_content}</style>"))
+        .replace(r#"<link rel="stylesheet" href="styles/circle.css">"#, &format!("<style>{css_content}</style>"))
+        .replace(r#"<script src="app.js"></script>"#, &format!("<script>{js_content}</script>"))
+        .replace(r#"<script type="module" src="circle-controller.js"></script>"#, &format!(r#"<script type="module">{controller_content}</script>"#));
 
     let webview = WebViewBuilder::new()
         .with_html(full_html)

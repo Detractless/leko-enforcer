@@ -3,13 +3,8 @@
 //! A missing `--id` never switches on the first block, and an unknown flag (including `--zone` and
 //! `--json`, which a switch-on has no use for) is never ignored.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 
 use delay_runs::{snapshot, write_zip};
 use delay_sets::off_block;

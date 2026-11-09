@@ -8,12 +8,10 @@ pub struct Application {
 
 #[cfg(target_os = "macos")]
 mod platform {
+    use crate::enforcement::macos_objc::{objc_autoreleasePoolPop, objc_autoreleasePoolPush, objc_getClass, objc_msgSend, sel_registerName, Id, Sel};
     use super::Application;
-    use std::ffi::{c_char, c_void, CStr};
+    use std::ffi::{c_char, CStr};
     use std::ptr;
-
-    type Id = *mut c_void;
-    type Sel = *const c_void;
 
     #[link(name = "AppKit", kind = "framework")]
     extern "C" {}
@@ -21,14 +19,6 @@ mod platform {
     extern "C" {
         static kCFRunLoopDefaultMode: Id;
         fn CFRunLoopRunInMode(mode: Id, seconds: f64, return_after_source_handled: u8) -> i32;
-    }
-    #[link(name = "objc")]
-    extern "C" {
-        fn objc_getClass(name: *const c_char) -> Id;
-        fn sel_registerName(name: *const c_char) -> Sel;
-        fn objc_msgSend();
-        fn objc_autoreleasePoolPush() -> Id;
-        fn objc_autoreleasePoolPop(pool: Id);
     }
 
     unsafe fn selector(name: &'static [u8]) -> Sel { sel_registerName(name.as_ptr().cast()) }

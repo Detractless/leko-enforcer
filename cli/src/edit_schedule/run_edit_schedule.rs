@@ -1,27 +1,16 @@
 //! Preview or save one schedule edit using file and waiting-queue safeguards.
 use super::schedule_arguments::{parse, USAGE};
 use crate::add_block::file_replace::{save_file, RealSteps, Steps, SETTINGS_WORDS};
-use crate::delayed_changes::delay_arguments::pick_zone;
-use crate::delayed_changes::waiting_file_disk::{read_waiting_changes, save_waiting, waiting_path};
-use crate::session::run_command::{fail, write_result, EXIT_NOT_UNDERSTOOD, EXIT_REFUSED};
+use crate::delayed_changes::waiting_file_disk::save_waiting;
+use crate::edit_prologue::phone_compatibility_warning;
+use crate::session::run_command::{fail, write_result, EXIT_REFUSED};
 use crate::session::session_report::{quoted, refusal_line};
-use crate::status::settings_file::read_settings_and_bytes;
 use leko_core::delayed_changes::switch_off_plan::{request_moment, SwitchOffPlan};
 use leko_core::delayed_changes::waiting_change::WaitingChange;
 use leko_core::edit_schedule::rule_edit::{apply_schedule_zip, ScheduleApply};
 use leko_core::edit_schedule::schedule_plan::plan_schedule_edit;
-use leko_core::io::zip_check::{check_zip_in_mode, ZipVerdict};
-use leko_core::models::specs::ReadMode;
 use serde_json::Value;
-use std::collections::HashSet;
 use std::io::Write;
-
-fn phone_warning(bytes: &[u8]) -> Option<String> {
-    match check_zip_in_mode(bytes, &HashSet::new(), ReadMode::Phone) {
-        ZipVerdict::Read(_) => None,
-        ZipVerdict::Refused(reason) => Some(format!("Phone Enforcer 0.3 cannot read these settings: {}.", reason.sentence)),
-    }
-}
 
 pub fn run_edit_schedule(
     words: &[String],
@@ -41,23 +30,9 @@ pub fn run_edit_schedule_with(
     out: &mut dyn Write,
     err: &mut dyn Write,
 ) -> i32 {
-    let request = match parse(words) {
-        Ok(request) => request,
-        Err(problem) => return fail(err, EXIT_NOT_UNDERSTOOD, &format!("{problem}\n{USAGE}\n")),
-    };
-    let (zone_name, zone) = match pick_zone(request.zone.as_deref(), computer_zone) {
-        Ok(zone) => zone,
-        Err((code, text)) => return fail(err, code, &text),
-    };
-    let (bytes, set) = match read_settings_and_bytes(&request.file) {
-        Ok(value) => value,
-        Err(problem) => return fail(err, EXIT_REFUSED, &refusal_line(&problem)),
-    };
-    let waiting_file = waiting_path(&request.file);
-    let mut waiting = match read_waiting_changes(&waiting_file) {
-        Ok(value) => value.unwrap_or_default(),
-        Err(problem) => return fail(err, EXIT_REFUSED, &refusal_line(&problem)),
-    };
+    let prologue = load_edit_prologue_or_return!(words, USAGE, parse, computer_zone, err);
+    let (request, zone_name, zone, bytes, set, waiting_file) = (prologue.request, prologue.zone_name, prologue.zone, prologue.bytes, prologue.set, prologue.waiting_file);
+    let mut waiting = prologue.waiting;
     if waiting.iter().any(|change| change.block == request.id) {
         return fail(
             err,
@@ -73,7 +48,7 @@ pub fn run_edit_schedule_with(
         request.stretches.as_deref(),
     ) {
         Ok(ScheduleApply::AlreadyApplied) => {
-            let warning = phone_warning(&bytes).map(|w| format!("\n{w}")).unwrap_or_default();
+            let warning = phone_compatibility_warning(&bytes).map(|w| format!("\n{w}")).unwrap_or_default();
             return write_result(out, err, &format!("Schedule is already as requested. Nothing was saved.{warning}\n"));
         }
         Ok(ScheduleApply::Changed { bytes, old, new }) => (bytes, old, new),
@@ -102,7 +77,7 @@ pub fn run_edit_schedule_with(
     let old_rule = old_rules.iter().find(|r| r.get("id").and_then(Value::as_str) == Some(&request.rule)).unwrap();
     let new_rule = new_rules.iter().find(|r| r.get("id").and_then(Value::as_str) == Some(&request.rule)).unwrap();
 
-    let warning = phone_warning(&edited).map(|w| format!("\n{w}")).unwrap_or_default();
+    let warning = phone_compatibility_warning(&edited).map(|w| format!("\n{w}")).unwrap_or_default();
     let summary = format!(
         "Block {} rule {}\nCurrent rule: {}\nProposed rule: {}\n{outcome}{warning}",
         quoted(&request.id),

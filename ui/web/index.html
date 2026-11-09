@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Leko</title>
-  <link rel="stylesheet" href="circle.css">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/circle.css">
 </head>
 <body>
   <div class="viewport-container">
@@ -39,51 +40,6 @@
   </div>
 
   <script src="app.js"></script>
-  <script>
-    const stageEl = document.getElementById('stage');
-    const statusEl = document.getElementById('status');
-    const cardEl = document.getElementById('draft-card');
-
-    const controller = new CircleController(stageEl, statusEl, cardEl);
-    const bridge = new LekoBridge(controller);
-
-    document.getElementById('btn-confirm').addEventListener('click', () => controller.confirmDraft());
-    document.getElementById('btn-cancel').addEventListener('click', () => controller.cancelDraft());
-    document.getElementById('btn-mute').addEventListener('click', () => bridge.toggleMute());
-    document.getElementById('btn-stop').addEventListener('click', () => bridge.stop());
-
-    // Tap circle to toggle listening or interrupt speech back to Ready
-    stageEl.addEventListener('click', () => {
-      if (controller.currentState === 'idle') {
-        controller.setState('listening', 'Listening...');
-        bridge.sendIpcAction('listen_start');
-      } else {
-        // In speaking, listening, or thinking: interrupt/stop back to Ready
-        bridge.stop();
-      }
-    });
-
-    // Space key acts as a toggle:
-    // If idle -> start listening
-    // If speaking, thinking, or listening -> interrupt/stop back to Ready
-    // Escape key always interrupts/resets to Ready
-    window.addEventListener('keydown', (e) => {
-      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
-        return;
-      }
-      if (e.code === 'Space') {
-        e.preventDefault();
-        if (controller.currentState === 'idle') {
-          controller.setState('listening', 'Listening...');
-          bridge.sendIpcAction('listen_start');
-        } else {
-          bridge.stop();
-        }
-      } else if (e.code === 'Escape') {
-        e.preventDefault();
-        bridge.stop();
-      }
-    });
-  </script>
+  <script type="module" src="circle-controller.js"></script>
 </body>
 </html>

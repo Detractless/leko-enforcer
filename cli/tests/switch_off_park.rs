@@ -2,13 +2,8 @@
 //! beside the settings file, holds the block, the moment it was asked for and the moment it may land
 //! in UTC, and the settings zip is byte for byte the same.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 
 use delay_runs::{record, records_of, switch_off, switch_off_in, switch_off_ms, waiting_of, write_waiting, write_zip, NOW};
 use run_capture::moment;

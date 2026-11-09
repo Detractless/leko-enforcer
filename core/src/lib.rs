@@ -9,9 +9,11 @@ pub mod io {
 
 pub mod blocks {
     pub mod add_block;
+    pub mod block_flag_zip;
     pub mod block_id;
     pub mod block_request;
     pub mod draft_block;
+    pub(crate) mod replace_block_zip;
 }
 
 pub mod edit_schedule {
@@ -66,6 +68,7 @@ pub mod config_diff {
 
 pub mod config_time {
     pub mod due_time;
+    pub mod stretch_overlap;
     pub mod window_mask;
     pub mod zone_time;
 }
@@ -108,5 +111,7 @@ pub mod config {
     pub mod read_routine;
     pub mod strict_fields;
 }
+
+pub mod test_support;
 
 pub use io::zip_reader::{open_zip, OpenedZip};

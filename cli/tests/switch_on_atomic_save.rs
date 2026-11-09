@@ -3,15 +3,10 @@
 //! temporary file is left, the answer is exit 1 with one sentence that names the step, and the same
 //! command run again with a working disk finishes the job. Only a switch-on that changes the zip saves.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::*;
 
-use delay_runs::{block_of, record, snapshot, switch_on, switch_on_with, waiting_of, write_waiting, write_zip, FailAt, Step};
+use delay_runs::{assert_failed_write_changes_nothing, block_of, record, snapshot, switch_on, switch_on_with, waiting_of, write_waiting, write_zip, FailAt, Step};
 use delay_sets::off_block;
 use leko_cli::session::session_report::shown;
 use scratch_folder::Scratch;
@@ -59,27 +54,18 @@ fn a_save_moves_exactly_one_file_into_place_and_only_when_something_changes() {
     // A draft, a block that is on, an unknown block, a parked switch-off and a bad request never reach a
     // step of the save: a disk that fails at the first step changes nothing and does not matter.
     let before = snapshot(folder.path());
-    for (flags, code) in [(&["--id", "a"][..], 0), (&["--id", "a", "--write"], 0), (&["--id", "zzz", "--write"], 1), (&["--id", "b", "--write"], 1), (&["--id", "a", "--write", "--write"], 2)] {
-        let run = switch_on_with(&file, flags, &mut FailAt::new(Step::Write, 1));
-        assert_eq!(run.code, code, "{flags:?}: {}", run.err);
-        assert_eq!(snapshot(folder.path()), before, "{flags:?}");
-    }
+    assert_failed_write_changes_nothing(switch_on_with, &file, folder.path(), &before, &[(&["--id", "a"][..], 0), (&["--id", "a", "--write"], 0), (&["--id", "zzz", "--write"], 1), (&["--id", "b", "--write"], 1), (&["--id", "a", "--write", "--write"], 2)]);
     assert!(waiting_of(&file).is_file());
 }
 
 #[cfg(unix)]
 #[test]
-fn a_folder_nobody_may_write_stops_the_save_before_a_temporary_file_is_made() {
+fn a_read_only_switch_on_folder_stops_the_save_before_a_temporary_file_is_made() {
     let (folder, file) = folder_with_two();
-    let before = snapshot(folder.path());
-    folder.set_mode(0o555);
-    if std::fs::File::create(folder.path().join("probe")).is_err() {
+    assert_read_only_folder_blocks_save(&folder, || {
         let run = switch_on(&file, &["--id", "a", "--write"]);
         assert_eq!((run.code, run.out.as_str()), (1, ""), "{}", run.err);
         assert!(run.err.starts_with("The change could not be saved: a temporary file could not be made beside it (Permission denied"), "{}", run.err);
         assert!(run.err.ends_with(&format!("The settings file {} was left as it was.\n", shown(&file.to_string_lossy()))) && run.err.lines().count() == 1, "{}", run.err);
-        folder.set_mode(0o755);
-        assert_eq!(snapshot(folder.path()), before, "nothing came, went or changed");
-    }
-    folder.set_mode(0o755);
+    });
 }

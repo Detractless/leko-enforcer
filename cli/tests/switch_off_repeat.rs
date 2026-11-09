@@ -2,13 +2,8 @@
 //! reported as off and nothing is saved; a block that is already waiting is reported as waiting with
 //! the moment it may land, and the waiting file is left exactly as it was.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 
 use delay_runs::{records_of, snapshot, switch_off, waiting_of, write_zip, NOW};
 use delay_sets::{locked_block, off_block, wait};

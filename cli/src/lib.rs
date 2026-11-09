@@ -6,6 +6,23 @@
 //! parked changes that touch what `leko status` is asked about. Only `--write` changes a file. The clock
 //! is read only by the program's `main.rs`; everything here is given the moment as an argument.
 
+pub mod edit_prologue;
+
+macro_rules! load_edit_prologue_or_return {
+    ($words:expr, $usage:expr, $parse:expr, $computer_zone:expr, $err:expr) => {
+        match $crate::edit_prologue::read_edit_prologue(
+            $words,
+            $usage,
+            $parse,
+            $computer_zone,
+            $err,
+        ) {
+            Ok(prologue) => prologue,
+            Err(code) => return code,
+        }
+    };
+}
+
 pub mod session {
     pub mod run_command;
     pub mod session_arguments;
@@ -33,6 +50,7 @@ pub mod edit_block {
 
 pub mod delayed_changes {
     pub mod delay_arguments;
+    pub mod request_files;
     pub mod run_settle;
     pub mod run_switch_off;
     pub mod settle_report;
@@ -65,6 +83,7 @@ pub mod enforcement {
     pub mod enforcement_loop;
     pub mod macos_applications;
     pub mod macos_device_lock;
+    pub mod macos_objc;
 }
 
 pub mod launch_agent {

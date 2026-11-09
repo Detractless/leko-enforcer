@@ -3,13 +3,8 @@
 //! the local moment it may land, and why it waits) and nothing is saved, even with `--write`; a clock
 //! set back before the moment a change was asked for does not make it due.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 
 use delay_runs::{record, settle, snapshot, write_waiting, write_zip, NOW};
 use delay_sets::{locked_block, wait};

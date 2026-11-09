@@ -3,7 +3,8 @@
 
 use super::read_door::{read_door, read_earn, read_pass};
 use super::read_key_lock::read_lock;
-use super::strict_fields::{Read, StrictFields, MAX_INT, MINUTES_PER_DAY};
+use super::strict_fields::{Read, StrictFields, MAX_INT};
+use crate::config_time::stretch_overlap::stretches_overlap;
 use crate::models::specs::{AppCover, BlockSpec, DeviceAction, Door, ReadMode, Rule};
 use crate::sessions::session_rule::read_session;
 use crate::sites::site_name::read_sites;
@@ -124,22 +125,6 @@ fn read_scope(fields: &mut StrictFields) -> Read<()> {
     Ok(())
 }
 
-/// True when two stretches share a minute of the 24-hour circle.
-fn overlaps(stretches: &[(i64, i64)]) -> bool {
-    let mut covered = vec![false; MINUTES_PER_DAY as usize];
-    for &(from, to) in stretches {
-        let mut minute = from;
-        while minute != to % MINUTES_PER_DAY {
-            if covered[minute as usize] {
-                return true;
-            }
-            covered[minute as usize] = true;
-            minute = (minute + 1) % MINUTES_PER_DAY;
-        }
-    }
-    false
-}
-
 fn read_stretches(fields: &mut StrictFields) -> Read<Vec<(i64, i64)>> {
     let entries = fields.objects("allowed", 0, MAX_STRETCHES, true)?.unwrap_or_default();
     let mut stretches = Vec::new();
@@ -152,7 +137,7 @@ fn read_stretches(fields: &mut StrictFields) -> Read<Vec<(i64, i64)>> {
         entry.finish()?;
         stretches.push((from, to));
     }
-    if overlaps(&stretches) {
+    if stretches_overlap(&stretches) {
         return fields.fail("allowed", "has stretches that overlap");
     }
     Ok(stretches)

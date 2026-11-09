@@ -6,6 +6,11 @@ import sys
 import numpy as np
 import soxr
 
+try:
+    from .mono_audio import finite_mono
+except ImportError:
+    from mono_audio import finite_mono
+
 
 class RNNoiseVAD:
     """Use the native RNNoise frame probability; retain existing echo processing."""
@@ -55,9 +60,7 @@ class RNNoiseVAD:
         if self._failed:
             return 0.0
         try:
-            samples = np.asarray(audio, dtype=np.float32)
-            if samples.ndim != 1 or not np.isfinite(samples).all():
-                raise ValueError("RNNoise requires finite mono 16 kHz audio")
+            samples = finite_mono(audio, "RNNoise")
             converted = self._resampler.resample_chunk(np.clip(samples, -1.0, 1.0))
             self._pending = np.concatenate((self._pending, converted * 32767.0))
             probabilities = []

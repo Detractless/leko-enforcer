@@ -3,31 +3,20 @@
 //! switch-off is refused until `cancel --write` clears the way. Results go to stdout, problems to stderr,
 //! with the codes 0 (done, or nothing to do), 1 (refused) and 2 (not understood).
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 
 use delay_runs::{covering, one_line, record, records_of, snapshot, write_waiting, write_zip};
 use delay_sets::wait;
 use leko_cli::session::session_arguments::USAGE;
-use run_capture::Outcome;
-use scratch_folder::Scratch;
+use run_capture::{outcome_of, Outcome};
+use scratch_folder::{run_tz, Scratch};
 use serde_json::{json, Value};
 use std::path::Path;
-use std::process::{Command, Stdio};
 
 /// `leko ARGS...` as a process on a computer whose zone is UTC.
 fn leko(args: &[&str]) -> Outcome {
-    let output = Command::new(env!("CARGO_BIN_EXE_leko")).args(args).stdin(Stdio::null()).env("TZ", "UTC").output().expect("the program starts");
-    Outcome {
-        code: output.status.code().expect("the program ended by itself"),
-        out: String::from_utf8(output.stdout).expect("stdout is text"),
-        err: String::from_utf8(output.stderr).expect("stderr is text"),
-    }
+    outcome_of(run_tz(args, "UTC"))
 }
 
 fn text(path: &Path) -> &str {

@@ -45,3 +45,8 @@ pub fn parse(words: &[String]) -> Result<Request, String> {
     if operations.is_empty() || operations.len() > MAX_EDIT_OPERATIONS { return Err(format!("Give 1 to {MAX_EDIT_OPERATIONS} coverage operations.")); }
     Ok(Request { file: file.ok_or("A settings file is required.")?, id: id.ok_or("--id is required.")?, zone, write, operations })
 }
+
+impl crate::edit_prologue::EditPrologueRequest for Request {
+    fn file(&self) -> &str { &self.file }
+    fn zone(&self) -> Option<&str> { self.zone.as_deref() }
+}

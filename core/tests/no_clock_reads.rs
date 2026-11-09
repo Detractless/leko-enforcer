@@ -1,44 +1,10 @@
 //! Only the time module reads the clock or the time zone; the judge takes the time and zone as input.
 
-use std::path::{Path, PathBuf};
+use leko_core::test_support::{forbidden_reads, rust_files, CLOCK_SCAN_WORDS};
+use std::path::Path;
 
-/// What a source file may not mention outside the time module: a clock, the environment a zone is
-/// taken from, or the time zone database itself.
-const FORBIDDEN: [&str; 14] = [
-    "SystemTime",
-    "Instant",
-    "UNIX_EPOCH",
-    "::now(",
-    "Utc::",
-    "Local::",
-    "chrono::",
-    "chrono_tz",
-    "iana_time_zone",
-    "std::env",
-    "env::var",
-    "libc",
-    "std::time",
-    "tzset",
-];
-
-fn rust_files(folder: &Path, found: &mut Vec<PathBuf>) {
-    let mut entries: Vec<PathBuf> = std::fs::read_dir(folder).expect("a source folder").map(|entry| entry.expect("an entry").path()).collect();
-    entries.sort();
-    for path in entries {
-        if path.is_dir() {
-            rust_files(&path, found);
-        } else if path.extension().is_some_and(|extension| extension == "rs") {
-            found.push(path);
-        }
-    }
-}
-
-/// The forbidden words in the code lines of `source` (comments are not code).
 fn clock_reads(source: &str) -> Vec<&'static str> {
-    let code = source.lines().filter(|line| !line.trim_start().starts_with("//"));
-    let mut found: Vec<&'static str> = code.flat_map(|line| FORBIDDEN.iter().copied().filter(move |word| line.contains(word))).collect();
-    found.dedup();
-    found
+    forbidden_reads(source, &CLOCK_SCAN_WORDS)
 }
 
 #[test]
@@ -51,7 +17,7 @@ fn only_the_time_module_reads_the_clock() {
     let mut offenders: Vec<String> = Vec::new();
     for file in &files {
         let relative = file.strip_prefix(&source).expect("under src").to_string_lossy().replace('\\', "/");
-        if relative.starts_with("config_time/") {
+        if relative.starts_with("config_time/") || relative == "test_support.rs" {
             continue;
         }
         let text = std::fs::read_to_string(file).expect("a source file");

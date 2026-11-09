@@ -40,11 +40,11 @@ fn a_waiting_file_reads_back_the_same_and_a_newer_or_odd_one_is_refused() {
     assert_eq!(refused("[]"), "must be a JSON object");
     assert_eq!(refused("null"), "must be a JSON object");
     // The format number: missing, wrong kind, zero, or newer.
-    assert_eq!(refused(r#"{"changes":[]}"#), "needs \"format\": 1 or 2");
-    assert_eq!(refused(r#"{"format":"1","changes":[]}"#), "needs \"format\": 1 or 2");
-    assert_eq!(refused(r#"{"format":0,"changes":[]}"#), "needs \"format\": 1 or 2");
-    assert_eq!(refused(r#"{"format":1.5,"changes":[]}"#), "needs \"format\": 1 or 2");
-    assert_eq!(refused(r#"{"format":3,"changes":[]}"#), "is format 3, which is newer than the format 2 this program reads");
+    assert_eq!(refused(r#"{"changes":[]}"#), "needs \"format\": 1, 2 or 3");
+    assert_eq!(refused(r#"{"format":"1","changes":[]}"#), "needs \"format\": 1, 2 or 3");
+    assert_eq!(refused(r#"{"format":0,"changes":[]}"#), "needs \"format\": 1, 2 or 3");
+    assert_eq!(refused(r#"{"format":1.5,"changes":[]}"#), "needs \"format\": 1, 2 or 3");
+    assert_eq!(refused(r#"{"format":4,"changes":[]}"#), "is format 4, which is newer than the format 3 this program reads");
     // The list: missing, not a list, or too long.
     assert_eq!(refused(r#"{"format":1}"#), "needs \"changes\" as a list");
     assert_eq!(refused(r#"{"format":1,"changes":{}}"#), "needs \"changes\" as a list");
@@ -81,6 +81,6 @@ fn a_waiting_file_reads_back_the_same_and_a_newer_or_odd_one_is_refused() {
     assert!(WaitingChange::new(ChangeKind::SwitchOff, "a", REQUESTED, REQUESTED - 1000).is_err(), "due before request");
     assert!(WaitingChange::new(ChangeKind::SwitchOff, "a b", REQUESTED, DUE).is_err(), "bad id");
     assert!(WaitingChange::new(ChangeKind::SwitchOff, "a", REQUESTED, 300_000_000_000_000).is_err(), "past year 9999");
-    let unwritable = WaitingChange { kind: ChangeKind::SwitchOff, block: "a".into(), requested_at: REQUESTED, due_at: 300_000_000_000_000, operations: vec![] };
+    let unwritable = WaitingChange { kind: ChangeKind::SwitchOff, block: "a".into(), requested_at: REQUESTED, due_at: 300_000_000_000_000, operations: vec![], rule: None, before: None, after: None };
     assert!(write_waiting(&[unwritable]).is_err());
 }

@@ -1,8 +1,6 @@
 //! Applies schedule changes to an existing outsideHours rule and validates the resulting zip.
-use crate::config_time::zone_time::MINUTES_PER_DAY;
+use crate::config_time::stretch_overlap::stretches_overlap;
 use crate::io::zip_check::{check_zip, ZipVerdict};
-use crate::io::zip_reader::open_zip;
-use crate::io::zip_writer::write_zip;
 use serde_json::{json, Value};
 use std::collections::HashSet;
 
@@ -38,21 +36,6 @@ pub fn validate_days(days: &[String]) -> Result<Vec<String>, String> {
     }
     let ordered: Vec<String> = WEEKDAYS.iter().filter(|d| days.iter().any(|named| named == *d)).map(|d| d.to_string()).collect();
     Ok(ordered)
-}
-
-pub fn stretches_overlap(stretches: &[(i64, i64)]) -> bool {
-    let mut covered = vec![false; MINUTES_PER_DAY as usize];
-    for &(from, to) in stretches {
-        let mut minute = from;
-        while minute != to % MINUTES_PER_DAY {
-            if covered[minute as usize] {
-                return true;
-            }
-            covered[minute as usize] = true;
-            minute = (minute + 1) % MINUTES_PER_DAY;
-        }
-    }
-    false
 }
 
 pub fn validate_stretches(stretches: &[(i64, i64)]) -> Result<(), String> {
@@ -159,14 +142,6 @@ pub fn apply_schedule_zip(
         ScheduleDocument::AlreadyApplied => return Ok(ScheduleApply::AlreadyApplied),
         ScheduleDocument::Changed(new) => new,
     };
-    let mut files = open_zip(bytes).map_err(|why| format!("The settings file was refused: {why}"))?.files;
-    let entry = files.iter_mut().find(|(name, _)| name == &path).ok_or("The block file is missing.")?;
-    let mut text = serde_json::to_string_pretty(&new).map_err(|e| e.to_string())?;
-    text.push('\n');
-    entry.1 = text.into_bytes();
-    let result = write_zip(&files).map_err(|why| format!("The edited zip could not be made: {why}"))?;
-    match check_zip(&result, &HashSet::new()) {
-        ZipVerdict::Read(_) => Ok(ScheduleApply::Changed { bytes: result, old, new }),
-        ZipVerdict::Refused(reason) => Err(format!("The edited settings were refused: {}", reason.sentence)),
-    }
+    let result = crate::blocks::replace_block_zip::replace_block_document_zip(bytes, &path, &new)?;
+    Ok(ScheduleApply::Changed { bytes: result, old, new })
 }

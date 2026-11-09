@@ -6,13 +6,13 @@
 //! clears. Changes that are not due are never touched. The clock is never read here.
 
 use super::delay_arguments::{pick_zone, read_delay_arguments, Command};
+use super::request_files::read_request_files;
 use super::settle_report::{draft, halfway, nothing_waiting, saved, would_change};
-use super::waiting_file_disk::{read_waiting_changes, save_waiting, waiting_path};
+use super::waiting_file_disk::save_waiting;
 use crate::add_block::file_replace::{save_file, RealSteps, Steps, SETTINGS_WORDS};
 use crate::session::run_command::{fail, write_result, EXIT_NOT_UNDERSTOOD, EXIT_REFUSED};
 use crate::session::session_arguments::USAGE;
 use crate::session::session_report::{quoted, refusal_line};
-use crate::status::settings_file::read_settings_and_bytes;
 use leko_core::delayed_changes::settle_plan::settle;
 use std::io::Write;
 
@@ -32,19 +32,14 @@ pub fn run_settle_with(words: &[String], now_ms: i64, computer_zone: Option<&str
         Ok(chosen) => chosen,
         Err((code, text)) => return fail(err, code, &text),
     };
-    let (bytes, _set) = match read_settings_and_bytes(&request.file) {
-        Ok(read) => read,
-        Err(sentence) => return fail(err, EXIT_REFUSED, &refusal_line(&sentence)),
+    let files = match read_request_files(&request.file, err) {
+        Ok(files) => files,
+        Err(code) => return code,
     };
-    let waiting_file = waiting_path(&request.file);
-    let changes = match read_waiting_changes(&waiting_file) {
-        Ok(found) => found.unwrap_or_default(),
-        Err(sentence) => return fail(err, EXIT_REFUSED, &refusal_line(&sentence)),
-    };
-    if changes.is_empty() {
+    if files.changes.is_empty() {
         return write_result(out, err, &nothing_waiting());
     }
-    let settled = match settle(&bytes, &changes, now_ms, &zone) {
+    let settled = match settle(&files.bytes, &files.changes, now_ms, &zone) {
         Ok(settled) => settled,
         Err(sentence) => return fail(err, EXIT_REFUSED, &refusal_line(&sentence)),
     };
@@ -57,8 +52,8 @@ pub fn run_settle_with(words: &[String], now_ms: i64, computer_zone: Option<&str
             return fail(err, EXIT_REFUSED, &format!("{sentence}\n"));
         }
     }
-    match save_waiting(&waiting_file, &settled.remaining, steps) {
-        Ok(()) => write_result(out, err, &saved(&settled.steps, &zone_name, &zone, &request.file, &waiting_file)),
+    match save_waiting(&files.waiting_file, &settled.remaining, steps) {
+        Ok(()) => write_result(out, err, &saved(&settled.steps, &zone_name, &zone, &request.file, &files.waiting_file)),
         Err(sentence) if settled.bytes.is_some() && settled.steps.iter().any(|step| matches!(step.change.kind, leko_core::delayed_changes::waiting_change::ChangeKind::EditCoverage | leko_core::delayed_changes::waiting_change::ChangeKind::EditSchedule)) => {
             fail(err, EXIT_REFUSED, &format!("{sentence} The settings file was already saved. Run {command} --write again to clear applied changes.\n"))
         }

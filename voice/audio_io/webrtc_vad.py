@@ -3,6 +3,11 @@ import sys
 
 import numpy as np
 
+try:
+    from .mono_audio import finite_mono
+except ImportError:
+    from mono_audio import finite_mono
+
 FRAME_SAMPLES = 320  # WebRTC accepts 10, 20 or 30 ms frames; this is 20 ms.
 SAMPLE_RATE = 16000
 
@@ -35,9 +40,7 @@ class WebRTCVAD:
         if self._failed:
             return 0.0
         try:
-            samples = np.asarray(audio, dtype=np.float32)
-            if samples.ndim != 1 or not np.isfinite(samples).all():
-                raise ValueError("WebRTC VAD requires finite mono 16 kHz audio")
+            samples = finite_mono(audio, "WebRTC VAD")
             self._pending = np.concatenate((self._pending, samples))
             speech = False
             found = False

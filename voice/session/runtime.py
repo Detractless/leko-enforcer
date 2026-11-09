@@ -91,8 +91,11 @@ def main():
     def on_handsfree_speech(audio_f32: np.ndarray, token):
         def execute_turn(seq):
             bridge.emit_state("thinking", "Transcribing...")
-            diagnostics = turn_manager.take_turn_diagnostics(audio_f32)
-            print("[Audio turn] " + json.dumps(diagnostics, sort_keys=True), flush=True)
+            try:
+                diagnostics = turn_manager.take_turn_diagnostics(audio_f32)
+                print("[Audio turn] " + json.dumps(diagnostics, default=str, sort_keys=True), flush=True)
+            except Exception:
+                pass
             stt_started = time.perf_counter()
             stt_result = "error"
             try:

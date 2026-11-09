@@ -14,13 +14,14 @@ import time
 from pathlib import Path
 from typing import Optional, Callable
 
-# Ensure we use talk-venv if system python lacks ptts or mlx_audio
+# Ensure we use talk-venv if system python lacks dependencies
 TALK_VENV_PYTHON = Path("/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3")
 try:
     import ptts
-    import mlx_audio
     import sounddevice as sd
-    import onnxruntime
+    import importlib.util
+    if any(importlib.util.find_spec(mod) is None for mod in ("mlx_audio", "onnxruntime")):
+        raise ImportError
 except ImportError:
     if TALK_VENV_PYTHON.exists() and sys.executable != str(TALK_VENV_PYTHON):
         os.execv(str(TALK_VENV_PYTHON), [str(TALK_VENV_PYTHON)] + sys.argv)
@@ -34,11 +35,28 @@ REPO_ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 sys.modules.setdefault("assistant", sys.modules[__name__])
 
-from llm_router import parse_user_intent_safe, tool_to_cli_args, ensure_server
 from verbalizer import verbalize_for_speech
 from turn_detector import TurnDetector
-from session.turn_worker import SerializedTurnWorker
 from stt_lifecycle import SttLifecycle
+from llm_router import parse_user_intent_safe, tool_to_cli_args, ensure_server
+from session.turn_worker import SerializedTurnWorker
+
+__all__ = [
+    'parse_user_intent_safe',
+    'tool_to_cli_args',
+    'ensure_server',
+    'SerializedTurnWorker',
+    'process_query',
+    'format_status_summary',
+    'speak',
+    'stop_playback',
+    'acquire_single_instance_lock',
+    'is_audio_muted_for_echo',
+    'set_playback_state',
+    'HandsfreeTurnManager',
+    'TurnDetector',
+    'verbalize_for_speech',
+]
 from audio_io.echo_canceller import EchoAudioProcessor, VoiceOutputPlayer
 
 LEKO_BIN = REPO_ROOT / "target/release/leko"

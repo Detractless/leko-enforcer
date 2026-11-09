@@ -13,6 +13,7 @@ pub mod blocks {
     pub mod block_id;
     pub mod block_request;
     pub mod draft_block;
+    pub(crate) mod replace_block_zip;
 }
 
 pub mod edit_schedule {

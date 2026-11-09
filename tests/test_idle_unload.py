@@ -5,7 +5,7 @@ Evidence: "unloads after timeout"
 import unittest
 from unittest.mock import Mock
 
-from voice.stt_lifecycle import SttLifecycle
+from voice.stt.stt_lifecycle import SttLifecycle
 
 
 class TestIdleUnload(unittest.TestCase):

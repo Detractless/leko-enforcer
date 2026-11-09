@@ -1,32 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
+import { runPython } from './python-runner.mjs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, '..');
-const TALK_PYTHON = '/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3';
-const PYTHON_BIN = existsSync(TALK_PYTHON) ? TALK_PYTHON : 'python3';
-
-async function runPython(script) {
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
-  return { code, stdout, stderr };
-}
-
-test('stop_action_aborts_inflight_generation_and_discards_reply', async () => {
-  const script = `
+const STOP_ACTION_SCRIPT = `
 import time
 from voice.assistant import SerializedTurnWorker, process_query
 from voice.ui_bridge import UIPipelineBridge
@@ -65,13 +41,15 @@ assert len(speaking_events) == 0, f"Expected no speaking events after stop, got 
 print("OK")
 `;
 
-  const { code, stdout, stderr } = await runPython(script);
+test('stop_action_aborts_inflight_generation_and_discards_reply', async () => {
+
+
+  const { code, stdout, stderr } = await runPython(STOP_ACTION_SCRIPT);
   assert.equal(code, 0, `Stop action abort test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
 
-test('cancellation_token_guards_process_query_and_speech', async () => {
-  const script = `
+const CANCELLATION_TOKEN_SCRIPT = `
 from voice.assistant import process_query, speak
 from voice.ui_bridge import UIPipelineBridge
 
@@ -94,23 +72,15 @@ assert len(emitted) == 0, "No UI events should be emitted for cancelled query"
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
+test('cancellation_token_guards_process_query_and_speech', async () => {
 
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
 
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(CANCELLATION_TOKEN_SCRIPT);
   assert.equal(code, 0, `Cancellation guard test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
 
-test('playback_audio_is_discarded_and_user_speech_rearms_after_decay', async () => {
-  const script = `
+const PLAYBACK_DECAY_SCRIPT = `
 import numpy as np
 import time
 from voice.turn_detector import TurnDetector
@@ -140,13 +110,15 @@ assert len(onsets) == 1
 print("OK")
 `;
 
-  const { code, stdout, stderr } = await runPython(script);
+test('playback_audio_is_discarded_and_user_speech_rearms_after_decay', async () => {
+
+
+  const { code, stdout, stderr } = await runPython(PLAYBACK_DECAY_SCRIPT);
   assert.equal(code, 0, `Barge-in detection test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
 
-test('playback_guard_ignores_loud_and_quiet_playback_equally', async () => {
-  const script = `
+const PLAYBACK_GUARD_SCRIPT = `
 import numpy as np
 from voice.turn_detector import TurnDetector
 
@@ -163,13 +135,15 @@ for level in (600, 2000, 12000):
 print("OK")
 `;
 
-  const { code, stdout, stderr } = await runPython(script);
+test('playback_guard_ignores_loud_and_quiet_playback_equally', async () => {
+
+
+  const { code, stdout, stderr } = await runPython(PLAYBACK_GUARD_SCRIPT);
   assert.equal(code, 0, `Threshold bleed vs voice test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
 
-test('aec_clean_audio_allows_interruptions_at_normal_voice_threshold', async () => {
-  const script = `
+const AEC_CLEAN_SPEECH_SCRIPT = `
 import numpy as np
 from voice.turn_detector import TurnDetector
 
@@ -192,7 +166,10 @@ assert len(onsets) == 1
 print("OK")
 `;
 
-  const { code, stdout, stderr } = await runPython(script);
+test('aec_clean_audio_allows_interruptions_at_normal_voice_threshold', async () => {
+
+
+  const { code, stdout, stderr } = await runPython(AEC_CLEAN_SPEECH_SCRIPT);
   assert.equal(code, 0, `AEC barge-in test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });

@@ -24,7 +24,7 @@ def is_ignorable_filler(text: str) -> bool:
     return clean in IGNORE_ISOLATED_PHRASES
 
 
-def main():
+def _parse_args():
     parser = argparse.ArgumentParser(description="Leko Voice Assistant")
     parser.add_argument("--settings", default=str(voice.REPO_ROOT / "settings.zip"), help="Path to settings.zip")
     parser.add_argument("--query", type=str, help="Single query to process")
@@ -32,7 +32,10 @@ def main():
     parser.add_argument("--ui", action="store_true", help="Launch native WebKit Minimalist UI window and connect IPC")
     parser.add_argument("--speech-detector", choices=("silero", "loudness", "webrtc", "rnnoise", "ten"), default="silero",
                         help="Speech start detection (default: silero)")
-    args = parser.parse_args()
+    return parser, parser.parse_args()
+
+
+def _select_speech_detector(args, parser):
     selected_detector = False if args.speech_detector == "loudness" else None
     if args.speech_detector == "webrtc":
         try:
@@ -54,45 +57,57 @@ def main():
             selected_detector = TENVAD()
         except Exception as exc:
             parser.exit(2, f"TEN VAD unavailable: {exc}\n")
-    voice.acquire_single_instance_lock()
+    return selected_detector
 
-    bridge = UIPipelineBridge()
-    worker = voice.SerializedTurnWorker()
-    conversation = Conversation()
 
-    shutdown = threading.Event()
+class RuntimeController:
+    def __init__(self, args, selected_detector):
+        self.args = args
+        self.bridge = UIPipelineBridge()
+        self.worker = voice.SerializedTurnWorker()
+        self.conversation = Conversation()
+        self.shutdown = threading.Event()
+        self.turn_manager = voice.HandsfreeTurnManager(
+            on_turn_complete=self.on_handsfree_speech,
+            on_speech_onset=self.on_speech_onset,
+            speech_detector=selected_detector,
+            on_armed=self.on_mic_armed,
+        )
+        selected = args.speech_detector if self.turn_manager.detector.speech_detector is not None else "loudness"
+        print(f"Speech-start detector: {selected}", flush=True)
+        print(f"Echo cancellation: {'available' if voice._echo_audio.available else 'unavailable'}", flush=True)
 
-    def submit_response(fn, token=None):
-        with turn_manager.response_lock:
-            token = turn_manager.begin_response() if token is None else token
+    def submit_response(self, fn, token=None):
+        with self.turn_manager.response_lock:
+            token = self.turn_manager.begin_response() if token is None else token
             if token is None:
                 return False
 
             def execute(seq):
-                turn_manager.wait_paused()
-                if not worker.is_superseded(seq) and not shutdown.is_set():
+                self.turn_manager.wait_paused()
+                if not self.worker.is_superseded(seq) and not self.shutdown.is_set():
                     fn(seq)
 
             def finished():
-                with turn_manager.response_lock:
-                    turn_manager.finish_response(token)
-                    if not shutdown.is_set():
+                with self.turn_manager.response_lock:
+                    self.turn_manager.finish_response(token)
+                    if not self.shutdown.is_set():
                         if voice._is_muted:
-                            bridge.emit_state("idle", "Muted")
+                            self.bridge.emit_state("idle", "Muted")
                         else:
-                            bridge.emit_state("listening", "Listening...")
+                            self.bridge.emit_state("listening", "Listening...")
             try:
-                worker.submit(execute, on_done=finished)
+                self.worker.submit(execute, on_done=finished)
             except Exception:
                 finished()
                 raise
             return True
 
-    def on_handsfree_speech(audio_f32: np.ndarray, token):
+    def on_handsfree_speech(self, audio_f32: np.ndarray, token):
         def execute_turn(seq):
-            bridge.emit_state("thinking", "Transcribing...")
+            self.bridge.emit_state("thinking", "Transcribing...")
             try:
-                diagnostics = turn_manager.take_turn_diagnostics(audio_f32)
+                diagnostics = self.turn_manager.take_turn_diagnostics(audio_f32)
                 print("[Audio turn] " + json.dumps(diagnostics, default=str, sort_keys=True), flush=True)
             except Exception:
                 pass
@@ -103,7 +118,7 @@ def main():
                 stt_result = "text" if text else "empty"
             finally:
                 print(f"[STT] elapsed={time.perf_counter() - stt_started:.2f}s result={stt_result}", flush=True)
-            if worker.is_superseded(seq):
+            if self.worker.is_superseded(seq):
                 return
             print(f"\n[Transcribed]: {json.dumps(text or '', ensure_ascii=False)}", flush=True)
             if not text:
@@ -111,140 +126,138 @@ def main():
             if confirmation(text) is None and is_ignorable_filler(text):
                 print("[Turn Guard]: Dropped an isolated filler transcript.", flush=True)
                 return
-            voice.process_query(text, args.settings, bridge=bridge, conversation=conversation,
-                                is_cancelled=lambda: worker.is_superseded(seq))
-        submit_response(execute_turn, token)
+            voice.process_query(text, self.args.settings, bridge=self.bridge, conversation=self.conversation,
+                                is_cancelled=lambda: self.worker.is_superseded(seq))
+        self.submit_response(execute_turn, token)
 
-    def on_speech_onset():
-        if not turn_manager.busy and not voice._is_muted:
-            bridge.emit_state("listening", "Listening...")
+    def on_speech_onset(self):
+        if not self.turn_manager.busy and not voice._is_muted:
+            self.bridge.emit_state("listening", "Listening...")
 
-    def on_mic_armed():
+    def on_mic_armed(self):
         if not voice._is_muted:
-            bridge.emit_state("listening", "Listening...")
+            self.bridge.emit_state("listening", "Listening...")
 
-    turn_manager = voice.HandsfreeTurnManager(
-        on_turn_complete=on_handsfree_speech,
-        on_speech_onset=on_speech_onset,
-        speech_detector=selected_detector,
-        on_armed=on_mic_armed,
-    )
-    selected = args.speech_detector if turn_manager.detector.speech_detector is not None else "loudness"
-    print(f"Speech-start detector: {selected}", flush=True)
-    print(f"Echo cancellation: {'available' if voice._echo_audio.available else 'unavailable'}", flush=True)
-
-    def cancel_response():
-        with turn_manager.response_lock:
-            worker.cancel_current()
-            turn_manager.set_muted(voice._is_muted)
+    def cancel_response(self):
+        with self.turn_manager.response_lock:
+            self.worker.cancel_current()
+            self.turn_manager.set_muted(voice._is_muted)
             voice.stop_playback()
-            clear_pending(conversation, bridge)
+            clear_pending(self.conversation, self.bridge)
 
-    def stop_runtime():
-        shutdown.set()
-        turn_manager.stop()
-        cancel_response()
-        worker.stop()
+    def stop_runtime(self):
+        self.shutdown.set()
+        self.turn_manager.stop()
+        self.cancel_response()
+        self.worker.stop()
 
-    def submit_query(query, confirmation_id=None):
-        return submit_response(lambda seq: voice.process_query(
-            query, args.settings, auto_confirm=args.confirm, bridge=bridge,
-            conversation=conversation, confirmation_id=confirmation_id,
-            is_cancelled=lambda: worker.is_superseded(seq)))
+    def submit_query(self, query, confirmation_id=None):
+        return self.submit_response(lambda seq: voice.process_query(
+            query, self.args.settings, auto_confirm=self.args.confirm, bridge=self.bridge,
+            conversation=self.conversation, confirmation_id=confirmation_id,
+            is_cancelled=lambda: self.worker.is_superseded(seq)))
 
-    def on_ui_action(action_data: Dict[str, Any]):
+    def on_ui_action(self, action_data: Dict[str, Any]):
         act = action_data.get("action")
         if act == "window_closed":
-            stop_runtime()
+            self.stop_runtime()
             return
-        if shutdown.is_set():
+        if self.shutdown.is_set():
             return
         if act in ("listen_start", "listen"):
             voice._is_muted = False
-            turn_manager.set_muted(False)
-            if not turn_manager.busy:
-                bridge.emit_state("listening", "Listening...")
+            self.turn_manager.set_muted(False)
+            if not self.turn_manager.busy:
+                self.bridge.emit_state("listening", "Listening...")
         elif act == "stop":
-            cancel_response()
+            self.cancel_response()
         elif act == "mute":
             voice._is_muted = action_data.get("muted", True)
-            turn_manager.set_muted(voice._is_muted)
+            self.turn_manager.set_muted(voice._is_muted)
             if voice._is_muted:
-                cancel_response()
-            bridge.emit_state("idle", "Muted" if voice._is_muted else "Ready")
+                self.cancel_response()
+            self.bridge.emit_state("idle", "Muted" if voice._is_muted else "Ready")
         elif act in ("confirm", "cancel"):
             action_id = (action_data.get("draft") or {}).get("id")
-            with conversation.lock:
-                if not action_id or not conversation.pending or conversation.pending["id"] != action_id:
+            with self.conversation.lock:
+                if not action_id or not self.conversation.pending or self.conversation.pending["id"] != action_id:
                     return
             if act == "cancel":
                 # Cancel is allowed during an active response, without overlapping speech.
-                cancel_response()
+                self.cancel_response()
             else:
-                submit_query("yes", action_id)
+                self.submit_query("yes", action_id)
         elif act == "query":
             query = action_data.get("text", "")
             if query:
-                submit_query(query)
+                self.submit_query(query)
 
-    try:
-        if args.ui:
-            print("Launching native Minimalist UI window...")
-            bridge.start_ui_process(on_action=on_ui_action)
-            time.sleep(0.5)
-            bridge.emit_state("loading", "Loading model...")
-        turn_manager.set_muted(voice._is_muted)
-        turn_manager.start()
+    def _warm_stt(self, seq):
+        try:
+            voice._stt_lifecycle.warm_cache()
+            voice.get_stt()
+            print("[STT] Model loaded and ready.", flush=True)
+        except Exception as exc:
+            print(f"[STT] Warm-up failed: {exc}", flush=True)
+        if self.args.ui and not self.turn_manager.busy and not self.shutdown.is_set():
+            self.bridge.emit_state("listening", "Listening...")
 
-        # MLX streams belong to their creating thread. Load and use STT on the
-        # same serialized worker to avoid handing its GPU stream across threads.
-        def _warm_stt(seq):
-            try:
-                voice._stt_lifecycle.warm_cache()
-                voice.get_stt()
-                print("[STT] Model loaded and ready.", flush=True)
-            except Exception as e:
-                print(f"[STT] Warm-up failed: {e}", flush=True)
-            if args.ui and not turn_manager.busy and not shutdown.is_set():
-                bridge.emit_state("listening", "Listening...")
+    def _run_console(self):
+        print("\nLeko Voice Assistant ready with serialized turn control.")
+        print("Speak naturally into your mic (or type below, 'exit' to quit):")
+        lines = queue.Queue()
 
-        worker.submit(_warm_stt)
-        voice.ensure_server()
-        if args.query:
-            submit_query(args.query)
-            worker.q.join()
-        else:
-            print("\nLeko Voice Assistant ready with serialized turn control.")
-            print("Speak naturally into your mic (or type below, 'exit' to quit):")
-            lines = queue.Queue()
-
-            def read_console():
-                while not shutdown.is_set():
-                    try:
-                        line = input("\n> ").strip()
-                    except (EOFError, OSError):
-                        # No usable console (background launch): keep the
-                        # assistant and UI running until shutdown.
-                        shutdown.wait()
-                        return
-                    except KeyboardInterrupt:
-                        line = "exit"
-                    lines.put(line)
-                    if not line or line.lower() in ("exit", "quit"):
-                        return
-
-            threading.Thread(target=read_console, daemon=True, name="console-input").start()
-            while not shutdown.is_set():
+        def read_console():
+            while not self.shutdown.is_set():
                 try:
-                    line = lines.get(timeout=0.1)
-                except queue.Empty:
-                    continue
+                    line = input("\n> ").strip()
+                except (EOFError, OSError):
+                    # Background launches keep the UI alive without a console.
+                    self.shutdown.wait()
+                    return
+                except KeyboardInterrupt:
+                    line = "exit"
+                lines.put(line)
                 if not line or line.lower() in ("exit", "quit"):
-                    break
-                submit_query(line)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        stop_runtime()
-        if args.ui:
-            bridge.close()
+                    return
+
+        threading.Thread(target=read_console, daemon=True, name="console-input").start()
+        while not self.shutdown.is_set():
+            try:
+                line = lines.get(timeout=0.1)
+            except queue.Empty:
+                continue
+            if not line or line.lower() in ("exit", "quit"):
+                break
+            self.submit_query(line)
+
+    def run(self):
+        try:
+            if self.args.ui:
+                print("Launching native Minimalist UI window...")
+                self.bridge.start_ui_process(on_action=self.on_ui_action)
+                time.sleep(0.5)
+                self.bridge.emit_state("loading", "Loading model...")
+            self.turn_manager.set_muted(voice._is_muted)
+            self.turn_manager.start()
+            # Load MLX STT on the same serialized worker that will use it.
+            self.worker.submit(self._warm_stt)
+            voice.ensure_server()
+            if self.args.query:
+                self.submit_query(self.args.query)
+                self.worker.q.join()
+            else:
+                self._run_console()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.stop_runtime()
+            if self.args.ui:
+                self.bridge.close()
+
+
+def main():
+    parser, args = _parse_args()
+    selected_detector = _select_speech_detector(args, parser)
+    voice.acquire_single_instance_lock()
+    RuntimeController(args, selected_detector).run()

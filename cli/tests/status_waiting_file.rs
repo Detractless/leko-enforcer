@@ -2,13 +2,8 @@
 //! stdout as it always was (exit 0), the one-sentence problem goes to stderr, the JSON `waiting` is
 //! `null`, and the file is not touched. A file that is not there is not a problem and says nothing.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 
 use delay_runs::{one_line, snapshot, status_blocks, waiting_of, write_zip, NOW};
 use leko_cli::session::session_report::shown;
@@ -26,7 +21,7 @@ fn bad_files() -> Vec<(&'static str, Vec<u8>, &'static str)> {
         ("empty", Vec::new(), "is empty"),
         ("not JSON", b"hello".to_vec(), "is not valid JSON"),
         ("not text", vec![0xFF, 0xFE], "is not valid JSON"),
-        ("a newer format", format!(r#"{{"format":3,"changes":[{GOOD}]}}"#).into_bytes(), "is format 3, which is newer"),
+        ("a newer format", format!(r#"{{"format":4,"changes":[{GOOD}]}}"#).into_bytes(), "is format 4, which is newer"),
         ("a bad record", format!(r#"{{"format":1,"changes":[{GOOD},{{"kind":"x","block":"b"}}]}}"#).into_bytes(), "was refused: change 2"),
         ("over 1 MB", big, "larger than 1 MB"),
     ]

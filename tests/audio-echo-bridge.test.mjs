@@ -3,19 +3,16 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
+import { runPython } from './python-runner.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
-const TALK_PYTHON = '/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3';
-const PYTHON_BIN = existsSync(TALK_PYTHON) ? TALK_PYTHON : 'python3';
 const AEC_FILENAME = process.platform === 'win32'
   ? 'leko_audio.dll'
   : process.platform === 'darwin' ? 'libleko_audio.dylib' : 'libleko_audio.so';
 const AEC_LIBRARY = resolve(REPO_ROOT, 'target/debug', AEC_FILENAME);
 
-test('python_audio_bridge_cancels_delayed_synthetic_echo', { skip: !existsSync(AEC_LIBRARY) }, async () => {
-  const script = `
+const ECHO_BRIDGE_SCRIPT = `
 import numpy as np
 import sounddevice as sd
 import threading
@@ -107,15 +104,10 @@ assert not starts, "A stop during setup must prevent playback from starting"
 aec.close()
 print("OK")
 `;
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-  const code = await new Promise((res) => proc.on('close', res));
+
+test('python_audio_bridge_cancels_delayed_synthetic_echo', { skip: !existsSync(AEC_LIBRARY) }, async () => {
+
+  const { code, stdout, stderr } = await runPython(ECHO_BRIDGE_SCRIPT);
   assert.equal(code, 0, `Python/Rust echo bridge test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });

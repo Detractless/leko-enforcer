@@ -103,7 +103,7 @@ fn a_bad_waiting_file_stops_every_change_and_is_never_replaced() {
         ("only spaces", "  \n".to_string()),
         ("not JSON", "{nope".to_string()),
         ("a list", "[]".to_string()),
-        ("a newer format", r#"{"format":3,"changes":[]}"#.to_string()),
+        ("a newer format", r#"{"format":4,"changes":[]}"#.to_string()),
         ("no format", r#"{"changes":[]}"#.to_string()),
         ("a record without its moment", r#"{"format":1,"changes":[{"kind":"switch-off","block":"b"}]}"#.to_string()),
         ("a record with a field of its own", one_record(r#","note":"hi""#)),
@@ -118,8 +118,8 @@ fn a_bad_waiting_file_stops_every_change_and_is_never_replaced() {
         let join = if reason.starts_with("change ") { "was refused: " } else { "" };
         assert_left_alone(&folder, &file, &line(&format!("{join}{reason}")), what);
     }
-    std::fs::write(&waiting, r#"{"format":3,"changes":[]}"#).unwrap();
-    assert_left_alone(&folder, &file, &line("is format 3, which is newer than the format 2 this program reads"), "format 3, in words");
+    std::fs::write(&waiting, r#"{"format":4,"changes":[]}"#).unwrap();
+    assert_left_alone(&folder, &file, &line("is format 4, which is newer than the format 3 this program reads"), "format 4, in words");
     std::fs::write(&waiting, "").unwrap();
     assert_left_alone(&folder, &file, &line("is empty"), "an empty file is not 'nothing waiting'");
 

@@ -1,14 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, '..');
-const TALK_PYTHON = '/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3';
-const PYTHON_BIN = existsSync(TALK_PYTHON) ? TALK_PYTHON : 'python3';
+import { runPython } from './python-runner.mjs';
 
 test('preroll_buffer_captures_leadin_audio_before_voice_onset', async () => {
   const script = `
@@ -34,17 +26,7 @@ assert len(detector.buf) == 5, f"Buffer must contain 4 pre-roll frames + 1 loud 
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Preroll test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
@@ -81,17 +63,7 @@ assert turn_ended == True, "Turn should conclude"
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Leadin syllables test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
@@ -109,17 +81,7 @@ assert "current time" in prompt.lower() or "current local time" in prompt.lower(
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Time context test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
@@ -142,17 +104,7 @@ assert len(detector.preroll) == 0, "Preroll must be cleared on reset"
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Bounded preroll test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });

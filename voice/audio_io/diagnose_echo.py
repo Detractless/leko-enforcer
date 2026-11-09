@@ -102,58 +102,90 @@ def _callback_timing(timings, frame_sizes):
     return summary
 
 
-def run_case(name, pcm, rate):
-    state = _state(name)
-    events = state["events"]
-    timings = state["timings"]
-    statuses = state["statuses"]
-    stream_details = state["stream_details"]
-    frame_sizes = state["frame_sizes"]
-    energy = state["energy"]
-    start = state["start"]
-
+def _event_recorder(state):
     def event(kind, **details):
-        events.append({"seconds": round(time.monotonic() - start, 4), "event": kind, **details})
+        state["events"].append({
+            "seconds": round(time.monotonic() - state["start"], 4),
+            "event": kind,
+            **details,
+        })
+    return event
 
+
+def _wrap_audio_streams(rate, state):
     original_input = voice.sd.RawInputStream
     original_output = voice.sd.OutputStream
     voice.sd.RawInputStream = _wrap_stream(original_input, "input", rate, state)
     voice.sd.OutputStream = _wrap_stream(original_output, "output", rate, state)
+    return original_input, original_output
 
-    manager = None
+
+def _prepare_audio(energy):
     voice._echo_audio.close()
     voice._echo_audio = EchoAudioProcessor()
     voice._output_player = VoiceOutputPlayer(voice._echo_audio)
     voice._echo_audio.clean_capture = _measure_energy(voice, energy)
+    return voice._echo_audio
+
+
+def _create_case_manager(name, event, echo_audio):
+    if name == "baseline":
+        return None
+    if not echo_audio.available:
+        raise RuntimeError("Native AEC library unavailable")
     onset = _onset_handler(name, voice, event)
+    return voice.HandsfreeTurnManager(
+        lambda audio, merger: event("turn_complete", samples=len(audio)), onset
+    )
 
+
+def _start_case_manager(manager):
+    if manager is None:
+        return
+    manager.start()
+    time.sleep(0.5)
+
+
+def _play_case(name, pcm, rate, event):
+    event("playback_start", expected_seconds=len(pcm) / rate)
+    began = time.monotonic()
+    success = _playback(name, pcm, rate, voice)
+    event("playback_return", elapsed_seconds=time.monotonic() - began, returned_success=success)
+    time.sleep(0.8)
+
+
+def _cleanup_case(manager, original_streams):
+    if manager is not None:
+        manager.stop()
+    voice._output_player.stop()
+    voice._echo_audio.close()
+    voice.sd.RawInputStream, voice.sd.OutputStream = original_streams
+
+
+def run_case(name, pcm, rate):
+    state = _state(name)
+    event = _event_recorder(state)
+    original_streams = _wrap_audio_streams(rate, state)
+    manager = None
     try:
-        if name != "baseline":
-            if not voice._echo_audio.available:
-                raise RuntimeError("Native AEC library unavailable")
-            manager = voice.HandsfreeTurnManager(
-                lambda audio, merger: event("turn_complete", samples=len(audio)), onset
-            )
-            manager.start()
-            time.sleep(0.5)
-        event("playback_start", expected_seconds=len(pcm) / rate)
-        began = time.monotonic()
-        success = _playback(name, pcm, rate, voice)
-        elapsed = time.monotonic() - began
-        event("playback_return", elapsed_seconds=elapsed, returned_success=success)
-        time.sleep(0.8)
+        echo_audio = _prepare_audio(state["energy"])
+        manager = _create_case_manager(name, event, echo_audio)
+        _start_case_manager(manager)
+        _play_case(name, pcm, rate, event)
     finally:
-        if manager is not None:
-            manager.stop()
-        voice._output_player.stop()
-        voice._echo_audio.close()
-        voice.sd.RawInputStream = original_input
-        voice.sd.OutputStream = original_output
+        _cleanup_case(manager, original_streams)
 
-    count = max(energy["samples"], 1)
-    return {"case": name, "events": events, "statuses": statuses, "streams": stream_details,
-            "callback_timing": _callback_timing(timings, frame_sizes),
-            "playback_mic_rms": {key: (energy[key] / count) ** 0.5 for key in ("raw", "cleaned")}}
+    count = max(state["energy"]["samples"], 1)
+    return {
+        "case": name,
+        "events": state["events"],
+        "statuses": state["statuses"],
+        "streams": state["stream_details"],
+        "callback_timing": _callback_timing(state["timings"], state["frame_sizes"]),
+        "playback_mic_rms": {
+            key: (state["energy"][key] / count) ** 0.5 for key in ("raw", "cleaned")
+        },
+    }
 
 
 def main():

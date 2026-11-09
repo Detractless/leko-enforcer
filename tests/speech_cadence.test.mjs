@@ -1,15 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
 import { VOICE_BRIDGE_PRELUDE } from './voice-script-fixtures.mjs';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, '..');
-const TALK_PYTHON = '/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3';
-const PYTHON_BIN = existsSync(TALK_PYTHON) ? TALK_PYTHON : 'python3';
+import { runPython } from './python-runner.mjs';
 
 test('em_dashes_convert_to_acoustic_breathing_pauses', async () => {
   const script = `
@@ -27,17 +19,7 @@ assert "..." in t2, f"Expected acoustic breath pause (...) in: {t2}"
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Em-dash conversion test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
@@ -57,17 +39,7 @@ assert "👋" not in t1, f"Emojis should be stripped for speech: {t1}"
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Sentence boundary cadence test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
@@ -95,17 +67,7 @@ assert verb_dur >= 3.2, f"Verbalized duration ({verb_dur:.2f}s) should provide a
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Timing expansion test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
@@ -123,17 +85,7 @@ assert len(spoken_takes) > 0, "Should have spoken a take"
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Raw UI text preservation test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });

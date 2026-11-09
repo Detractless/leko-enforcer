@@ -2,12 +2,9 @@
 //! one-whole-sentence check every status answer keeps.
 #![allow(dead_code)]
 
-#[path = "run_capture/mod.rs"]
-pub mod run_capture;
-#[path = "scratch_folder/mod.rs"]
-pub mod scratch_folder;
-#[path = "settings_builder/mod.rs"]
-pub mod settings_builder;
+#[path = "settings_test_support.rs"]
+mod settings_test_support;
+pub use settings_test_support::{run_capture, scratch_folder, settings_builder};
 
 use run_capture::Outcome;
 

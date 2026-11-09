@@ -1,8 +1,6 @@
 //! The program's clock, time zone and operating-system entry point.
 use leko_cli::session::run_command::EXIT_REFUSED;
-use std::ffi::OsString;
-use std::io::Write;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{ffi::OsString, io::Write, time::{SystemTime, UNIX_EPOCH}};
 
 fn now_ms() -> Result<i64, String> {
     let since = SystemTime::now().duration_since(UNIX_EPOCH).map_err(|_| "The clock is set before 1970, so no session was made.".to_string())?;

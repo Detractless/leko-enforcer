@@ -2,13 +2,8 @@
 //! changes (AC-004): every other file of the zip keeps its name and bytes, on built zips and on every
 //! zip of the phone's corpus; the saved zip passes the core's check, and no other file is made.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 #[path = "../../core/tests/corpus_zips/mod.rs"]
 mod corpus_zips;
 

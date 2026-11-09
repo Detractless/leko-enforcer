@@ -223,6 +223,11 @@ class LekoBridge {
   }
 }
 
+if (typeof window !== 'undefined') {
+  window.CircleController = CircleController;
+  window.LekoBridge = LekoBridge;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { CircleController, LekoBridge, parseIpcLine, formatIpcMessage };
 }

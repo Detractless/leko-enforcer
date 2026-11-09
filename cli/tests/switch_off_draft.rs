@@ -2,13 +2,8 @@
 //! lands now would be switched off now; a block that must wait would be parked, with the moment it
 //! may land on the wall clock of the chosen zone and the lock that makes it wait.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 
 use delay_runs::{snapshot, switch_off, switch_off_in, write_zip, NOW};
 use delay_sets::{locked_block, routine_holding, wait};

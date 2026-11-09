@@ -8,6 +8,21 @@
 
 pub mod edit_prologue;
 
+macro_rules! load_edit_prologue_or_return {
+    ($words:expr, $usage:expr, $parse:expr, $computer_zone:expr, $err:expr) => {
+        match $crate::edit_prologue::read_edit_prologue(
+            $words,
+            $usage,
+            $parse,
+            $computer_zone,
+            $err,
+        ) {
+            Ok(prologue) => prologue,
+            Err(code) => return code,
+        }
+    };
+}
+
 pub mod session {
     pub mod run_command;
     pub mod session_arguments;

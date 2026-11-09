@@ -2,36 +2,23 @@
 use super::edit_arguments::parse;
 use crate::add_block::file_replace::{save_file, RealSteps, Steps, SETTINGS_WORDS};
 use crate::delayed_changes::waiting_file_disk::save_waiting;
-use crate::edit_prologue::read_edit_prologue;
+use crate::edit_prologue::phone_compatibility_warning;
 use crate::session::run_command::{fail, write_result, EXIT_REFUSED};
 use crate::session::session_report::{quoted, refusal_line};
 use leko_core::delayed_changes::switch_off_plan::{request_moment, SwitchOffPlan};
 use leko_core::delayed_changes::waiting_change::WaitingChange;
 use leko_core::edit_block::coverage::{apply_coverage_zip, CoverageApply};
 use leko_core::edit_block::edit_plan::plan_edit;
-use leko_core::io::zip_check::{check_zip_in_mode, ZipVerdict};
-use leko_core::models::specs::ReadMode;
-use std::collections::HashSet;
 use std::io::Write;
 
 const USAGE: &str = "Usage: leko edit-block FILE --id ID [--zone ZONE] (--add-app ID | --remove-app ID | --add-site HOST | --remove-site HOST)... [--write]";
-
-fn phone_warning(bytes: &[u8]) -> Option<String> {
-    match check_zip_in_mode(bytes, &HashSet::new(), ReadMode::Phone) {
-        ZipVerdict::Read(_) => None,
-        ZipVerdict::Refused(reason) => Some(format!("Phone Enforcer 0.3 cannot read these settings: {}.", reason.sentence)),
-    }
-}
 
 pub fn run_edit_block(words: &[String], now_ms: i64, computer_zone: Option<&str>, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     run_edit_block_with(words, now_ms, computer_zone, &mut RealSteps, out, err)
 }
 
 pub fn run_edit_block_with(words: &[String], now_ms: i64, computer_zone: Option<&str>, steps: &mut dyn Steps, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
-    let prologue = match read_edit_prologue(words, USAGE, parse, computer_zone, err) {
-        Ok(prologue) => prologue,
-        Err(code) => return code,
-    };
+    let prologue = load_edit_prologue_or_return!(words, USAGE, parse, computer_zone, err);
     let (request, zone_name, zone, bytes, set, waiting_file) = (prologue.request, prologue.zone_name, prologue.zone, prologue.bytes, prologue.set, prologue.waiting_file);
     let mut waiting = prologue.waiting;
     if waiting.iter().any(|change| change.block == request.id) {
@@ -39,7 +26,7 @@ pub fn run_edit_block_with(words: &[String], now_ms: i64, computer_zone: Option<
     }
     let (edited, old, new) = match apply_coverage_zip(&bytes, &request.id, &request.operations) {
         Ok(CoverageApply::AlreadyApplied) => {
-            let warning = phone_warning(&bytes).map(|w| format!("\n{w}")).unwrap_or_default();
+            let warning = phone_compatibility_warning(&bytes).map(|w| format!("\n{w}")).unwrap_or_default();
             return write_result(out, err, &format!("Coverage is already as requested. Nothing was saved.{warning}\n"));
         }
         Ok(CoverageApply::Conflict) => return fail(err, EXIT_REFUSED, &refusal_line("Some operations are already applied while others are not; review the request")),
@@ -57,7 +44,7 @@ pub fn run_edit_block_with(words: &[String], now_ms: i64, computer_zone: Option<
         SwitchOffPlan::CannotLand => return fail(err, EXIT_REFUSED, &refusal_line("The locks cannot be satisfied automatically")),
         _ => return fail(err, EXIT_REFUSED, &refusal_line("The block could not be judged")),
     };
-    let warning = phone_warning(&edited).map(|w| format!("\n{w}")).unwrap_or_default();
+    let warning = phone_compatibility_warning(&edited).map(|w| format!("\n{w}")).unwrap_or_default();
     let summary = format!("Block {}\nCurrent coverage: {}\nProposed coverage: {}\n{outcome}{warning}", quoted(&request.id), old["covers"], new["covers"]);
     if !request.write {
         let command = std::iter::once("leko edit-block".to_string()).chain(words.iter().map(|word| quoted(word))).collect::<Vec<_>>().join(" ");

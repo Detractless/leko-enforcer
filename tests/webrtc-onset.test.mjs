@@ -1,10 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
-
-const root = resolve('/Users/calibro/Projects/leko-enforcer');
-const python = '/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3';
+import { runPythonSync } from './python-runner.mjs';
 
 test('WebRTC VAD handles 20ms frames, onset, and safe failure', () => {
   const script = `
@@ -35,7 +31,7 @@ assert vad._failed and detector.speech_detector is vad
 detector.feed(np.ones(2560, dtype=np.int16) * 20000)
 assert onsets == [1], 'A failed WebRTC detector must not fall back silently'
 `;
-  const result = spawnSync(python, ['-c', script], { cwd: root, encoding: 'utf8' });
+  const result = runPythonSync(['-c', script]);
   assert.equal(result.status, 0, result.stderr);
 });
 
@@ -55,7 +51,7 @@ try: runtime.main()
 except SystemExit as exc: assert exc.code == 2
 else: raise AssertionError('missing dependency must stop launch')
 `;
-  const result = spawnSync(python, ['-c', script], { cwd: root, encoding: 'utf8' });
+  const result = runPythonSync(['-c', script]);
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stderr, /WebRTC VAD unavailable/);
 });

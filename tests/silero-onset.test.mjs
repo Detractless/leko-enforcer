@@ -1,15 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
+import { runPython } from './python-runner.mjs';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const venv = '/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3';
-
-test('speech detection rejects noise, preserves lead-in, and handles failure', async () => {
-  const script = `
+const SPEECH_DETECTION_SCRIPT = `
 import numpy as np
 from voice.turn_detector import TurnDetector
 
@@ -66,11 +59,9 @@ detector.feed(speech)
 assert detector.in_speech and len(onsets) == 1, 'VAD failure must fall back to loudness detection'
 print('OK')
 `;
-  const proc = spawn(existsSync(venv) ? venv : 'python3', ['-c', script], {
-    cwd: root, env: { ...process.env, PYTHONPATH: root }
-  });
-  let stderr = '';
-  for await (const chunk of proc.stderr) stderr += chunk;
-  const code = await new Promise(resolve => proc.on('close', resolve));
+
+test('speech detection rejects noise, preserves lead-in, and handles failure', async () => {
+
+  const { code, stdout, stderr } = await runPython(SPEECH_DETECTION_SCRIPT);
   assert.equal(code, 0, `Speech onset detection failed: ${stderr}`);
 });

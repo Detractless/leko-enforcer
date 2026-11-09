@@ -1,15 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
 import { VOICE_BRIDGE_PRELUDE } from './voice-script-fixtures.mjs';
+import { runPython } from './python-runner.mjs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, '..');
-const TALK_PYTHON = '/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3';
-const PYTHON_BIN = existsSync(TALK_PYTHON) ? TALK_PYTHON : 'python3';
+async function assertPythonTest(script, label) {
+  const { code, stdout, stderr } = await runPython(script);
+  assert.equal(code, 0, `${label} failed: ${stderr}`);
+  assert.ok(stdout.includes('OK'));
+}
 
 test('tool_summaries_are_fluent_sentences_without_artificial_prefixes', async () => {
   const script = `
@@ -38,19 +36,7 @@ assert s3 == "the screen is locked until 04:00 PM.", f"Expected clean device sen
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
-  assert.equal(code, 0, `Format status summary test failed: ${stderr}`);
-  assert.ok(stdout.includes('OK'));
+  await assertPythonTest(script, 'Format status summary test');
 });
 
 test('model_replies_preserve_natural_intelligence_without_prompt_handcuffs', async () => {
@@ -66,19 +52,7 @@ assert "do not say" not in sys_prompt.lower()
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
-  assert.equal(code, 0, `Model prompt natural intelligence test failed: ${stderr}`);
-  assert.ok(stdout.includes('OK'));
+  await assertPythonTest(script, 'Model prompt natural intelligence test');
 });
 
 test('verbalizer_strictly_normalizes_phonetics_without_structural_rewriting', async () => {
@@ -100,19 +74,7 @@ assert "reddit dot com" in v2
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
-  assert.equal(code, 0, `Verbalizer strictly phonetic test failed: ${stderr}`);
-  assert.ok(stdout.includes('OK'));
+  await assertPythonTest(script, 'Verbalizer strictly phonetic test');
 });
 
 test('e2e_status_and_block_workflows_deliver_clean_spoken_takes', async () => {
@@ -133,17 +95,5 @@ finally:
     assistant.parse_user_intent_safe = orig_parse
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
-  assert.equal(code, 0, `E2E status and block workflows test failed: ${stderr}`);
-  assert.ok(stdout.includes('OK'));
+  await assertPythonTest(script, 'E2E status and block workflows test');
 });

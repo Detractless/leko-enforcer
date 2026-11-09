@@ -2,13 +2,8 @@
 //! change, shows it in `status`, takes it back with `cancel`, and can park it again (AC-013). Results go
 //! to stdout, problems to stderr, with the codes 0, 1 and 2.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 
 use delay_runs::{covering, one_line, records_of, snapshot, waiting_of, write_zip};
 use delay_sets::wait;

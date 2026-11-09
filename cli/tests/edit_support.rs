@@ -3,12 +3,9 @@
 #![allow(dead_code)]
 #[path = "edit_runs/mod.rs"]
 pub mod edit_runs;
-#[path = "run_capture/mod.rs"]
-pub mod run_capture;
-#[path = "scratch_folder/mod.rs"]
-pub mod scratch_folder;
-#[path = "settings_builder/mod.rs"]
-pub mod settings_builder;
+#[path = "settings_test_support.rs"]
+mod settings_test_support;
+pub use settings_test_support::{run_capture, scratch_folder, settings_builder};
 #[path = "delay_runs/mod.rs"]
 pub mod delay_runs;
 #[path = "../../core/tests/delay_sets/mod.rs"]

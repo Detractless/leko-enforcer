@@ -80,7 +80,7 @@ fn a_bad_waiting_file_stops_a_switch_on_and_is_never_replaced() {
         ("only spaces", b"  \n".to_vec(), line("is empty")),
         ("not JSON", b"{nope".to_vec(), line("is not valid JSON")),
         ("not text", vec![0xFF, 0xFE, 0x00, 0x41], line("is not valid JSON")),
-        ("a newer format", br#"{"format":3,"changes":[]}"#.to_vec(), line("is format 3, which is newer than the format 2 this program reads")),
+        ("a newer format", br#"{"format":4,"changes":[]}"#.to_vec(), line("is format 4, which is newer than the format 3 this program reads")),
         ("a record the reader cannot read", br#"{"format":1,"changes":[{"kind":"switch-off","block":"b"}]}"#.to_vec(), String::new()),
         ("a kind it does not know", format!(r#"{{"format":1,"changes":[{{"kind":"switch-on","block":"a","requestedAt":"2026-11-02T14:00:00Z","dueAt":"2026-11-03T14:00:00Z"}}]}}"#).into_bytes(), String::new()),
         ("the same block twice", format!(r#"{{"format":1,"changes":[{GOOD},{GOOD}]}}"#).into_bytes(), String::new()),

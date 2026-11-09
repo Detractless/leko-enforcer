@@ -7,7 +7,7 @@ Evidence: "cancel resets pipeline"
 import unittest
 from unittest.mock import Mock
 
-from voice.pipelined_chunker import PipelinedChunker
+from voice.stt.pipelined_chunker import PipelinedChunker
 
 
 class TestPipelinedChunking(unittest.TestCase):

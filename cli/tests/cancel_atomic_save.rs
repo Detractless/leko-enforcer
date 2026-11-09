@@ -56,17 +56,12 @@ fn a_save_moves_exactly_one_file_into_place_and_only_when_something_is_removed()
 
 #[cfg(unix)]
 #[test]
-fn a_folder_nobody_may_write_stops_the_save_before_a_temporary_file_is_made() {
+fn a_read_only_cancel_folder_stops_the_save_before_a_temporary_file_is_made() {
     let (folder, file) = folder_with_two();
-    let before = snapshot(folder.path());
-    folder.set_mode(0o555);
-    if std::fs::File::create(folder.path().join("probe")).is_err() {
+    assert_read_only_folder_blocks_save(&folder, || {
         let run = cancel(&file, &["--id", "a", "--write"]);
         assert_eq!((run.code, run.out.as_str()), (1, ""), "{}", run.err);
         assert!(run.err.starts_with("The waiting change could not be saved: a temporary file could not be made beside it (Permission denied"), "{}", run.err);
         assert!(run.err.ends_with(&format!("The waiting file {} was left as it was.\n", shown(&waiting_of(&file).to_string_lossy()))) && run.err.lines().count() == 1, "{}", run.err);
-        folder.set_mode(0o755);
-        assert_eq!(snapshot(folder.path()), before, "nothing came, went or changed");
-    }
-    folder.set_mode(0o755);
+    });
 }

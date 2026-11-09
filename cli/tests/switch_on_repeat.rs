@@ -3,13 +3,8 @@
 //! is byte for byte as it was and no file is made. A block with no `on` field is on and is not given
 //! one. Nothing reaches a step of the save, so a failing disk does not matter.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 
 use delay_runs::{block_of, snapshot, switch_on, switch_on_with, waiting_of, write_zip, FailAt, Step};
 use delay_sets::{locked_block, off_block, wait, with_partner_key};

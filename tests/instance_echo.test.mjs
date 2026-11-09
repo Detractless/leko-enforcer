@@ -1,14 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
+import { runPython } from './python-runner.mjs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, '..');
-const TALK_PYTHON = '/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3';
-const PYTHON_BIN = existsSync(TALK_PYTHON) ? TALK_PYTHON : 'python3';
+async function assertPythonTest(script, label) {
+  const { code, stdout, stderr } = await runPython(script);
+  assert.equal(code, 0, `${label} failed: ${stderr}`);
+  assert.ok(stdout.includes('OK'));
+}
 
 test('single_instance_prevents_duplicate_windows', async () => {
   const script = `
@@ -35,19 +33,7 @@ if lock_path.exists():
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
-  assert.equal(code, 0, `Single instance test failed: ${stderr}`);
-  assert.ok(stdout.includes('OK'));
+  await assertPythonTest(script, 'Single instance test');
 });
 
 test('echo_defense_mutes_during_and_after_playback', async () => {
@@ -69,19 +55,7 @@ assert is_audio_muted_for_echo() == False, "Must re-arm mic after decay window"
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
-  assert.equal(code, 0, `Echo defense test failed: ${stderr}`);
-  assert.ok(stdout.includes('OK'));
+  await assertPythonTest(script, 'Echo defense test');
 });
 
 test('turn_detector_emits_speech_onset_for_ui', async () => {
@@ -103,19 +77,7 @@ assert len(onsets) == 1, "Speech onset callback must be called when voice starts
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
-  assert.equal(code, 0, `Speech onset test failed: ${stderr}`);
-  assert.ok(stdout.includes('OK'));
+  await assertPythonTest(script, 'Speech onset test');
 });
 
 test('stop_playback_safely_halts_audio', async () => {
@@ -127,17 +89,5 @@ stop_playback()
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
-  assert.equal(code, 0, `Stop playback test failed: ${stderr}`);
-  assert.ok(stdout.includes('OK'));
+  await assertPythonTest(script, 'Stop playback test');
 });

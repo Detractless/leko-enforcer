@@ -2,13 +2,8 @@
 //! nothing (AC-007): an id no block has (a path-shaped one is only unknown and never builds a path),
 //! a block whose applied lock has a partner's key, and locks whose change windows share no minute.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 use delay_runs::{one_line, snapshot, switch_off, write_zip, NOW};
 use delay_sets::{change_hours, locked_block, routine_holding, wait, with_partner_key};
 use scratch_folder::Scratch;

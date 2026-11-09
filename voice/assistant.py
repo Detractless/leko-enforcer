@@ -37,8 +37,13 @@ sys.modules.setdefault("assistant", sys.modules[__name__])
 
 from verbalizer import verbalize_for_speech
 from turn_detector import TurnDetector
-from stt_lifecycle import SttLifecycle
-from llm_router import parse_user_intent_safe, tool_to_cli_args, ensure_server
+try:
+    from .stt.stt_lifecycle import SttLifecycle
+except ImportError:
+    from stt.stt_lifecycle import SttLifecycle
+from intent_validation import tool_to_cli_args
+from llm_request import parse_user_intent_safe
+from llm_router import ensure_server
 from session.turn_worker import SerializedTurnWorker
 
 __all__ = [

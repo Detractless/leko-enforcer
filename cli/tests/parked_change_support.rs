@@ -14,9 +14,35 @@ pub mod zip_writer;
 
 use leko_core::io::zip_check::{check_zip, ZipVerdict};
 use std::collections::HashSet;
+use scratch_folder::Scratch;
 
 pub const NOTHING_SAVED: &str = " Nothing was saved.\n";
 pub const LEFT_ALONE: &str = " It was left as it was.";
+
+/// Set a scratch folder read-only and report whether this process cannot create a new file there.
+pub fn folder_enforces_read_only(folder: &Scratch) -> bool {
+    folder.set_mode(0o555);
+    if std::fs::File::create(folder.path().join("probe")).is_ok() {
+        folder.set_mode(0o755);
+        return false;
+    }
+    true
+}
+
+/// Check a save failure in a read-only folder and confirm that its contents remain unchanged.
+pub fn assert_read_only_folder_blocks_save(folder: &Scratch, check_failure: impl FnOnce()) {
+    let before = delay_runs::snapshot(folder.path());
+    if folder_enforces_read_only(folder) {
+        check_failure();
+        folder.set_mode(0o755);
+        assert_eq!(
+            delay_runs::snapshot(folder.path()),
+            before,
+            "nothing came, went or changed"
+        );
+    }
+    folder.set_mode(0o755);
+}
 
 /// The core's sentence for refusing these bytes as a settings zip.
 pub fn core_refusal(bytes: &[u8]) -> String {

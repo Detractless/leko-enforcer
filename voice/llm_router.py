@@ -14,6 +14,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict
 
+# Compatibility re-export for callers that still import this helper from llm_router.
 try:
     from .intent_validation import tool_to_cli_args
 except ImportError:
@@ -163,8 +164,6 @@ When a block's target is missing or unclear, ask whether the user means apps, we
 Do not repeat information the user already knows. Keep replies under 3 sentences.
 """
 
-SYSTEM_PROMPT = get_system_prompt()
-
 def is_server_running() -> bool:
     try:
         with urllib.request.urlopen(f"{BASE_URL}/health", timeout=1) as resp:
@@ -302,8 +301,3 @@ def parse_user_intent(user_text: str, history=None, memories=None) -> Dict[str, 
     if routed is not None:
         return routed
     return _chat_completion(_build_messages(user_text, history, memories, get_system_prompt() + _DEFAULT_SYSTEM_SUFFIX))
-
-try:
-    from .llm_request import parse_user_intent_safe
-except ImportError:
-    from llm_request import parse_user_intent_safe

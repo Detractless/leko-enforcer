@@ -4,13 +4,8 @@
 //! change of another block (or one whose id only starts the same) does not stop it, and once the change
 //! is cancelled the switch-on goes through.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::{delay_runs, delay_sets, run_capture, scratch_folder, zip_writer};
 
 use delay_runs::{block_of, cancel, one_line, record, records_of, snapshot, switch_on, waiting_of, write_waiting, write_zip};
 use delay_sets::{locked_block, off_block, wait};

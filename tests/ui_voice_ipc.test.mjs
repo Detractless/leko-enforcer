@@ -1,11 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, '..');
+import { runPython } from './python-runner.mjs';
 
 // Minimal mock DOM for headless testing of UI controller and bridge
 function createMockDOM() {
@@ -64,17 +59,7 @@ bridge.emit_confirmed()
 print(json.dumps(events))
 `;
 
-  const proc = spawn('python3', ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
-
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
-
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(script);
   assert.equal(code, 0, `Python script failed: ${stderr}`);
 
   const events = JSON.parse(stdout.trim());

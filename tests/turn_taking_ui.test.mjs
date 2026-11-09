@@ -1,14 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
+import { runPython } from './python-runner.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
-const TALK_PYTHON = '/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3';
-const PYTHON_BIN = existsSync(TALK_PYTHON) ? TALK_PYTHON : 'python3';
 
 test('ui_renders_centered_label_and_controls', async () => {
   const html = readFileSync(resolve(REPO_ROOT, 'ui/web/index.html'), 'utf8');
@@ -55,9 +53,7 @@ test('controls_trigger_mute_and_stop_ipc_actions', async () => {
   assert.equal(controller.currentState, 'idle');
 });
 
-test('vad_and_turn_end_classifier_detect_speech_conclusion', async () => {
-  // Test Python turn end detector directly
-  const script = `
+const TURN_END_SCRIPT = `
 import sys
 import numpy as np
 from voice.turn_detector import TurnDetector
@@ -93,23 +89,16 @@ assert turn_ended, "Turn must end after speech followed by silence"
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
+test('vad_and_turn_end_classifier_detect_speech_conclusion', async () => {
+  // Test Python turn end detector directly
 
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
 
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(TURN_END_SCRIPT);
   assert.equal(code, 0, `Turn detector failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });
 
-test('handsfree_pipeline_processes_query_on_turn_end', async () => {
-  const script = `
+const HANDSFREE_PIPELINE_SCRIPT = `
 import sys
 from voice.ui_bridge import UIPipelineBridge
 
@@ -125,17 +114,10 @@ assert events[1]["state"] == "idle"
 print("OK")
 `;
 
-  const proc = spawn(PYTHON_BIN, ['-c', script], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PYTHONPATH: REPO_ROOT }
-  });
+test('handsfree_pipeline_processes_query_on_turn_end', async () => {
 
-  let stdout = '';
-  let stderr = '';
-  for await (const chunk of proc.stdout) stdout += chunk;
-  for await (const chunk of proc.stderr) stderr += chunk;
 
-  const code = await new Promise((res) => proc.on('close', res));
+  const { code, stdout, stderr } = await runPython(HANDSFREE_PIPELINE_SCRIPT);
   assert.equal(code, 0, `Handsfree pipeline test failed: ${stderr}`);
   assert.ok(stdout.includes('OK'));
 });

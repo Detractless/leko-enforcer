@@ -13,8 +13,7 @@ mod zip_writer;
 use delay_runs::{cancel, record, snapshot, write_waiting, write_zip};
 use delay_sets::{locked_block, wait};
 use leko_cli::session::session_report::quoted;
-use scratch_folder::Scratch;
-use std::process::{Command, Stdio};
+use scratch_folder::{run_leko, Scratch};
 
 fn blocks() -> Vec<serde_json::Value> {
     vec![locked_block("a", wait(24)), locked_block("b", wait(24))]
@@ -57,14 +56,7 @@ fn the_real_program_leaves_its_home_and_temporary_folders_empty_when_it_drafts_a
     let file = write_zip(folder.path(), "s.zip", &blocks(), &[]);
     parked(&file);
     let before = snapshot(folder.path());
-    let run = Command::new(env!("CARGO_BIN_EXE_leko"))
-        .args(["cancel", file.to_str().expect("text path"), "--id", "a"])
-        .env("HOME", home.path())
-        .env("TMPDIR", temp.path())
-        .current_dir(home.path())
-        .stdin(Stdio::null())
-        .output()
-        .expect("the program starts");
+    let run = run_leko(&home, &temp, &["cancel", file.to_str().expect("text path"), "--id", "a"]);
     assert_eq!(run.status.code(), Some(0), "{}", String::from_utf8_lossy(&run.stderr));
     assert!(String::from_utf8_lossy(&run.stdout).contains("Nothing was saved"));
     assert!(run.stderr.is_empty());

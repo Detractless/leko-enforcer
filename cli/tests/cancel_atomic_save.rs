@@ -3,15 +3,10 @@
 //! no temporary file is left, the answer is exit 1 with one sentence that names the step, and the same
 //! command run again with a working disk finishes the job. Only a cancel that removes something saves.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::*;
 
-use delay_runs::{cancel, cancel_with, record, records_of, snapshot, waiting_of, write_waiting, write_zip, FailAt, Step};
+use delay_runs::{assert_failed_write_changes_nothing, cancel, cancel_with, record, records_of, snapshot, waiting_of, write_waiting, write_zip, FailAt, Step};
 use delay_sets::{locked_block, wait};
 use leko_cli::session::session_report::shown;
 use scratch_folder::Scratch;
@@ -56,11 +51,7 @@ fn a_save_moves_exactly_one_file_into_place_and_only_when_something_is_removed()
     // A draft, a block with nothing parked and a bad request never reach a step of the save: a disk
     // that fails at the first step changes nothing and does not matter.
     let before = snapshot(folder.path());
-    for (flags, code) in [(&["--id", "a"][..], 0), (&["--id", "zzz", "--write"], 0), (&["--id", "a", "--write", "--write"], 2)] {
-        let run = cancel_with(&file, flags, &mut FailAt::new(Step::Write, 1));
-        assert_eq!(run.code, code, "{flags:?}: {}", run.err);
-        assert_eq!(snapshot(folder.path()), before, "{flags:?}");
-    }
+    assert_failed_write_changes_nothing(cancel_with, &file, folder.path(), &before, &[(&["--id", "a"][..], 0), (&["--id", "zzz", "--write"], 0), (&["--id", "a", "--write", "--write"], 2)]);
 }
 
 #[cfg(unix)]

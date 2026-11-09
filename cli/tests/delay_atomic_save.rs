@@ -3,13 +3,8 @@
 //! byte as they were, no temporary file is left, the sentence names the step, and the same command
 //! run again with a working disk finishes the job.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::*;
 
 use delay_runs::{block_of, record, records_of, settle, settle_with, snapshot, switch_off, switch_off_with, waiting_of, write_waiting, write_zip, FailAt, Step, NOW};
 use delay_sets::{locked_block, wait};

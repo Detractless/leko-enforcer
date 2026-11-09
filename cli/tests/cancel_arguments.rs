@@ -3,13 +3,8 @@
 //! missing `--id` never cancels the first record, and an unknown flag (including `--zone`, which a
 //! cancel has no use for) is never ignored.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::*;
 
 use delay_runs::{record, snapshot, write_waiting, write_zip};
 use delay_sets::{locked_block, wait};

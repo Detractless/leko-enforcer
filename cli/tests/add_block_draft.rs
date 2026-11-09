@@ -9,10 +9,9 @@ mod scratch_folder;
 mod settings_builder;
 
 use add_block_runs::{add, plain, APP};
-use scratch_folder::Scratch;
+use scratch_folder::{run_leko, Scratch};
 use serde_json::json;
 use settings_builder::{always, block, write_settings};
-use std::process::{Command, Stdio};
 
 fn existing_blocks() -> Vec<serde_json::Value> {
     vec![block("old", json!({"apps": ["com.old.app"]}), json!([always("r", &[])]))]
@@ -64,14 +63,7 @@ fn the_real_program_leaves_its_home_and_temporary_folders_empty() {
     let (home, temp) = (Scratch::new("draft-home"), Scratch::new("draft-temp"));
     let file = write_settings(folder.path(), "settings.zip", &existing_blocks());
     let before = std::fs::read(&file).unwrap();
-    let run = Command::new(env!("CARGO_BIN_EXE_leko"))
-        .args(["add-block", file.to_str().unwrap(), "--name", "Social Media", "--app", APP, "--always"])
-        .env("HOME", home.path())
-        .env("TMPDIR", temp.path())
-        .current_dir(home.path())
-        .stdin(Stdio::null())
-        .output()
-        .expect("the program starts");
+    let run = run_leko(&home, &temp, &["add-block", file.to_str().unwrap(), "--name", "Social Media", "--app", APP, "--always"]);
     assert_eq!(run.status.code(), Some(0), "{}", String::from_utf8_lossy(&run.stderr));
     assert!(String::from_utf8_lossy(&run.stdout).contains("Nothing was saved"));
     assert_eq!((home.names(), temp.names(), folder.names(), std::fs::read(&file).unwrap()), (vec![], vec![], vec!["settings.zip".to_string()], before));

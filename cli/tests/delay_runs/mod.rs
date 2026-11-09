@@ -309,3 +309,19 @@ pub fn status_records() -> Vec<Value> {
         record("o", "2026-11-02T12:00:00Z", "2026-11-03T12:00:00Z"),
     ]
 }
+
+/// Run `command` on `file` for each `(words, code)` case with a disk that fails at the first write,
+/// and assert the code and that the folder holds what it held before.
+pub fn assert_failed_write_changes_nothing(
+    command: fn(&Path, &[&str], &mut dyn Steps) -> Outcome,
+    file: &Path,
+    folder: &Path,
+    before: &[(String, Vec<u8>)],
+    cases: &[(&[&str], i32)],
+) {
+    for (flags, code) in cases {
+        let run = command(file, flags, &mut FailAt::new(Step::Write, 1));
+        assert_eq!(run.code, *code, "{flags:?}: {}", run.err);
+        assert_eq!(snapshot(folder), before, "{flags:?}");
+    }
+}

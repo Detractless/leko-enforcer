@@ -9,6 +9,7 @@ pub mod io {
 
 pub mod blocks {
     pub mod add_block;
+    pub mod block_flag_zip;
     pub mod block_id;
     pub mod block_request;
     pub mod draft_block;

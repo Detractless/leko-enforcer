@@ -4,24 +4,23 @@ Before this adjustment, the detector could submit after four quiet 160ms
 frames (640ms) if turn-1-mini reported an endpoint above 0.65, or after eight
 quiet frames (1.28s) regardless of model availability or confidence.
 
-The detector now requires at least 0.9 seconds of continuous classified quiet
-before accepting an endpoint. Existing silence counts toward this window; it
-is not an extra 0.9 seconds after detection. Capture supplies 2560-sample frames
-at 16kHz (160ms), assembled from 1280-sample device callbacks (80ms). Thus an
-early acoustic endpoint submits on quiet frame six, at 960ms, rather than
-640ms. A later acoustic endpoint submits on frame seven (1.12s) or the unchanged
-frame-eight fallback (1.28s). Without an acoustic endpoint, fallback remains
-1.28s, not 2.18s. These are sample-clock durations of classified quiet frames;
-physical speech boundaries, VAD behavior, buffering and scheduling can shift
-wall-clock latency. No timer expires without captured audio arriving.
+The detector requires five seconds of continuous classified quiet before
+submitting audio for transcription. This is five seconds total after the last
+detected speech, not five seconds added after the earlier endpoint. Capture
+supplies 2560-sample frames at 16kHz (160ms), assembled from 1280-sample device
+callbacks (80ms). The first frame at or beyond five seconds is frame 32, about
+5.12 seconds. Acoustic or fallback endpoint detection may happen sooner, but
+does not submit the turn early. These are sample-clock durations of classified
+quiet frames; physical speech boundaries, VAD behavior, buffering and scheduling
+can shift wall-clock latency. No timer expires without captured audio arriving.
 
 The microphone stays active throughout this window. Any non-quiet frame clears
 the pending endpoint and quiet counters, retaining all audio in the same turn.
-The next pause must satisfy a fresh window. Acoustic endpoint evidence remains
-latched only within uninterrupted quiet. No transcription, model work, or
-response begins during this window. The existing 12-second buffered-turn hard
-cap (including pre-roll and pauses) remains an exception and can submit while
-speech continues; this change does not extend that cap.
+The next pause must satisfy a fresh five-second window. Acoustic endpoint
+evidence remains latched only within uninterrupted quiet. No transcription,
+model work, or response begins during this window. The existing 60-second
+buffered-turn hard cap (including pre-roll and pauses) remains an exception and
+can submit while speech continues; this change does not extend that cap.
 
 Once submitted, CaptureGate fences callbacks immediately and stops/closes the
 actual input stream on its control thread. The worker waits for that closure

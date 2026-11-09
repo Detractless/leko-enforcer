@@ -41,8 +41,59 @@ class FakeStream:
         self.operations.append(("close", threading.current_thread().name))
         self.closed = True
 
-    def feed(self, samples):
-        self.callback(np.asarray(samples, dtype=np.int16).tobytes(), len(samples), None, None)
+    def feed(self, samples, status=None):
+        self.callback(np.asarray(samples, dtype=np.int16).tobytes(), len(samples), None, status)
+
+
+class DiagnosticDetector:
+    preroll_frames = 1
+
+    def __init__(self):
+        self.in_speech = False
+        self.feed_count = 0
+
+    def reset(self):
+        self.in_speech = False
+        self.feed_count = 0
+
+    def feed(self, chunk):
+        self.feed_count += 1
+        if self.feed_count == 1:
+            self.in_speech = True
+            return False, np.zeros(0, dtype=np.float32)
+        self.in_speech = False
+        return True, np.concatenate((np.full(4, 1000, dtype=np.float32),
+                                     np.asarray(chunk, dtype=np.float32))) / 32768.0
+
+
+class DiagnosticTests(unittest.TestCase):
+    def test_turn_diagnostics_capture_levels_aec_and_callback_warnings(self):
+        detector = DiagnosticDetector()
+        echo = Mock(available=True)
+        echo.clean_capture.side_effect = lambda x: x
+        turns = []
+        gate = CaptureGate(lambda **_: None, detector, echo,
+                           lambda audio, token: turns.append((audio, token)),
+                           sample_rate=8, chunk_size=4)
+        gate.is_running = True
+        gate._epoch = 1
+
+        class InputOverflow:
+            input_overflow = True
+
+        gate._callback(1, np.full(4, 1000, np.int16).tobytes(), 4, None, InputOverflow())
+        gate._callback(1, np.full(4, 2000, np.int16).tobytes(), 4, None, None)
+
+        self.assertEqual(len(turns), 1)
+        diagnostics = gate.take_turn_diagnostics(turns[0][0])
+        self.assertEqual(diagnostics["audio_seconds"], 1.0)
+        self.assertTrue(diagnostics["aec_active"])
+        self.assertEqual(diagnostics["pre_aec"]["samples"], 8)
+        self.assertAlmostEqual(diagnostics["pre_aec"]["rms"], (2_500_000 ** 0.5) / 32768, places=5)
+        self.assertAlmostEqual(diagnostics["pre_aec"]["peak"], 2000 / 32768, places=5)
+        self.assertEqual(diagnostics["pre_aec"]["clipped_samples"], 0)
+        self.assertEqual(diagnostics["callback_warnings"], [{"flag": "input_overflow", "count": 1}])
+        self.assertEqual(diagnostics["post_aec"]["samples"], 8)
 
 
 class CaptureTests(unittest.TestCase):
@@ -53,7 +104,7 @@ class CaptureTests(unittest.TestCase):
         self.echo = Mock(available=True)
         self.echo.clean_capture.side_effect = lambda x: x
         detector = TurnDetector(model_path=Path('/nonexistent'), speech_detector=False,
-                                on_speech_onset=lambda: self.onsets.append(True))
+                                on_speech_onset=lambda: self.onsets.append(True), continuation_s=0)
         def factory(**kwargs):
             stream = FakeStream(**kwargs)
             self.streams.append(stream)

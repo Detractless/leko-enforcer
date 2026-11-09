@@ -1,6 +1,7 @@
 """Runs the hands-free assistant, UI bridge, and serialized query worker."""
 
 import argparse
+import json
 import re
 import sys
 import time
@@ -91,12 +92,23 @@ def main():
     def on_handsfree_speech(audio_f32: np.ndarray, token):
         def execute_turn(seq):
             bridge.emit_state("thinking", "Transcribing...")
-            text = voice.transcribe_audio(audio_f32)
-            if not text or worker.is_superseded(seq):
+            diagnostics = turn_manager.take_turn_diagnostics(audio_f32)
+            print("[Audio turn] " + json.dumps(diagnostics, sort_keys=True), flush=True)
+            stt_started = time.perf_counter()
+            stt_result = "error"
+            try:
+                text = voice.transcribe_audio(audio_f32)
+                stt_result = "text" if text else "empty"
+            finally:
+                print(f"[STT] elapsed={time.perf_counter() - stt_started:.2f}s result={stt_result}", flush=True)
+            if worker.is_superseded(seq):
+                return
+            print(f"\n[Transcribed]: {json.dumps(text or '', ensure_ascii=False)}", flush=True)
+            if not text:
                 return
             if confirmation(text) is None and is_ignorable_filler(text):
+                print("[Turn Guard]: Dropped an isolated filler transcript.", flush=True)
                 return
-            print(f'\n[Transcribed]: "{text}"')
             voice.process_query(text, args.settings, bridge=bridge, conversation=conversation,
                                 is_cancelled=lambda: worker.is_superseded(seq))
         submit_response(execute_turn, token)
@@ -178,9 +190,23 @@ def main():
             print("Launching native Minimalist UI window...")
             bridge.start_ui_process(on_action=on_ui_action)
             time.sleep(0.5)
-            bridge.emit_idle()
+            bridge.emit_state("loading", "Loading model...")
         turn_manager.set_muted(voice._is_muted)
         turn_manager.start()
+
+        # MLX streams belong to their creating thread. Load and use STT on the
+        # same serialized worker to avoid handing its GPU stream across threads.
+        def _warm_stt(seq):
+            try:
+                voice._stt_lifecycle.warm_cache()
+                voice.get_stt()
+                print("[STT] Model loaded and ready.", flush=True)
+            except Exception as e:
+                print(f"[STT] Warm-up failed: {e}", flush=True)
+            if args.ui and not turn_manager.busy and not shutdown.is_set():
+                bridge.emit_state("listening", "Listening...")
+
+        worker.submit(_warm_stt)
         voice.ensure_server()
         if args.query:
             submit_query(args.query)

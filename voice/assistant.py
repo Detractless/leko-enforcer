@@ -39,15 +39,20 @@ from llm_router import parse_user_intent_safe, tool_to_cli_args, ensure_server
 from verbalizer import verbalize_for_speech
 from turn_detector import TurnDetector
 from session.turn_worker import SerializedTurnWorker
+from stt_lifecycle import SttLifecycle
 from audio_io.echo_canceller import EchoAudioProcessor, VoiceOutputPlayer
 
 LEKO_BIN = REPO_ROOT / "target/release/leko"
 PHONON_25_MODEL = Path("/Users/calibro/.t3/scratch/2026-11-05-can-you-review-this-project-4f6400cb/phonon-2.5-en-mlx")
-VOICE_NAME = "Maeve"
+VOICE_NAME = "Zoey"
 DEFAULT_LOCK_FILE = Path("/tmp/leko_assistant.pid")
 
 _tts_engine = None
-_stt_model = None
+def _load_stt_model(path):
+    from mlx_audio.stt.utils import load_model
+    return load_model(str(path))
+
+_stt_lifecycle = SttLifecycle(PHONON_25_MODEL, _load_stt_model, idle_timeout_s=300.0)
 _is_speaking = False
 _is_muted = False
 _playback_active = False
@@ -202,11 +207,7 @@ def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None):
         set_playback_state(False, post_mute_s=0.0 if _echo_audio.available else 0.25)
 
 def get_stt():
-    global _stt_model
-    if _stt_model is None:
-        from mlx_audio.stt.utils import load_model
-        _stt_model = load_model(str(PHONON_25_MODEL))
-    return _stt_model
+    return _stt_lifecycle.get_model()
 
 def transcribe_audio(audio_f32: np.ndarray) -> str:
     """Transcribes audio samples using local Phonon MLX model."""

@@ -1,8 +1,51 @@
 """Own microphone streams off the callback thread; fence each capture generation."""
+import collections
+import math
 import sys
 import threading
 import time
 import numpy as np
+
+
+def _empty_audio_stats():
+    return {"samples": 0, "sum_squares": 0.0, "peak": 0.0, "clipped_samples": 0}
+
+
+def _audio_stats(samples):
+    values = np.asarray(samples).reshape(-1)
+    stats = _empty_audio_stats()
+    if not values.size:
+        return stats
+    if values.dtype == np.int16:
+        absolute = np.abs(values.astype(np.int32))
+        normalized = values.astype(np.float64) / 32768.0
+        clipped = int(np.count_nonzero(absolute >= 32760))
+    else:
+        normalized = values.astype(np.float64)
+        absolute = np.abs(normalized)
+        clipped = int(np.count_nonzero(absolute >= 0.999))
+    stats["samples"] = int(values.size)
+    stats["sum_squares"] = float(np.dot(normalized, normalized))
+    stats["peak"] = float(np.max(np.abs(normalized)))
+    stats["clipped_samples"] = clipped
+    return stats
+
+
+def _merge_audio_stats(target, addition):
+    target["samples"] += addition["samples"]
+    target["sum_squares"] += addition["sum_squares"]
+    target["peak"] = max(target["peak"], addition["peak"])
+    target["clipped_samples"] += addition["clipped_samples"]
+
+
+def _present_audio_stats(stats):
+    count = stats["samples"]
+    return {
+        "samples": count,
+        "rms": round(math.sqrt(stats["sum_squares"] / count), 6) if count else 0.0,
+        "peak": round(stats["peak"], 6),
+        "clipped_samples": stats["clipped_samples"],
+    }
 
 
 class CaptureGate:
@@ -18,6 +61,14 @@ class CaptureGate:
         self._cv = threading.Condition(threading.RLock())
         self.response_lock = self._cv
         self._raw_buf = bytearray()
+        self._pending_raw_buf = bytearray()
+        self._raw_preroll_stats = collections.deque(
+            maxlen=max(1, int(getattr(detector, "preroll_frames", 5)) + 1))
+        self._active_raw_stats = None
+        self._status_preroll = collections.deque(
+            maxlen=max(2, 2 * (int(getattr(detector, "preroll_frames", 5)) + 1)))
+        self._active_status_warnings = None
+        self._last_turn_diagnostics = {}
         self._epoch = 0
         self._busy = None
         self._muted = False
@@ -36,8 +87,42 @@ class CaptureGate:
 
     def _clear(self):
         self._raw_buf.clear()
+        self._pending_raw_buf.clear()
+        self._raw_preroll_stats.clear()
+        self._active_raw_stats = None
+        self._status_preroll.clear()
+        self._active_status_warnings = None
         self.detector.reset()
         self.echo_audio.reset_buffers()
+
+    @staticmethod
+    def _status_warning(status):
+        if status is None:
+            return None
+        names = ("input_overflow", "input_underflow", "output_overflow", "output_underflow", "priming_output")
+        active = [name for name in names if getattr(status, name, False)]
+        if active:
+            return ",".join(active)
+        try:
+            return str(status).strip() if bool(status) else None
+        except (TypeError, ValueError):
+            return str(status).strip() or "unknown"
+
+    def take_turn_diagnostics(self, audio_f32):
+        """Return scalar turn diagnostics and discard the saved summary."""
+        with self._cv:
+            capture = self._last_turn_diagnostics
+            self._last_turn_diagnostics = {}
+        audio = np.asarray(audio_f32 if audio_f32 is not None else [], dtype=np.float32).reshape(-1)
+        post_aec = _present_audio_stats(_audio_stats(audio))
+        pre_aec = capture.get("pre_aec", _empty_audio_stats())
+        return {
+            "audio_seconds": round(len(audio) / self.sample_rate, 3),
+            "aec_active": capture.get("aec_active", bool(self.echo_audio.available)),
+            "pre_aec": _present_audio_stats(pre_aec),
+            "post_aec": post_aec,
+            "callback_warnings": capture.get("callback_warnings", []),
+        }
 
     def begin_response(self):
         with self._cv:
@@ -106,7 +191,16 @@ class CaptureGate:
                         self.on_armed()
                     except Exception:
                         pass
-            samples = np.frombuffer(bytes(indata), dtype=np.int16)
+            warning = self._status_warning(status)
+            if warning:
+                if self.detector.in_speech:
+                    if self._active_status_warnings is None:
+                        self._active_status_warnings = {}
+                    self._active_status_warnings[warning] = self._active_status_warnings.get(warning, 0) + 1
+                else:
+                    self._status_preroll.append(warning)
+            raw_samples = np.frombuffer(bytes(indata), dtype=np.int16)
+            samples = raw_samples
             if self.echo_audio.available:
                 samples = self.echo_audio.clean_capture(samples)
                 if samples is None:
@@ -114,13 +208,47 @@ class CaptureGate:
                     self.detector.set_echo_cancellation_enabled(False)
                     self._clear()
                     return
+            if len(samples) == len(raw_samples):
+                self._pending_raw_buf.extend(raw_samples.tobytes())
+            else:
+                self._raw_buf.clear()
+                self._pending_raw_buf.clear()
+                self._raw_preroll_stats.clear()
             self._raw_buf.extend(samples.tobytes())
             size = self.chunk_size * 2
-            while len(self._raw_buf) >= size:
+            while len(self._raw_buf) >= size and len(self._pending_raw_buf) >= size:
                 chunk = np.frombuffer(bytes(self._raw_buf[:size]), dtype=np.int16)
+                raw_chunk = np.frombuffer(bytes(self._pending_raw_buf[:size]), dtype=np.int16)
                 del self._raw_buf[:size]
+                del self._pending_raw_buf[:size]
+                was_in_speech = self.detector.in_speech
+                if was_in_speech:
+                    if self._active_raw_stats is None:
+                        self._active_raw_stats = _empty_audio_stats()
+                    _merge_audio_stats(self._active_raw_stats, _audio_stats(raw_chunk))
+                else:
+                    self._raw_preroll_stats.append(_audio_stats(raw_chunk))
                 ended, audio = self.detector.feed(chunk)
+                if not was_in_speech and self.detector.in_speech:
+                    self._active_raw_stats = _empty_audio_stats()
+                    for stats in self._raw_preroll_stats:
+                        _merge_audio_stats(self._active_raw_stats, stats)
+                    self._raw_preroll_stats.clear()
+                    self._active_status_warnings = {}
+                    for flag in self._status_preroll:
+                        self._active_status_warnings[flag] = self._active_status_warnings.get(flag, 0) + 1
+                    self._status_preroll.clear()
                 if ended and len(audio):
+                    raw_stats = self._active_raw_stats or _empty_audio_stats()
+                    status_warnings = self._active_status_warnings or {}
+                    self._last_turn_diagnostics = {
+                        "pre_aec": dict(raw_stats),
+                        "aec_active": bool(self.echo_audio.available),
+                        "callback_warnings": [
+                            {"flag": flag, "count": count}
+                            for flag, count in status_warnings.items()
+                        ],
+                    }
                     token = self.begin_response()
                     try:
                         self.on_turn_complete(audio, token)

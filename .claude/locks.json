@@ -390,6 +390,54 @@
           "sha256": "cd5bb44c210f801b0069fb973d6fb28344c5af325d97f9ab9c0ed0f491c361b9"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/voice-streaming-and-cache.md",
+      "sha256": "4cb78029111eee60d2e0907e6d471fb02eebf8327ee2503da14bb71b2b6d0810",
+      "state": "locked",
+      "reason": "contract \"voice-streaming-and-cache\" opened by the user: open voice-streaming-and-cache",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-08T17:23:32.445Z",
+      "history": [
+        {
+          "at": "2026-11-08T17:23:32.445Z",
+          "event": "lock",
+          "sha256": "4cb78029111eee60d2e0907e6d471fb02eebf8327ee2503da14bb71b2b6d0810"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/voice-prompt-optimization.md",
+      "sha256": "3d547a63abfd1a79dd7380eca71cf742dd00cd5e139e6b18a12af726d04722c2",
+      "state": "locked",
+      "reason": "contract \"voice-prompt-optimization\" opened by the user: yes",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-08T17:55:09.372Z",
+      "history": [
+        {
+          "at": "2026-11-08T17:55:09.372Z",
+          "event": "lock",
+          "sha256": "3d547a63abfd1a79dd7380eca71cf742dd00cd5e139e6b18a12af726d04722c2"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/voice-intent-router.md",
+      "sha256": "3e0e361313f3d9f55e7bce6b981cf0a8e4156348a4334c19c6f88e9f1cecd0d2",
+      "state": "locked",
+      "reason": "contract \"voice-intent-router\" opened by the user: yes",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-08T18:35:21.981Z",
+      "history": [
+        {
+          "at": "2026-11-08T18:35:21.981Z",
+          "event": "lock",
+          "sha256": "3e0e361313f3d9f55e7bce6b981cf0a8e4156348a4334c19c6f88e9f1cecd0d2"
+        }
+      ]
     }
   ]
 }

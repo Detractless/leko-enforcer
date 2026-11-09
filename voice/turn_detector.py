@@ -26,7 +26,7 @@ class TurnDetector:
         max_turn_duration_s: float = 60.0,  # Generous cap for long thoughtful turns
         on_speech_onset: Optional[Callable[[], None]] = None,
         speech_detector=None,
-        continuation_s: float = 0.96,
+        continuation_s: float = 5.0,
     ):
         self.continuation_s = continuation_s
         self.quiet_samples = 0
@@ -218,8 +218,8 @@ class TurnDetector:
             if self.sil_count >= self.min_sil_frames:
                 if (p_end is not None and p_end > self.turn_threshold) or self.sil_count >= self.max_sil_frames:
                     self.endpoint_pending = True
-            # Count existing quiet toward the continuation window, rather than
-            # adding another 900ms after the acoustic/fallback endpoint.
+            # Keep one five-second quiet window after the last detected speech.
+            # Existing quiet counts toward it; resumed speech resets the window.
             if self.endpoint_pending and self.quiet_samples >= self.continuation_s * 16000:
                 full_audio = np.concatenate(self.buf)
                 self.reset()

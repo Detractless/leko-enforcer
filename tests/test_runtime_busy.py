@@ -1,5 +1,6 @@
 """Real runtime, capture gate, worker and query flow; all devices/models are fakes."""
 import importlib
+import json
 import sys
 import threading
 import types
@@ -43,11 +44,13 @@ class RuntimeBusyTests(unittest.TestCase):
             return 'exit'
         self.bridge.start_ui_process = lambda on_action: self.callbacks.update(ui=on_action)
         self.bridge.close = lambda: None
+        stt_lifecycle = Mock()
         with patch.multiple(fixtures.fake_voice, create=True,
                 REPO_ROOT=Path('/fake'), SerializedTurnWorker=lambda: self.worker,
                 HandsfreeTurnManager=manager, acquire_single_instance_lock=lambda: None,
                 ensure_server=lambda: None, _echo_audio=echo, _is_muted=False,
                 stop_playback=Mock(), transcribe_audio=transcribe,
+                _stt_lifecycle=stt_lifecycle, get_stt=lambda: None,
                 process_query=query), patch.object(runtime, 'Conversation', return_value=self.state), \
                 patch.object(runtime, 'UIPipelineBridge', return_value=self.bridge), \
                 patch('builtins.input', side_effect=console), \
@@ -98,7 +101,19 @@ class RuntimeBusyTests(unittest.TestCase):
             self.assertEqual(stages, ['transcription', 'thinking', 'synthesis', 'playback'])
             eventually(lambda: len(self.streams) == 2 and self.streams[-1].active)
             self.assertFalse(self.manager.busy)
-        self.run_runtime(drive, stt, query)
+        with patch('builtins.print') as output:
+            self.run_runtime(drive, stt, query)
+        audio_lines = [call.args[0] for call in output.call_args_list
+                       if call.args and str(call.args[0]).startswith('[Audio turn] ')]
+        stt_lines = [call.args[0] for call in output.call_args_list
+                     if call.args and str(call.args[0]).startswith('[STT] elapsed=')]
+        transcript_lines = [call.args[0] for call in output.call_args_list
+                            if call.args and str(call.args[0]).lstrip().startswith('[Transcribed]')]
+        self.assertEqual(len(audio_lines), 1)
+        self.assertEqual(json.loads(audio_lines[0][len('[Audio turn] '):])['audio_seconds'], 0.0)
+        self.assertEqual(len(stt_lines), 1)
+        self.assertRegex(stt_lines[0], r'\[STT\] elapsed=\d+\.\d+s result=text')
+        self.assertEqual(transcript_lines, ['\n[Transcribed]: "I think I need"'])
 
     def test_ui_cancel_mute_and_shutdown_during_synthesis(self):
         entered, release = threading.Event(), threading.Event()
@@ -124,6 +139,19 @@ class RuntimeBusyTests(unittest.TestCase):
             self.assertEqual(calls, ['typed request'])
             self.assertEqual(len(self.streams), 1)
         self.run_runtime(drive, Mock(), query)
+
+    def test_ignored_filler_transcript_is_logged_before_guard_drops_it(self):
+        query = Mock()
+        def drive():
+            token = self.manager.begin_response()
+            self.callbacks['on_turn_complete'](None, token)
+            self.worker.q.join()
+            query.assert_not_called()
+        with patch('builtins.print') as output:
+            self.run_runtime(drive, lambda _: 'um', query)
+        lines = [str(call.args[0]) for call in output.call_args_list if call.args]
+        self.assertIn('\n[Transcribed]: "um"', lines)
+        self.assertIn('[Turn Guard]: Dropped an isolated filler transcript.', lines)
 
     def test_console_query_uses_same_gate(self):
         entered, release = threading.Event(), threading.Event()

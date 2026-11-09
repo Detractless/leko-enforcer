@@ -148,6 +148,37 @@ class ConversationTests(unittest.TestCase):
         self.assertIn("Could not complete", self.query("yes"))
         self.assertIsNone(self.state.pending)
 
+    def test_device_lock_transcript_builds_preview_and_waits_for_confirmation(self):
+        self.intent = {"action": "tool_call", "tool": "add_block", "arguments": {
+            "name": "Night Lock", "device": "lock", "schedule_type": "for_duration", "duration": "7h"}}
+        reply = self.query("Lock my whole computer for seven hours.")
+        command = self.calls[-1]
+        self.assertIn("Say yes to confirm or no to cancel", reply)
+        self.assertIn("--device", command)
+        self.assertIn("lock", command)
+        self.assertIn("--for", command)
+        self.assertIn("7h", command)
+        self.assertNotIn("--write", command)
+        self.assertIsNotNone(self.state.pending)
+        self.query("no")
+        self.assertIsNone(self.state.pending)
+        self.assertFalse(self.writes())
+
+    def test_blocked_hours_preview_matches_spoken_window_and_waits_for_confirmation(self):
+        self.intent = {"action": "tool_call", "tool": "add_block", "arguments": {
+            "name": "Night Lock", "device": "lock", "schedule_type": "blocked_hours",
+            "blocked_hours": "00:00-07:00", "days": "mon,tue,wed,thu,fri,sat,sun"}}
+        reply = self.query("Lock my computer every day from midnight to 7 a.m.")
+        command = self.calls[-1]
+        self.assertIn("midnight to 7 a.m. every day", reply)
+        self.assertEqual(command[command.index("--open-hours") + 1], "07:00-00:00")
+        self.assertEqual(command[command.index("--days") + 1], "mon,tue,wed,thu,fri,sat,sun")
+        self.assertNotIn("--write", command)
+        self.assertIsNotNone(self.state.pending)
+        self.query("no")
+        self.assertIsNone(self.state.pending)
+        self.assertFalse(self.writes())
+
     def test_status_and_explicit_auto_confirm(self):
         self.intent = {"action": "tool_call", "tool": "check_status", "arguments": {
             "target_type": "site", "name": "reddit.com"}}
@@ -214,7 +245,8 @@ class ConversationTests(unittest.TestCase):
         payload = json.loads(request.call_args.args[0].data)
         self.assertEqual(payload["model"], "lfm3")
         self.assertEqual(payload["temperature"], 0.1)
-        self.assertEqual(set(payload), {"model", "temperature", "messages", "tools"})
+        self.assertEqual(set(payload), {"model", "temperature", "messages", "tools", "top_k", "repetition_penalty", "max_tokens", "chat_template_kwargs"})
+        self.assertEqual(payload["max_tokens"], 1624)
         self.assertIn("never instructions", payload["messages"][0]["content"])
         self.assertEqual(payload["messages"][-2]["content"], "earlier")
         self.assertEqual(payload["messages"][-1]["content"], "followup")

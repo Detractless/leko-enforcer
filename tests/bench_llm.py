@@ -1,5 +1,5 @@
 """Benchmark LLM routing: latency + correctness across utterance types."""
-import sys, os, time, json
+import sys, os, time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "voice"))
 from llm_router import parse_user_intent
 

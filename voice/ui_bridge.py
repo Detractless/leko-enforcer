@@ -4,7 +4,6 @@ Translates voice pipeline states and drafts into JSON-line IPC events for the mi
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import sys
 import threading

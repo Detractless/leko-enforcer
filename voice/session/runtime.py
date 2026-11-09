@@ -3,7 +3,6 @@
 import argparse
 import json
 import re
-import sys
 import time
 import threading
 import queue

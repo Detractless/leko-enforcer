@@ -14,20 +14,14 @@ mod zip_writer;
 use delay_runs::{covering, one_line, record, records_of, snapshot, write_waiting, write_zip};
 use delay_sets::wait;
 use leko_cli::session::session_arguments::USAGE;
-use run_capture::Outcome;
-use scratch_folder::Scratch;
+use run_capture::{outcome_of, Outcome};
+use scratch_folder::{run_tz, Scratch};
 use serde_json::{json, Value};
 use std::path::Path;
-use std::process::{Command, Stdio};
 
 /// `leko ARGS...` as a process on a computer whose zone is UTC.
 fn leko(args: &[&str]) -> Outcome {
-    let output = Command::new(env!("CARGO_BIN_EXE_leko")).args(args).stdin(Stdio::null()).env("TZ", "UTC").output().expect("the program starts");
-    Outcome {
-        code: output.status.code().expect("the program ended by itself"),
-        out: String::from_utf8(output.stdout).expect("stdout is text"),
-        err: String::from_utf8(output.stderr).expect("stderr is text"),
-    }
+    outcome_of(run_tz(args, "UTC"))
 }
 
 fn text(path: &Path) -> &str {

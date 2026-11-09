@@ -21,12 +21,11 @@ use leko_core::config_time::zone_time::ZoneTime;
 use leko_core::delayed_changes::switch_off_plan::{plan_switch_off, SwitchOffPlan};
 use leko_core::io::zip_check::{check_zip, ZipVerdict};
 use leko_core::sessions::utc_moment::{format_utc_moment, parse_utc_moment};
-use run_capture::Outcome;
-use scratch_folder::Scratch;
+use run_capture::{outcome_of, Outcome};
+use scratch_folder::{run_tz, Scratch};
 use serde_json::Value;
 use std::collections::HashSet;
 use std::path::Path;
-use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 use zip_writer::Method;
 
@@ -34,12 +33,7 @@ const HOUR_MS: i64 = 3_600_000;
 
 /// `leko ARGS...` as a process on a computer whose zone is `tz`.
 fn leko(args: &[&str], tz: &str) -> Outcome {
-    let output = Command::new(env!("CARGO_BIN_EXE_leko")).args(args).stdin(Stdio::null()).env("TZ", tz).output().expect("the program starts");
-    Outcome {
-        code: output.status.code().expect("the program ended by itself"),
-        out: String::from_utf8(output.stdout).expect("stdout is text"),
-        err: String::from_utf8(output.stderr).expect("stderr is text"),
-    }
+    outcome_of(run_tz(args, tz))
 }
 
 fn path_text(path: &Path) -> &str {

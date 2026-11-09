@@ -89,3 +89,28 @@ pub fn run_with_closed(mut command: std::process::Command, closed: Closed) -> st
     }
     command.output().expect("the program starts")
 }
+
+/// An output that fails when written to and/or when flushed.
+pub struct Broken {
+    pub write_fails: bool,
+    pub flush_fails: bool,
+}
+
+impl std::io::Write for Broken {
+    fn write(&mut self, buffer: &[u8]) -> std::io::Result<usize> {
+        if self.write_fails { Err(std::io::ErrorKind::BrokenPipe.into()) } else { Ok(buffer.len()) }
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        if self.flush_fails { Err(std::io::ErrorKind::BrokenPipe.into()) } else { Ok(()) }
+    }
+}
+
+/// The exit code and the two streams as text, for the real-program tests.
+pub fn outcome_of(output: std::process::Output) -> Outcome {
+    Outcome {
+        code: output.status.code().expect("the program ended by itself"),
+        out: String::from_utf8(output.stdout).expect("stdout is text"),
+        err: String::from_utf8(output.stderr).expect("stderr is text"),
+    }
+}

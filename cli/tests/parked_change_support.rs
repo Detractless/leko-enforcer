@@ -1,5 +1,6 @@
 //! The helper modules every parked-change command test uses: run the library in this process, keep
 //! what it wrote, own a scratch folder, and build the settings zips those commands read.
+#![allow(dead_code)]
 #[path = "delay_runs/mod.rs"]
 pub mod delay_runs;
 #[path = "../../core/tests/delay_sets/mod.rs"]

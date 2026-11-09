@@ -3,26 +3,18 @@
 //! not-understood apart by exit code and stream, even when an output is closed (AC-009).
 
 mod run_capture;
+mod scratch_folder;
 
 use leko_cli::run;
-use run_capture::{ends_in_json, json_of, moment, run_with_closed, Closed, Outcome, MINUTE_MS};
+use run_capture::{ends_in_json, json_of, moment, outcome_of, run_with_closed, Broken, Closed, Outcome, MINUTE_MS};
+use scratch_folder::Scratch;
 use std::ffi::OsString;
-use std::io::{self, Write};
-use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::path::Path;
+use std::process::{Command, Stdio};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 fn program() -> Command {
     Command::new(env!("CARGO_BIN_EXE_leko"))
-}
-
-fn outcome_of(output: Output) -> Outcome {
-    Outcome {
-        code: output.status.code().expect("the program ended by itself"),
-        out: String::from_utf8(output.stdout).expect("stdout is text"),
-        err: String::from_utf8(output.stderr).expect("stderr is text"),
-    }
 }
 
 fn leko(args: &[&str]) -> Outcome {
@@ -31,38 +23,6 @@ fn leko(args: &[&str]) -> Outcome {
 
 fn clock_ms() -> i64 {
     i64::try_from(SystemTime::now().duration_since(UNIX_EPOCH).expect("a clock after 1970").as_millis()).expect("a moment that fits")
-}
-
-/// A folder that is removed, even when read-only, when the test ends.
-struct Scratch(PathBuf);
-
-impl Scratch {
-    fn new(label: &str) -> Scratch {
-        static COUNT: AtomicUsize = AtomicUsize::new(0);
-        let path = std::env::temp_dir().join(format!("leko-cli-{label}-{}-{}", std::process::id(), COUNT.fetch_add(1, Ordering::SeqCst)));
-        std::fs::create_dir_all(&path).expect("a scratch folder");
-        Scratch(path)
-    }
-
-    fn names(&self) -> Vec<String> {
-        let mut names: Vec<String> = std::fs::read_dir(&self.0).expect("readable").map(|entry| entry.expect("an entry").file_name().to_string_lossy().into_owned()).collect();
-        names.sort();
-        names
-    }
-
-    #[cfg(unix)]
-    fn set_mode(&self, mode: u32) {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&self.0, std::fs::Permissions::from_mode(mode)).expect("permissions");
-    }
-}
-
-impl Drop for Scratch {
-    fn drop(&mut self) {
-        #[cfg(unix)]
-        self.set_mode(0o755);
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
 }
 
 /// The program started in `work`, with its home, config, data and temporary folders in `home`.
@@ -132,32 +92,32 @@ fn running_twice_or_on_empty_input_changes_nothing_and_says_so() {
 
     // The same command twice: both are made, both say nothing was saved, and no file appears.
     for _ in 0..2 {
-        let run = leko_in(&work.0, &home.0, &["session", "30"]);
+        let run = leko_in(&work.path(), &home.path(), &["session", "30"]);
         assert_eq!((run.code, run.err.as_str()), (0, ""), "{}", run.err);
         assert!(run.out.contains("Nothing was saved or changed"), "{}", run.out);
         places_are_empty();
-        let by_voice = leko_in(&work.0, &home.0, &["voice", "--json", "start a 30 minute session"]);
+        let by_voice = leko_in(&work.path(), &home.path(), &["voice", "--json", "start a 30 minute session"]);
         assert_eq!(by_voice.code, 0, "{}", by_voice.err);
         places_are_empty();
     }
 
     // Empty input makes nothing: not even a default session; it says so and writes nothing.
     for words in ["", "   ", "\n"] {
-        let run = leko_in(&work.0, &home.0, &["voice", words]);
+        let run = leko_in(&work.path(), &home.path(), &["voice", words]);
         assert_eq!(run.code, 2, "{words:?}");
         assert_eq!(run.out, "", "{words:?}: no default session is printed");
         assert!(run.err.contains("Nothing was made"), "{words:?}: {}", run.err);
         places_are_empty();
     }
     for args in [vec!["voice"], vec!["session"], vec![], vec!["session", ""]] {
-        let run = leko_in(&work.0, &home.0, &args);
+        let run = leko_in(&work.path(), &home.path(), &args);
         assert_eq!((run.code, run.out.as_str()), (2, ""), "{args:?}");
         assert!(!run.err.is_empty(), "{args:?}: it says why");
         places_are_empty();
     }
 
     // Refused requests change nothing either.
-    let refused = leko_in(&work.0, &home.0, &["session", "0"]);
+    let refused = leko_in(&work.path(), &home.path(), &["session", "0"]);
     assert_eq!((refused.code, refused.out.as_str()), (1, ""));
     assert!(refused.err.contains("Nothing was made"), "{}", refused.err);
     places_are_empty();
@@ -167,9 +127,9 @@ fn running_twice_or_on_empty_input_changes_nothing_and_says_so() {
     {
         work.set_mode(0o555);
         home.set_mode(0o555);
-        let run = leko_in(&work.0, &home.0, &["session", "--json", "30"]);
+        let run = leko_in(&work.path(), &home.path(), &["session", "--json", "30"]);
         assert_eq!((run.code, run.err.as_str()), (0, ""), "{}", run.err);
-        let empty = leko_in(&work.0, &home.0, &["voice", ""]);
+        let empty = leko_in(&work.path(), &home.path(), &["voice", ""]);
         assert_eq!(empty.code, 2);
         places_are_empty();
         work.set_mode(0o755);
@@ -177,7 +137,7 @@ fn running_twice_or_on_empty_input_changes_nothing_and_says_so() {
     }
 
     // What the program started in the same folder printed twice is the same text but for the end.
-    let sentence = |_: u8| leko_in(&work.0, &home.0, &["session", "5"]).out;
+    let sentence = |_: u8| leko_in(&work.path(), &home.path(), &["session", "5"]).out;
     let (a, b) = (sentence(0), sentence(1));
     assert_eq!(a.split("ends at").next(), b.split("ends at").next());
     assert!(a.ends_with("add --json to see the rule and the seal.\n") && b.ends_with(a.rsplit_once("changed").expect("a tail").1), "{a:?} {b:?}");
@@ -188,22 +148,6 @@ fn leko_with_closed(args: &[&str], closed: Closed) -> Outcome {
     let mut command = program();
     command.args(args).stdin(Stdio::null());
     outcome_of(run_with_closed(command, closed))
-}
-
-/// An output that fails when written to and/or when flushed.
-struct Broken {
-    write_fails: bool,
-    flush_fails: bool,
-}
-
-impl Write for Broken {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-        if self.write_fails { Err(io::ErrorKind::BrokenPipe.into()) } else { Ok(buffer.len()) }
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        if self.flush_fails { Err(io::ErrorKind::BrokenPipe.into()) } else { Ok(()) }
-    }
 }
 
 /// The exit code and what went to a readable stderr when stdout fails as `out` says.

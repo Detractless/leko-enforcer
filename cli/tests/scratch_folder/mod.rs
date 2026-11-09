@@ -52,3 +52,8 @@ pub fn run_leko(home: &Scratch, temp: &Scratch, args: &[&str]) -> std::process::
         .output()
         .expect("the program starts")
 }
+
+/// `leko ARGS...` as a process on a computer whose zone is `tz`, stdin closed; the raw output.
+pub fn run_tz(args: &[&str], tz: &str) -> std::process::Output {
+    std::process::Command::new(env!("CARGO_BIN_EXE_leko")).args(args).stdin(std::process::Stdio::null()).env("TZ", tz).output().expect("the program starts")
+}

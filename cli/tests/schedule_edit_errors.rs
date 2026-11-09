@@ -1,10 +1,5 @@
-#[path = "../../core/tests/delay_sets/mod.rs"] mod delay_sets;
-#[path = "../../core/tests/zip_writer/mod.rs"] mod zip_writer;
-mod edit_runs;
-mod run_capture;
-mod scratch_folder;
-mod settings_builder;
-mod delay_runs;
+mod edit_support;
+use edit_support::*;
 use delay_runs::{FailAt, Step};
 use edit_runs::{command, NOW};
 use leko_cli::delayed_changes::run_settle::run_settle_with;
@@ -18,14 +13,7 @@ fn schedule_fixture(lock_hours: Option<i64>, with_sites: bool) -> (Scratch, std:
     } else {
         json!({"apps": ["com.one"]})
     };
-    let mut block = settings_builder::block(
-        "one",
-        covers,
-        json!([settings_builder::outside_hours("h", &["mon", "tue"], &[("09:00", "17:00")])])
-    );
-    if let Some(hours) = lock_hours {
-        block["lock"] = json!({"level": "wait", "hours": hours});
-    }
+    let block = schedule_block(covers, lock_hours);
     let file = settings_builder::write_settings(folder.path(), "settings.zip", &[block]);
     (folder, file)
 }

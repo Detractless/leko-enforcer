@@ -2,7 +2,7 @@
 //! argument, so every test can choose it and the same words always make the same session.
 
 use leko_core::test_support::{forbidden_reads, rust_files, CLOCK_SCAN_WORDS};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// What a source file may not mention outside `main.rs`: a clock, the environment a zone or a name
 /// is taken from, a time library, or a process exit.

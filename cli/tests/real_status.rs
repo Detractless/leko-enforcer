@@ -9,12 +9,11 @@ mod settings_builder;
 use leko_cli::run;
 use leko_core::config_time::zone_time::ZoneTime;
 use leko_core::sessions::utc_moment::{format_utc_moment, parse_utc_moment};
-use run_capture::{json_of, run_with_closed, Closed, Outcome};
+use run_capture::{json_of, run_with_closed, Broken, Closed, Outcome};
 use scratch_folder::Scratch;
 use serde_json::{json, Value};
 use settings_builder::{always, block, session, write_settings};
 use std::ffi::OsString;
-use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -140,22 +139,6 @@ fn snapshot(folder: &Path) -> Vec<(PathBuf, Vec<u8>, SystemTime)> {
 /// Runs the program with one output pointing at a pipe that nothing reads.
 fn leko_with_closed(args: &[&str], closed: Closed) -> Outcome {
     outcome_of(run_with_closed(command(args, Some("UTC")), closed))
-}
-
-/// An output that fails when written to and/or when flushed.
-struct Broken {
-    write_fails: bool,
-    flush_fails: bool,
-}
-
-impl Write for Broken {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-        if self.write_fails { Err(io::ErrorKind::BrokenPipe.into()) } else { Ok(buffer.len()) }
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        if self.flush_fails { Err(io::ErrorKind::BrokenPipe.into()) } else { Ok(()) }
-    }
 }
 
 fn run_into_broken(args: &[&str], out: &mut Broken) -> (i32, String) {

@@ -1,24 +1,7 @@
-mod edit_runs;
-mod run_capture;
-mod scratch_folder;
-mod settings_builder;
+mod edit_support;
+use edit_support::*;
 use edit_runs::{command, NOW};
-use scratch_folder::Scratch;
-use serde_json::json;
 
-fn schedule_fixture(lock_hours: Option<i64>) -> (Scratch, std::path::PathBuf) {
-    let folder = Scratch::new("edit-schedule-waiting");
-    let mut block = settings_builder::block(
-        "one",
-        json!({"apps": ["com.one"]}),
-        json!([settings_builder::outside_hours("h", &["mon", "tue"], &[("09:00", "17:00")])])
-    );
-    if let Some(hours) = lock_hours {
-        block["lock"] = json!({"level": "wait", "hours": hours});
-    }
-    let file = settings_builder::write_settings(folder.path(), "settings.zip", &[block]);
-    (folder, file)
-}
 
 #[test]
 fn waiting_schedule_changes_are_visible_cancellable_and_nonconflicting() {

@@ -227,6 +227,22 @@ def _normalize_duration(d: str) -> str:
         return "2h"
     return d
 
+def _read_completion(resp) -> Dict[str, Any]:
+    """Turns one chat-completion response into a spoken reply or a tool call."""
+    data = json.loads(resp.read().decode("utf-8"))
+    msg = data["choices"][0]["message"]
+    tool_calls = msg.get("tool_calls", [])
+    if not tool_calls:
+        return {"action": "reply", "content": msg.get("content", "")}
+    tc = tool_calls[0]
+    name = tc["function"]["name"]
+    args = json.loads(tc["function"]["arguments"])
+    if "duration" in args:
+        args["duration"] = _normalize_duration(args["duration"])
+    if "length" in args:
+        args["length"] = _normalize_duration(args["length"])
+    return {"action": "tool_call", "tool": name, "arguments": args}
+
 def parse_user_intent(user_text: str, history=None, memories=None) -> Dict[str, Any]:
     """Sends user text to LFM3 and returns the chosen tool name and arguments."""
     ensure_server()
@@ -251,19 +267,7 @@ def parse_user_intent(user_text: str, history=None, memories=None) -> Dict[str, 
                 data=json.dumps(payload).encode("utf-8"),
                 headers={"Content-Type": "application/json"})
             with urllib.request.urlopen(req, timeout=180) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                msg = data["choices"][0]["message"]
-                tool_calls = msg.get("tool_calls", [])
-                if not tool_calls:
-                    return {"action": "reply", "content": msg.get("content", "")}
-                tc = tool_calls[0]
-                name = tc["function"]["name"]
-                args = json.loads(tc["function"]["arguments"])
-                if "duration" in args:
-                    args["duration"] = _normalize_duration(args["duration"])
-                if "length" in args:
-                    args["length"] = _normalize_duration(args["length"])
-                return {"action": "tool_call", "tool": name, "arguments": args}
+                return _read_completion(resp)
     except Exception:
         pass
 
@@ -294,20 +298,7 @@ def parse_user_intent(user_text: str, history=None, memories=None) -> Dict[str, 
     )
 
     with urllib.request.urlopen(req, timeout=180) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-        msg = data["choices"][0]["message"]
-        tool_calls = msg.get("tool_calls", [])
-        if not tool_calls:
-            return {"action": "reply", "content": msg.get("content", "")}
-        
-        tc = tool_calls[0]
-        name = tc["function"]["name"]
-        args = json.loads(tc["function"]["arguments"])
-        if "duration" in args:
-            args["duration"] = _normalize_duration(args["duration"])
-        if "length" in args:
-            args["length"] = _normalize_duration(args["length"])
-        return {"action": "tool_call", "tool": name, "arguments": args}
+        return _read_completion(resp)
 
 try:
     from .llm_request import parse_user_intent_safe

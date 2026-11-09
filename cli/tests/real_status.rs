@@ -9,7 +9,7 @@ mod settings_builder;
 use leko_cli::run;
 use leko_core::config_time::zone_time::ZoneTime;
 use leko_core::sessions::utc_moment::{format_utc_moment, parse_utc_moment};
-use run_capture::{json_of, Outcome};
+use run_capture::{json_of, run_with_closed, Closed, Outcome};
 use scratch_folder::Scratch;
 use serde_json::{json, Value};
 use settings_builder::{always, block, session, write_settings};
@@ -137,21 +137,9 @@ fn snapshot(folder: &Path) -> Vec<(PathBuf, Vec<u8>, SystemTime)> {
     found
 }
 
-enum Closed {
-    Stdout,
-    Stderr,
-}
-
 /// Runs the program with one output pointing at a pipe that nothing reads.
 fn leko_with_closed(args: &[&str], closed: Closed) -> Outcome {
-    let (reader, writer) = io::pipe().expect("a pipe");
-    drop(reader);
-    let mut command = command(args, Some("UTC"));
-    match closed {
-        Closed::Stdout => command.stdout(Stdio::from(writer)).stderr(Stdio::piped()),
-        Closed::Stderr => command.stderr(Stdio::from(writer)).stdout(Stdio::piped()),
-    };
-    outcome_of(command.output().expect("the program starts"))
+    outcome_of(run_with_closed(command(args, Some("UTC")), closed))
 }
 
 /// An output that fails when written to and/or when flushed.

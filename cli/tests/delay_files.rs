@@ -3,29 +3,19 @@
 //! the folder as they were. A bad waiting file is never replaced by a fresh one (that would lose the
 //! parked changes), an empty file is not "nothing waiting", and a huge file is not read into memory.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::*;
 
 use delay_runs::{one_line, record, settle, switch_off, waiting_of, write_waiting, write_zip, NOW};
 use delay_sets::{locked_block, zip_with};
 use leko_cli::session::session_report::shown;
 use leko_core::delayed_changes::waiting_file::read_waiting;
-use leko_core::io::zip_check::{check_zip, ZipVerdict};
 use leko_core::io::zip_reader::MAX_TOTAL_BYTES;
 use run_capture::Outcome;
 use scratch_folder::Scratch;
 use serde_json::Value;
-use std::collections::HashSet;
 use std::path::Path;
 use zip_writer::zip_of;
-
-const NOTHING_SAVED: &str = " Nothing was saved.\n";
-const LEFT_ALONE: &str = " It was left as it was.";
 
 /// A file as a test sees it: its length, its modified time and (for a small file) its bytes.
 type Seen = (String, u64, Option<std::time::SystemTime>, Option<Vec<u8>>);
@@ -58,19 +48,6 @@ fn assert_left_alone(folder: &Scratch, file: &Path, expected: &str, what: &str) 
         assert_eq!(one_line(&run.err), expected, "{which}");
         assert_eq!(seen(folder.path()), before, "{which}: no file was written, replaced, made or removed");
     }
-}
-
-/// The core's sentence for refusing these bytes as a settings zip.
-fn core_refusal(bytes: &[u8]) -> String {
-    match check_zip(bytes, &HashSet::new()) {
-        ZipVerdict::Refused(refusal) => refusal.sentence,
-        ZipVerdict::Read(_) => panic!("the core was expected to refuse these {} bytes", bytes.len()),
-    }
-}
-
-fn nothing_saved(sentence: &str) -> String {
-    let stop = if sentence.ends_with(['.', '!', '?']) { "" } else { "." };
-    format!("{sentence}{stop}{NOTHING_SAVED}")
 }
 
 #[test]

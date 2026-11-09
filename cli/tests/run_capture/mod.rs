@@ -65,3 +65,27 @@ pub fn ends_in_json(outcome: &Outcome) -> i64 {
     let json = json_of(outcome);
     moment(json["rule"]["endsAt"].as_str().expect("the rule has endsAt"))
 }
+
+/// Which of the two outputs is closed (nothing is reading it).
+#[derive(Clone, Copy)]
+pub enum Closed {
+    Stdout,
+    Stderr,
+}
+
+/// Runs `built` with one output pointing at a pipe that nothing reads, and returns the raw output.
+pub fn run_with_closed(mut command: std::process::Command, closed: Closed) -> std::process::Output {
+    let (reader, writer) = std::io::pipe().expect("a pipe");
+    drop(reader);
+    match closed {
+        Closed::Stdout => {
+            command.stdout(std::process::Stdio::from(writer));
+            command.stderr(std::process::Stdio::piped());
+        }
+        Closed::Stderr => {
+            command.stderr(std::process::Stdio::from(writer));
+            command.stdout(std::process::Stdio::piped());
+        }
+    }
+    command.output().expect("the program starts")
+}

@@ -4,27 +4,18 @@
 //! problem. A bad waiting file is never read as "nothing parked", since that would miss a switch-off that
 //! is still waiting; with and without `--write`.
 
-mod delay_runs;
-#[path = "../../core/tests/delay_sets/mod.rs"]
-mod delay_sets;
-mod run_capture;
-mod scratch_folder;
-#[path = "../../core/tests/zip_writer/mod.rs"]
-mod zip_writer;
+mod parked_change_support;
+use parked_change_support::*;
 
 use delay_runs::{one_line, snapshot, switch_on, waiting_of, write_zip};
 use delay_sets::{off_block, zip_with};
 use leko_cli::session::session_report::shown;
-use leko_core::io::zip_check::{check_zip, ZipVerdict};
 use leko_core::io::zip_reader::MAX_TOTAL_BYTES;
 use scratch_folder::Scratch;
 use serde_json::json;
-use std::collections::HashSet;
 use std::path::Path;
 use zip_writer::zip_of;
 
-const NOTHING_SAVED: &str = " Nothing was saved.\n";
-const LEFT_ALONE: &str = " It was left as it was.";
 const GOOD: &str = r#"{"kind":"switch-off","block":"a","requestedAt":"2026-11-02T14:00:00Z","dueAt":"2026-11-03T14:00:00Z"}"#;
 
 /// Runs a switch-on of `a`, with and without `--write`: each must refuse with `expected` and leave
@@ -37,18 +28,6 @@ fn assert_left_alone(folder: &Scratch, file: &Path, expected: &str, what: &str) 
         assert_eq!(one_line(&run.err), expected, "{what} {flags:?}");
         assert_eq!(snapshot(folder.path()), before, "{what} {flags:?}: no file was written, replaced, made or removed");
     }
-}
-
-fn core_refusal(bytes: &[u8]) -> String {
-    match check_zip(bytes, &HashSet::new()) {
-        ZipVerdict::Refused(refusal) => refusal.sentence,
-        ZipVerdict::Read(_) => panic!("the core was expected to refuse these {} bytes", bytes.len()),
-    }
-}
-
-fn nothing_saved(sentence: &str) -> String {
-    let stop = if sentence.ends_with(['.', '!', '?']) { "" } else { "." };
-    format!("{sentence}{stop}{NOTHING_SAVED}")
 }
 
 #[test]

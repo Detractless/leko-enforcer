@@ -10,7 +10,7 @@ mod settings_builder;
 use add_block_runs::{assert_core_reads, entries_of, saved_block};
 use leko_cli::run;
 use leko_core::sessions::utc_moment::parse_utc_moment;
-use run_capture::Outcome;
+use run_capture::{run_with_closed, Closed, Outcome};
 use scratch_folder::Scratch;
 use serde_json::json;
 use settings_builder::{always, block, write_settings};
@@ -43,21 +43,9 @@ fn clock_ms() -> i64 {
     i64::try_from(SystemTime::now().duration_since(UNIX_EPOCH).expect("a clock after 1970").as_millis()).expect("a moment that fits")
 }
 
-enum Closed {
-    Stdout,
-    Stderr,
-}
-
 /// Runs the program with one output pointing at a pipe that nothing reads.
 fn leko_with_closed(args: &[&str], closed: Closed) -> Outcome {
-    let (reader, writer) = io::pipe().expect("a pipe");
-    drop(reader);
-    let mut command = command(args);
-    match closed {
-        Closed::Stdout => command.stdout(Stdio::from(writer)).stderr(Stdio::piped()),
-        Closed::Stderr => command.stderr(Stdio::from(writer)).stdout(Stdio::piped()),
-    };
-    outcome_of(command.output().expect("the program starts"))
+    outcome_of(run_with_closed(command(args), closed))
 }
 
 /// An output that fails when written to and/or when flushed.

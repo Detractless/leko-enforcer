@@ -112,4 +112,6 @@ pub mod config {
     pub mod strict_fields;
 }
 
+pub mod test_support;
+
 pub use io::zip_reader::{open_zip, OpenedZip};

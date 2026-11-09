@@ -5,7 +5,7 @@
 mod run_capture;
 
 use leko_cli::run;
-use run_capture::{ends_in_json, json_of, moment, Outcome, MINUTE_MS};
+use run_capture::{ends_in_json, json_of, moment, run_with_closed, Closed, Outcome, MINUTE_MS};
 use std::ffi::OsString;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -183,24 +183,11 @@ fn running_twice_or_on_empty_input_changes_nothing_and_says_so() {
     assert!(a.ends_with("add --json to see the rule and the seal.\n") && b.ends_with(a.rsplit_once("changed").expect("a tail").1), "{a:?} {b:?}");
 }
 
-/// Which of the two outputs is closed (nothing is reading it).
-#[derive(Clone, Copy)]
-enum Closed {
-    Stdout,
-    Stderr,
-}
-
 /// Runs the program with one output pointing at a pipe that nothing reads.
 fn leko_with_closed(args: &[&str], closed: Closed) -> Outcome {
-    let (reader, writer) = io::pipe().expect("a pipe");
-    drop(reader);
     let mut command = program();
     command.args(args).stdin(Stdio::null());
-    match closed {
-        Closed::Stdout => command.stdout(Stdio::from(writer)).stderr(Stdio::piped()),
-        Closed::Stderr => command.stderr(Stdio::from(writer)).stdout(Stdio::piped()),
-    };
-    outcome_of(command.output().expect("the program starts"))
+    outcome_of(run_with_closed(command, closed))
 }
 
 /// An output that fails when written to and/or when flushed.

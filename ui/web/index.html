@@ -8,36 +8,33 @@
   <link rel="stylesheet" href="styles/circle.css">
 </head>
 <body>
-  <div class="viewport-container">
-    <div id="stage" class="circle-stage state-idle">
-      <div class="ripple ripple-1"></div>
-      <div class="ripple ripple-2"></div>
-      <div class="ripple ripple-3"></div>
-      <div class="ring-core"></div>
-      <div id="status" class="status-pill">Ready</div>
-    </div>
+  <main class="viewport-container">
+    <button id="stage" class="circle-stage state-idle" type="button"
+            aria-label="Hold to speak. Release to send. Press Escape to cancel.">
+      <span class="ripple ripple-1" aria-hidden="true"></span>
+      <span class="ripple ripple-2" aria-hidden="true"></span>
+      <span class="ripple ripple-3" aria-hidden="true"></span>
+      <span class="ring-core" aria-hidden="true"></span>
+    </button>
+    <div id="status" class="visually-hidden" role="status" aria-live="polite">Ready</div>
 
-    <!-- Minimalist Utility Controls -->
-    <div class="controls-bar">
-      <button id="btn-mute" class="ctrl-btn" title="Toggle microphone mute">Mute</button>
-      <button id="btn-stop" class="ctrl-btn" title="Interrupt speech or reset draft">Stop</button>
-    </div>
-
-    <!-- Minimalist Plan Confirmation Card -->
-    <div id="draft-card" class="draft-card">
+    <section id="draft-card" class="draft-card" aria-hidden="true" role="group"
+             aria-labelledby="draft-title" aria-describedby="draft-details">
       <div class="card-header">
-        <span class="card-title">Social Media Block</span>
-        <span class="card-badge">2h Lock</span>
+        <span id="draft-title" class="visually-hidden card-title">Pending action</span>
+        <span class="visually-hidden card-badge"></span>
       </div>
-      <div class="card-details">
-        Blocks reddit.com, twitter.com until 02:45 AM.
-      </div>
+      <div id="draft-details" class="visually-hidden card-details"></div>
       <div class="card-actions">
-        <button id="btn-cancel" class="btn btn-secondary">Dismiss</button>
-        <button id="btn-confirm" class="btn btn-primary">Confirm & Lock</button>
+        <button id="btn-cancel" class="icon-button" type="button" aria-label="Cancel pending action">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+        <button id="btn-confirm" class="icon-button confirm" type="button" aria-label="Confirm pending action">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+        </button>
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <script src="app.js"></script>
   <script type="module" src="circle-controller.js"></script>

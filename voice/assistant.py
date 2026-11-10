@@ -59,6 +59,7 @@ __all__ = [
     'is_audio_muted_for_echo',
     'set_playback_state',
     'HandsfreeTurnManager',
+    'PushToTalkTurnManager',
     'TurnDetector',
     'verbalize_for_speech',
 ]
@@ -182,12 +183,22 @@ def stop_playback():
         pass
     set_playback_state(False, post_mute_s=0.0 if _echo_audio.available else 0.25)
 
-def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None):
+def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None,
+          playback_event_sink: Optional[Callable[[dict], None]] = None):
     """Speaks text using Maeve via sounddevice with interrupt support and room echo protection."""
+    def emit(event, **details):
+        if playback_event_sink:
+            try:
+                playback_event_sink({"status": event, **details})
+            except Exception as exc:
+                print(f"[Session log warning] playback event could not be saved: {exc}", file=sys.stderr, flush=True)
+
     if is_cancelled and is_cancelled():
+        emit("skipped", reason="cancelled_before_synthesis")
         return
     spoken_text = verbalize_for_speech(text)
     if not spoken_text:
+        emit("skipped", reason="empty_after_verbalization")
         return
     try:
         tts = get_tts()
@@ -200,7 +211,11 @@ def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None):
         print(f"\n[Maeve speaking] (expected duration: {duration_s:.2f}s):\n\"{spoken_text}\"", flush=True)
         set_echo_cancellation_enabled(_echo_audio.available)
         set_playback_state(True)
+        emit("started", text=spoken_text, voice=VOICE_NAME, sample_rate=tts.sample_rate,
+             expected_duration_seconds=duration_s)
+        play_started = time.monotonic()
         if _output_player.play(pcm, tts.sample_rate, is_cancelled):
+            emit("completed", elapsed_seconds=round(time.monotonic() - play_started, 3))
             return
         set_echo_cancellation_enabled(False)
         play_start_t = time.monotonic()
@@ -220,10 +235,13 @@ def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None):
         elapsed_s = time.monotonic() - play_start_t
         if was_interrupted:
             print(f"[Maeve playback interrupted]: stopped at {elapsed_s:.2f}s / {duration_s:.2f}s", flush=True)
+            emit("interrupted", elapsed_seconds=round(elapsed_s, 3), expected_duration_seconds=duration_s)
         else:
             print(f"[Maeve playback completed]: finished full {elapsed_s:.2f}s / {duration_s:.2f}s", flush=True)
+            emit("completed", elapsed_seconds=round(elapsed_s, 3), expected_duration_seconds=duration_s)
     except Exception as e:
         print(f"[Maeve audio error]: {e}", file=sys.stderr, flush=True)
+        emit("error", error={"type": type(e).__name__, "message": str(e)})
         stop_playback()
     finally:
         set_playback_state(False, post_mute_s=0.0 if _echo_audio.available else 0.25)
@@ -275,6 +293,7 @@ def process_query(*args, **kwargs) -> str:
     return run_query(*args, **kwargs)
 
 from audio_io.capture_gate import CaptureGate
+from audio_io.push_to_talk.push_to_talk import PushToTalkTurnManager as _PushToTalkTurnManager
 
 class HandsfreeTurnManager(CaptureGate):
     def __init__(self, on_turn_complete, on_speech_onset=None, sample_rate=16000,
@@ -282,6 +301,26 @@ class HandsfreeTurnManager(CaptureGate):
         detector = TurnDetector(on_speech_onset=on_speech_onset, speech_detector=speech_detector, continuation_s=continuation_s)
         super().__init__(sd.RawInputStream, detector, _echo_audio, on_turn_complete,
                          sample_rate, chunk_size, on_armed=on_armed)
+
+    def start(self):
+        global _active_turn_detector
+        _active_turn_detector = self.detector
+        super().start()
+
+    def stop(self):
+        global _active_turn_detector
+        super().stop()
+        if _active_turn_detector is self.detector:
+            _active_turn_detector = None
+
+
+class PushToTalkTurnManager(_PushToTalkTurnManager):
+    def __init__(self, on_turn_complete, on_speech_onset=None, on_capture_error=None,
+                 sample_rate=16000, chunk_size=1280, grace_s=2.0):
+        super().__init__(sd.RawInputStream, _echo_audio, on_turn_complete,
+                         sample_rate=sample_rate, chunk_size=chunk_size,
+                         on_speech_onset=on_speech_onset,
+                         on_capture_error=on_capture_error, grace_s=grace_s)
 
     def start(self):
         global _active_turn_detector

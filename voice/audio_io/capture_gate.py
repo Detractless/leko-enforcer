@@ -50,12 +50,13 @@ def _present_audio_stats(stats):
 
 class CaptureGate:
     def __init__(self, stream_factory, detector, echo_audio, on_turn_complete,
-                 sample_rate=16000, chunk_size=2560, on_armed=None):
+                 sample_rate=16000, chunk_size=2560, on_armed=None, on_capture_error=None):
         self.stream_factory = stream_factory
         self.detector = detector
         self.echo_audio = echo_audio
         self.on_turn_complete = on_turn_complete
         self.on_armed = on_armed
+        self.on_capture_error = on_capture_error
         self._armed = False
         self.sample_rate, self.chunk_size = sample_rate, chunk_size
         self._cv = threading.Condition(threading.RLock())
@@ -85,14 +86,21 @@ class CaptureGate:
         with self._cv:
             return self._busy is not None or self._closed
 
-    def _clear(self):
+    def _capture_enabled(self):
+        return bool(getattr(self.detector, "capture_enabled", False))
+
+    def _uses_manual_capture(self):
+        return hasattr(self.detector, "capture_enabled")
+
+    def _clear(self, preserve_detector=False):
         self._raw_buf.clear()
         self._pending_raw_buf.clear()
         self._raw_preroll_stats.clear()
         self._active_raw_stats = None
         self._status_preroll.clear()
         self._active_status_warnings = None
-        self.detector.reset()
+        if not preserve_detector:
+            self.detector.reset()
         self.echo_audio.reset_buffers()
 
     @staticmethod
@@ -135,14 +143,14 @@ class CaptureGate:
             self._cv.notify_all()
             return self._busy
 
-    def finish_response(self, token, delay=None):
+    def finish_response(self, token, delay=None, preserve_capture=False):
         with self._cv:
             if token != self._busy or token is None:
                 return
             if delay is None:
                 delay = 0.0 if self.echo_audio.available else 0.25
             self._busy = None
-            self._clear()
+            self._clear(preserve_detector=preserve_capture)
             self._resume_at = time.monotonic() + delay
             self._cv.notify_all()
 
@@ -176,7 +184,8 @@ class CaptureGate:
             self._thread.join()
 
     def _allowed(self):
-        return (self.is_running and not self._closed and self._busy is None
+        return (self.is_running and not self._closed
+                and (self._busy is None or self._capture_enabled())
                 and not self._muted and time.monotonic() >= self._resume_at)
 
     def _note_status_warning(self, warning):
@@ -247,7 +256,8 @@ class CaptureGate:
     def _callback(self, epoch, indata, frames, time_info, status):
         # Gate before AEC, VAD, or pre-roll. Old streams can never feed a new turn.
         with self._cv:
-            if epoch != self._epoch or not self._allowed():
+            if (epoch != self._epoch or not self._allowed()
+                    or (self._uses_manual_capture() and not self._capture_enabled())):
                 return
             if not self._armed:
                 self._armed = True
@@ -284,13 +294,13 @@ class CaptureGate:
             with self._cv:
                 # Open the device as soon as a turn ends so its startup cost
                 # overlaps the echo-decay window; audio stays gated in _allowed().
-                while not self._closed and (self._busy is not None or self._muted):
+                while not self._closed and ((self._busy is not None and not self._capture_enabled()) or self._muted):
                     self._cv.wait()
                 if self._closed:
                     return
                 self._epoch += 1
                 epoch = self._epoch
-                self._clear()
+                self._clear(preserve_detector=self._capture_enabled())
                 self._paused.clear()
             stream = None
             try:
@@ -301,12 +311,17 @@ class CaptureGate:
                 stream.start()
                 with self._cv:
                     while (epoch == self._epoch and not self._closed
-                           and self._busy is None and not self._muted):
+                           and (self._busy is None or self._capture_enabled()) and not self._muted):
                         self._cv.wait()
             except Exception as exc:
                 print(f"[Microphone error]: {exc}", file=sys.stderr)
                 with self._cv:
                     self._muted = True
+                if self.on_capture_error:
+                    try:
+                        self.on_capture_error(exc)
+                    except Exception:
+                        pass
             finally:
                 try:
                     if stream:
@@ -319,5 +334,10 @@ class CaptureGate:
                     print(f"[Microphone cleanup error]: {exc}", file=sys.stderr)
                     with self._cv:
                         self._closed = True
+                    if self.on_capture_error:
+                        try:
+                            self.on_capture_error(exc)
+                        except Exception:
+                            pass
                 self.stream = None
                 self._paused.set()

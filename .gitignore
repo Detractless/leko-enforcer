@@ -1,5 +1,7 @@
 target/
 .DS_Store
 *.bak
+/settings.zip
+/settings.zip.waiting.json
 __pycache__/
 *.pyc

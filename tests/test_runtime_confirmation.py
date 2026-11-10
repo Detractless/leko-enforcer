@@ -3,8 +3,10 @@ import importlib
 import sys
 import types
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 import test_conversation as fixtures
+from session.session_log import SessionLog
 
 
 def _submit_inline(fn, on_done=None):
@@ -30,13 +32,13 @@ class RuntimeConfirmationTests(unittest.TestCase):
         ui({"action": "query", "text": "block reddit"})
         first_id = self.state.pending["id"]
         voice.transcribe_audio.return_value = "yep"
-        callbacks["on_turn_complete"](None, 1)
+        callbacks["on_turn_complete"]([0.1], 1)
         self.assertEqual(len(self.writes()), 1)
         ui({"action": "confirm", "draft": {"id": first_id}})
         self.assertEqual(len(self.writes()), 1)
         before = self.model.call_count
         voice.transcribe_audio.return_value = "um"
-        callbacks["on_turn_complete"](None, 1)
+        callbacks["on_turn_complete"]([0.1], 1)
         self.assertEqual(self.model.call_count, before)
         for action in ("cancel", "stop", "mute"):
             ui({"action": "query", "text": "block reddit"})
@@ -69,11 +71,14 @@ class RuntimeConfirmationTests(unittest.TestCase):
         drive = lambda *_: self._drive_ui_scenario(callbacks, voice)
         with patch.multiple(voice, create=True,
                 REPO_ROOT=fixtures.Path("/fake"), SerializedTurnWorker=lambda: worker,
-                HandsfreeTurnManager=manager_factory, acquire_single_instance_lock=lambda: None,
+                HandsfreeTurnManager=manager_factory, PushToTalkTurnManager=manager_factory,
+                acquire_single_instance_lock=lambda: None,
                 ensure_server=lambda: None, _echo_audio=types.SimpleNamespace(available=False),
                 _is_muted=False, _is_speaking=False, _playback_active=False, stop_playback=lambda: None,
                 speak=lambda *a, **kw: None, transcribe_audio=MagicMock(),
                 process_query=fixtures.process_query), patch.object(
+                    runtime, "prepare_settings", return_value="/fake/settings.zip"), patch.object(
+                    runtime, "SessionLog", side_effect=lambda: SessionLog(Path(self.tmp.name) / "sessions")), patch.object(
                     runtime, "Conversation", return_value=self.state), patch.object(
                     runtime, "UIPipelineBridge", return_value=self.bridge), patch.object(
                     runtime.time, "sleep"), patch("builtins.input", side_effect=drive), patch.object(

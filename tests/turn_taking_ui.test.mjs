@@ -8,18 +8,20 @@ import { runPython } from './python-runner.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
 
-test('ui_renders_centered_label_and_controls', async () => {
+test('ui_renders_text_free_hold_controls', async () => {
   const html = readFileSync(resolve(REPO_ROOT, 'ui/web/index.html'), 'utf8');
-
-  // AC-001: Status text is located inside the circle stage
-  assert.match(html, /<div[^>]*id=["']stage["'][^>]*>[\s\S]*?<div[^>]*id=["']status["']/, 'Status text must be nested inside stage');
-
-  // Control buttons exist in the DOM
-  assert.match(html, /id=["']btn-mute["']/, 'Mute button must exist in index.html');
-  assert.match(html, /id=["']btn-stop["']/, 'Stop button must exist in index.html');
+  assert.match(html, /<button[^>]*id=["']stage["'][^>]*aria-label=/);
+  assert.match(html, /id=["']status["'][^>]*class=["']visually-hidden["'][^>]*aria-live=/);
+  assert.doesNotMatch(html, /btn-mute|btn-stop|>\s*(Mute|Stop)\s*</i);
+  const visible = html
+    .replace(/<title>[\s\S]*?<\/title>/i, '')
+    .replace(/<(?:div|span)[^>]*class=["'][^"']*visually-hidden[^"']*["'][^>]*>[\s\S]*?<\/(?:div|span)>/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, '');
+  assert.equal(visible, '', 'Only hidden accessible text may remain in the visible UI');
 });
 
-test('controls_trigger_mute_and_stop_ipc_actions', async () => {
+test('escape_cancel_sends_unsubmitted_audio_cancel', async () => {
   const { CircleController, LekoBridge } = await import('../ui/web/app.js');
 
   const stage = { className: 'circle-stage state-idle' };
@@ -36,20 +38,8 @@ test('controls_trigger_mute_and_stop_ipc_actions', async () => {
     }
   };
 
-  // Test Mute toggle
-  bridge.toggleMute();
-  assert.equal(bridge.isMuted, true);
-  assert.equal(postedActions[postedActions.length - 1].action, 'mute');
-  assert.equal(postedActions[postedActions.length - 1].muted, true);
-
-  bridge.toggleMute();
-  assert.equal(bridge.isMuted, false);
-  assert.equal(postedActions[postedActions.length - 1].action, 'mute');
-  assert.equal(postedActions[postedActions.length - 1].muted, false);
-
-  // Test Stop action
-  bridge.stop();
-  assert.equal(postedActions[postedActions.length - 1].action, 'stop');
+  bridge.cancelUnsubmitted();
+  assert.equal(postedActions[postedActions.length - 1].action, 'ptt_cancel');
   assert.equal(controller.currentState, 'idle');
 });
 

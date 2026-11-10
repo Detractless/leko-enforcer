@@ -1,13 +1,14 @@
 //! Preview and explicit installation, inspection, and removal of the user's LaunchAgent.
 use super::agent_control::{Backend, Launchctl, Service};
 use super::agent_plist::{self, FILE_NAME, LABEL};
+use crate::settings_store;
 use crate::status::settings_file::read_settings;
 use crate::status::zone_choice::choose_zone;
 use std::ffi::OsString;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-const USAGE: &str = "Usage: leko agent install --executable PATH --settings PATH [--write] | status | uninstall [--write]";
+const USAGE: &str = "Usage: leko agent install --executable PATH [--settings PATH] [--write] | status | uninstall [--write]";
 
 fn paths(home: &Path) -> Result<(PathBuf, PathBuf), String> {
     if !home.is_absolute() { return Err("The home folder must be an absolute path.".into()); }
@@ -64,7 +65,10 @@ fn install(args: &[String], home: &Path, zone: Option<&str>, out: &mut dyn Write
         i += 1;
     }
     let exe = exe.ok_or("An executable path is required.")?;
-    let settings = settings.ok_or("A settings path is required.")?;
+    let settings = match settings {
+        Some(path) => path,
+        None => settings_store::default_path(Some(home.as_os_str()))?,
+    };
     check_executable(&exe)?;
     if !settings.is_absolute() { return Err("The settings path must be absolute.".into()); }
     read_settings(settings.to_str().ok_or("The settings path is not valid text.")?)?;

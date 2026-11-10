@@ -24,6 +24,38 @@ print("OK")
   assert.ok(stdout.includes('OK'));
 });
 
+test('pauses_at_clear_boundaries_without_rephrasing', async () => {
+  const script = `
+from voice.verbalizer import verbalize_for_speech
+
+source = "Choose apps, websites, or device blocking — lock, log out, or shut down."
+spoken = verbalize_for_speech(source)
+assert "..." in spoken
+assert spoken.count("...") == 1, spoken
+assert spoken.count(",") == source.count(","), spoken
+assert "Choose apps, websites, or device blocking" in spoken
+assert "lock, log out, or shut down." in spoken
+print("OK")
+`;
+  const { code, stdout, stderr } = await runPython(script);
+  assert.equal(code, 0, `Clear-boundary cadence test failed: ${stderr}`);
+  assert.ok(stdout.includes('OK'));
+});
+
+test('prose_colons_use_ellipsis_pause_but_clock_and_technical_colons_stay_intact', async () => {
+  const script = `
+from voice.verbalizer import verbalize_for_speech as v
+spoken = v("For which schedule: 9 a.m.-5 p.m.? It is 11:32 PM. Host localhost:8765; hash sha256:deadbeef.")
+assert "schedule... nine a.m. to five p.m.?" in spoken, spoken
+assert "eleven thirty-two p.m." in spoken, spoken
+assert "localhost:8765" in spoken and "sha256:deadbeef" in spoken, spoken
+print("OK")
+`;
+  const { code, stdout, stderr } = await runPython(script);
+  assert.equal(code, 0, `Colon and clock-range cadence test failed: ${stderr}`);
+  assert.ok(stdout.includes('OK'));
+});
+
 test('sentence_boundaries_maintain_cadence_spacing', async () => {
   const script = `
 from voice.verbalizer import verbalize_for_speech

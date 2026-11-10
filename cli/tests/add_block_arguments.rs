@@ -10,6 +10,7 @@ mod settings_builder;
 
 use add_block_runs::{add, plain, APP, NOW};
 use run_capture::{moment, run_at, run_os};
+use leko_cli::session::session_arguments::USAGE;
 use scratch_folder::Scratch;
 use settings_builder::write_settings;
 use std::ffi::OsString;
@@ -107,7 +108,7 @@ fn wrong_or_missing_add_block_arguments_print_usage_on_stderr_and_exit_2() {
         let first = run.err.lines().next().unwrap_or("");
         assert!(!first.is_empty() && !first.starts_with("Usage:"), "{shown:?}: a sentence comes before the usage: {}", run.err);
         assert!(!run.err.contains("No such file") && !run.err.contains("not found"), "{shown:?}: no file was read: {}", run.err);
-        assert!(run.err.len() < 1_500, "{shown:?}: a long argument is not echoed whole ({} bytes)", run.err.len());
+        assert!(run.err.len() < USAGE.len() + 200, "{shown:?}: a long argument is not echoed whole ({} bytes)", run.err.len());
     }
 
     // An argument that is not valid text is refused, not a crash (a lone 0xFF is not UTF-8).

@@ -22,6 +22,9 @@ def confirmation(text):
 class Conversation:
     def __init__(self, memory=None, clock=time.monotonic):
         self.memory = memory if memory is not None else LocalMemory()
+        self.session_log = None
+        self.current_turn_id = None
+        self.current_input_source = "unknown"
         self.clock = clock
         self.history = deque(maxlen=6)
         self.pending = None
@@ -38,9 +41,10 @@ class Conversation:
         self.history.extend([{"role": "user", "content": query[:400]},
                              {"role": "assistant", "content": reply[:400]}])
 
-    def stage(self, intent, settings):
+    def stage(self, intent, settings, origin_turn_id=None):
         self.pending = {"id": uuid.uuid4().hex, "intent": deepcopy(intent),
-                        "settings": settings, "expires": self.clock() + 120}
+                        "settings": settings, "expires": self.clock() + 120,
+                        "origin_turn_id": origin_turn_id}
         return self.pending["id"]
 
     def take(self, expected_id=None):

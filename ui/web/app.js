@@ -30,42 +30,30 @@ class CircleController {
   }
 
   setState(state, customLabel = null) {
-    const validStates = ['idle', 'listening', 'thinking', 'speaking', 'confirmed'];
+    const validStates = ['idle', 'listening', 'held', 'grace', 'thinking', 'speaking', 'confirmed', 'error', 'loading'];
     if (!validStates.includes(state)) {
       throw new Error(`Invalid circle state: ${state}`);
     }
 
     this.currentState = state;
     if (this.stageEl) {
-      const isMuted = this.stageEl.classList && this.stageEl.classList.contains('is-muted');
-      this.stageEl.className = `circle-stage state-${state}${isMuted ? ' is-muted' : ''}`;
+      this.stageEl.className = `circle-stage state-${state}`;
     }
 
     const defaultLabels = {
       idle: 'Ready',
       listening: 'Listening...',
+      held: 'Recording. Release to send.',
+      grace: 'Paused. Hold again to continue, or wait to send.',
       thinking: 'Thinking...',
       speaking: 'Maeve Speaking...',
-      confirmed: 'Locked & Saved'
+      confirmed: 'Locked & Saved',
+      error: 'Microphone unavailable. Try again or restart the app.',
+      loading: 'Loading.'
     };
 
     if (this.statusEl) {
       this.statusEl.textContent = customLabel || defaultLabels[state];
-    }
-
-    if (typeof document !== 'undefined') {
-      const btnStop = document.getElementById('btn-stop');
-      if (btnStop) {
-        if (state === 'speaking') {
-          btnStop.textContent = 'Interrupt';
-          btnStop.classList.add('btn-interrupt');
-          btnStop.title = 'Interrupt speech (Space)';
-        } else {
-          btnStop.textContent = 'Stop';
-          btnStop.classList.remove('btn-interrupt');
-          btnStop.title = 'Interrupt speech or reset draft (Space)';
-        }
-      }
     }
   }
 
@@ -83,7 +71,7 @@ class CircleController {
     if (titleEl) titleEl.textContent = draft.name || 'Block Action';
     if (badgeEl) badgeEl.textContent = draft.kind || 'Rule';
     if (detailsEl) detailsEl.textContent = draft.description || '';
-
+    if (this.cardEl.setAttribute) this.cardEl.setAttribute('aria-hidden', 'false');
     this.cardEl.classList.add('visible');
   }
 
@@ -91,6 +79,7 @@ class CircleController {
     this.currentDraft = null;
     if (this.cardEl && this.cardEl.classList) {
       this.cardEl.classList.remove('visible');
+      if (this.cardEl.setAttribute) this.cardEl.setAttribute('aria-hidden', 'true');
     }
   }
 
@@ -100,6 +89,7 @@ class CircleController {
       this.onConfirmCallback(draft);
     }
     this.hideDraft();
+    if (this.stageEl && this.stageEl.focus) this.stageEl.focus();
     if (draft) this.setState('thinking', 'Saving...');
   }
 
@@ -109,6 +99,7 @@ class CircleController {
       this.onCancelCallback(draft);
     }
     this.hideDraft();
+    if (this.stageEl && this.stageEl.focus) this.stageEl.focus();
     this.setState('idle');
   }
 }
@@ -118,7 +109,6 @@ class LekoBridge {
   constructor(controller, backendUrl = 'http://127.0.0.1:18080') {
     this.controller = controller;
     this.backendUrl = backendUrl;
-    this.isMuted = false;
 
     // Attach global listener for native WebView IPC script evaluation
     if (typeof window !== 'undefined') {
@@ -134,27 +124,9 @@ class LekoBridge {
     return payload;
   }
 
-  toggleMute() {
-    this.isMuted = !this.isMuted;
-    if (this.controller.stageEl && this.controller.stageEl.classList) {
-      if (this.isMuted) {
-        this.controller.stageEl.classList.add('is-muted');
-      } else {
-        this.controller.stageEl.classList.remove('is-muted');
-      }
-    }
-    const btnMute = typeof document !== 'undefined' ? document.getElementById('btn-mute') : null;
-    if (btnMute) {
-      btnMute.classList.toggle('active', this.isMuted);
-      btnMute.textContent = this.isMuted ? 'Unmute' : 'Mute';
-    }
-    return this.sendIpcAction('mute', null, { muted: this.isMuted });
-  }
-
-  stop() {
-    this.controller.hideDraft();
+  cancelUnsubmitted() {
     this.controller.setState('idle');
-    return this.sendIpcAction('stop');
+    return this.sendIpcAction('ptt_cancel');
   }
 
   handleIncomingEvent(event) {

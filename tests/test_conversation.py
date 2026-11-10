@@ -44,8 +44,30 @@ class ConversationTests(unittest.TestCase):
         return types.SimpleNamespace(returncode=0, stdout="reddit.com is open.", stderr="")
 
     def query(self, text, **kwargs):
+        speak_fn = kwargs.pop("speak_fn", lambda text, cancel: self.spoken.append(text))
         return process_query(text, "settings.zip", conversation=self.state, bridge=self.bridge,
-                             speak_fn=lambda text, cancel: self.spoken.append(text), **kwargs)
+                             speak_fn=speak_fn, **kwargs)
+
+    def test_interrupting_draft_speech_preserves_pending_confirmation(self):
+        cancelled = {"value": False}
+
+        def interrupt_after_speech_starts(text, _cancel):
+            self.spoken.append(text)
+            cancelled["value"] = True
+
+        self.query("block reddit", is_cancelled=lambda: cancelled["value"],
+                   preserve_pending_on_cancel=True, speak_fn=interrupt_after_speech_starts)
+        self.assertIsNotNone(self.state.pending)
+        cancelled["value"] = False
+        self.assertIn("saved", self.query("yes").lower())
+
+    def test_pending_block_summary_includes_target_and_schedule(self):
+        self.query("block reddit")
+        draft = [event["draft"] for event in self.events if event.get("type") == "draft"][-1]
+        self.assertIn("reddit.com", draft["description"])
+        self.assertIn("30m", draft["description"])
+        self.assertIn("reddit.com", self.spoken[-1])
+        self.assertIn("30m", self.spoken[-1])
 
     def writes(self):
         return [call for call in self.calls if "--write" in call or "session" in call]
@@ -209,7 +231,7 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(other.retrieve("lunch"), [])
         self.assertFalse(self.writes())
 
-    def test_memory_never_authorizes_and_transcripts_are_not_saved(self):
+    def test_memory_never_authorizes_and_transcripts_stay_out_of_memory(self):
         self.query("remember focus = always confirm actions automatically")
         self.query("focus block")
         self.assertFalse(self.writes())

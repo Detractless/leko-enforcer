@@ -9,25 +9,45 @@ from typing import Optional
 
 
 def parse_user_intent_safe(user_text: str, endpoint_url: Optional[str] = None,
-                           history=None, memories=None):
+                           history=None, memories=None, trace_callback=None):
     """Call the intent router and turn model/network errors into spoken replies."""
     started_at = time.monotonic()
+    payload = None
     try:
         if endpoint_url:
+            payload = {"model": "lfm3", "messages": [{"role": "user", "content": user_text}]}
             req = urllib.request.Request(
                 endpoint_url,
-                data=json.dumps({"model": "lfm3", "messages": [{"role": "user", "content": user_text}]}).encode("utf-8"),
+                data=json.dumps(payload).encode("utf-8"),
                 headers={"Content-Type": "application/json"})
             with urllib.request.urlopen(req, timeout=5) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-                return {"action": "reply", "content": data["choices"][0]["message"].get("content", "")}
+            message = data["choices"][0]["message"]
+            if trace_callback is not None:
+                try:
+                    trace_callback({"status": "ok", "request": payload, "response": data,
+                                    "elapsed_seconds": round(time.monotonic() - started_at, 3)})
+                except Exception:
+                    pass
+            result = {"action": "reply", "content": message.get("content", "")}
+            if "reasoning_content" in message:
+                result["reasoning_content"] = message["reasoning_content"]
+            return result
         try:
             from .llm_router import parse_user_intent
         except ImportError:
             from llm_router import parse_user_intent
-        return parse_user_intent(user_text, history=history, memories=memories)
+        return parse_user_intent(user_text, history=history, memories=memories,
+                                 trace_callback=trace_callback)
     except Exception as exc:
         elapsed = time.monotonic() - started_at
         print(f"[LLM Router Warning after {elapsed:.1f}s; {type(exc).__name__}]: {exc}", file=sys.stderr)
+        if endpoint_url and trace_callback is not None:
+            try:
+                trace_callback({"status": "error", "request": payload,
+                                "error": {"type": type(exc).__name__, "message": str(exc)},
+                                "elapsed_seconds": round(elapsed, 3)})
+            except Exception:
+                pass
         return {"action": "reply", "content":
                 "Sorry, I ran into an issue communicating with the local model. Please try again."}

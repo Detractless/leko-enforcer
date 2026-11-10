@@ -7,9 +7,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import numpy as np
+
 import test_conversation as fixtures
 from test_capture_gate import FakeStream, eventually
 from audio_io.capture_gate import CaptureGate
+from session.session_log import SessionLog
 from session.turn_worker import SerializedTurnWorker
 from turn_detector import TurnDetector
 
@@ -21,6 +24,11 @@ class RuntimeBusyTests(unittest.TestCase):
     def run_runtime(self, drive, transcribe, query):
         runtime = importlib.import_module('session.runtime')
         self.callbacks, self.streams, self.failures = {}, [], []
+        logs = []
+        def make_log():
+            log = SessionLog(Path(self.tmp.name) / 'sessions')
+            logs.append(log)
+            return log
         self.worker = SerializedTurnWorker()
         echo = Mock(available=False)
         def factory(**kwargs):
@@ -30,7 +38,7 @@ class RuntimeBusyTests(unittest.TestCase):
         def manager(**kwargs):
             self.callbacks.update(kwargs)
             detector = TurnDetector(model_path=Path('/nonexistent'), speech_detector=False,
-                                    on_speech_onset=kwargs['on_speech_onset'])
+                                    on_speech_onset=kwargs.get('on_speech_onset'))
             self.manager = CaptureGate(factory, detector, echo, kwargs['on_turn_complete'])
             return self.manager
         def console(*_):
@@ -46,11 +54,14 @@ class RuntimeBusyTests(unittest.TestCase):
         stt_lifecycle = Mock()
         with patch.multiple(fixtures.fake_voice, create=True,
                 REPO_ROOT=Path('/fake'), SerializedTurnWorker=lambda: self.worker,
-                HandsfreeTurnManager=manager, acquire_single_instance_lock=lambda: None,
+                HandsfreeTurnManager=manager, PushToTalkTurnManager=manager,
+                acquire_single_instance_lock=lambda: None,
                 ensure_server=lambda: None, _echo_audio=echo, _is_muted=False,
                 stop_playback=Mock(), transcribe_audio=transcribe,
                 _stt_lifecycle=stt_lifecycle, get_stt=lambda: None,
-                process_query=query), patch.object(runtime, 'Conversation', return_value=self.state), \
+                process_query=query), patch.object(runtime, 'prepare_settings', return_value='/fake/settings.zip'), \
+                patch.object(runtime, 'SessionLog', side_effect=make_log), \
+                patch.object(runtime, 'Conversation', return_value=self.state), \
                 patch.object(runtime, 'UIPipelineBridge', return_value=self.bridge), \
                 patch('builtins.input', side_effect=console), \
                 patch.object(sys, 'argv', ['assistant', '--ui', '--speech-detector', 'loudness']):
@@ -58,6 +69,7 @@ class RuntimeBusyTests(unittest.TestCase):
             self.worker.thread.join(2)
         if self.failures:
             raise self.failures[0]
+        self.session_log = logs[0]
         self.assertFalse(self.worker.thread.is_alive())
         self.assertTrue(all(stream.closed for stream in self.streams))
 
@@ -69,7 +81,8 @@ class RuntimeBusyTests(unittest.TestCase):
         self.callbacks['ui']({'action': 'query', 'text': 'must not queue'})
         self.assertEqual(self.worker.seq, before)
         events = len(self.events)
-        self.callbacks['on_speech_onset']()
+        if 'on_speech_onset' in self.callbacks:
+            self.callbacks['on_speech_onset']()
         self.assertEqual(len(self.events), events)
         self.streams[0].feed([15000] * 2560)
         self.assertFalse(self.manager.detector.buf)
@@ -95,7 +108,7 @@ class RuntimeBusyTests(unittest.TestCase):
         self.model.side_effect = model
         def drive():
             token = self.manager.begin_response()
-            self.callbacks['on_turn_complete'](None, token)
+            self.callbacks['on_turn_complete'](np.zeros(1, dtype=np.float32), token)
             self.worker.q.join()
             self.assertEqual(stages, ['transcription', 'thinking', 'synthesis', 'playback'])
             eventually(lambda: len(self.streams) == 2 and self.streams[-1].active)
@@ -143,7 +156,7 @@ class RuntimeBusyTests(unittest.TestCase):
         query = Mock()
         def drive():
             token = self.manager.begin_response()
-            self.callbacks['on_turn_complete'](None, token)
+            self.callbacks['on_turn_complete']([0.1], token)
             self.worker.q.join()
             query.assert_not_called()
         with patch('builtins.print') as output:
@@ -151,6 +164,11 @@ class RuntimeBusyTests(unittest.TestCase):
         lines = [str(call.args[0]) for call in output.call_args_list if call.args]
         self.assertIn('\n[Transcribed]: "um"', lines)
         self.assertIn('[Turn Guard]: Dropped an isolated filler transcript.', lines)
+        records, warning = SessionLog.read_records(self.session_log.path)
+        self.assertIsNone(warning)
+        self.assertIn('stt_result', [row['event'] for row in records])
+        self.assertIn('filtered_filler', [row['details'].get('outcome') for row in records
+                                         if row['event'] == 'turn_outcome'])
 
     def test_console_query_uses_same_gate(self):
         entered, release = threading.Event(), threading.Event()
@@ -182,7 +200,7 @@ class RuntimeBusyTests(unittest.TestCase):
         query = Mock()
         def drive():
             token = self.manager.begin_response()
-            self.callbacks['on_turn_complete'](None, token)
+            self.callbacks['on_turn_complete']([0.1], token)
             self.worker.q.join()
             eventually(lambda: len(self.streams) == 2 and self.streams[-1].active)
             query.assert_not_called()

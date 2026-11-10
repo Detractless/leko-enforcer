@@ -8,6 +8,11 @@ from __future__ import annotations
 import re
 from typing import List
 
+try:
+    from .normalization.speech_text import normalize_spoken_text, protect_speech_literals, restore_speech_literals
+except ImportError:
+    from normalization.speech_text import normalize_spoken_text, protect_speech_literals, restore_speech_literals
+
 def _flatten_markdown_tables(text: str) -> str:
     """Converts markdown table lines into fluent spoken sentences."""
     lines = text.split("\n")
@@ -48,27 +53,6 @@ def _flatten_markdown_tables(text: str) -> str:
     flush_table()
     return "\n".join(cleaned_lines)
 
-def _speech_units(text: str) -> str:
-    """Numbers with unit abbreviations become spoken units."""
-
-    def _hours(m):
-        n = int(m.group(1))
-        return f"{n} hour" if n == 1 else f"{n} hours"
-
-    def _minutes(m):
-        n = int(m.group(1))
-        return f"{n} minute" if n == 1 else f"{n} minutes"
-
-    def _seconds(m):
-        n = int(m.group(1))
-        return f"{n} second" if n == 1 else f"{n} seconds"
-
-    t = re.sub(r"\b(\d+)\s*(?:h|hr|hrs)\b", _hours, text, flags=re.IGNORECASE)
-    t = re.sub(r"\b(\d+)\s*(?:m|min|mins)\b", _minutes, t, flags=re.IGNORECASE)
-    t = re.sub(r"\b(\d+)\s*(?:s|sec|secs)\b", _seconds, t, flags=re.IGNORECASE)
-    return t
-
-
 def _speech_structure(text: str) -> str:
     """Tables, markdown artifacts, URLs and domain names."""
     t = _flatten_markdown_tables(text)
@@ -92,28 +76,19 @@ def _speech_structure(text: str) -> str:
     return t
 
 
-def _speech_words(text: str) -> str:
-    """Latin abbreviations, conversational acronyms, slashes, URLs are left alone here."""
-    t = re.sub(r"\be\.g\.,?\s*", "for example, ", text, flags=re.IGNORECASE)
-    t = re.sub(r"\bi\.e\.,?\s*", "that is, ", t, flags=re.IGNORECASE)
-    t = re.sub(r"\betc\b\.?", "and more", t, flags=re.IGNORECASE)
-    t = re.sub(r"\bvs\b\.?", "versus", t, flags=re.IGNORECASE)
-    t = re.sub(r"\bw/o\b", "without", t, flags=re.IGNORECASE)
-    t = re.sub(r"\bw/(?=\s|$)", "with", t, flags=re.IGNORECASE)
-    t = re.sub(r"\band\s*/\s*or\b", "and or", t, flags=re.IGNORECASE)
-    t = re.sub(r"(?<![\w/])([A-Za-z]+)\s*/\s*([A-Za-z]+)(?![\w/])", r"\1 and or \2", t)
-    return t
-
-
 def _speech_cadence(text: str) -> str:
     """Em-dashes, emojis, spacing and punctuation cadence."""
     t = re.sub(r"\s*[—–]\s*", "... ", text)
     t = re.sub(r"\s*--\s*", "... ", t)
+    t = re.sub(r"(?<=[A-Za-z]):\s+", "... ", t)
+    t = re.sub(r"(?i)\ba\.m\.", "\ue300", t)
+    t = re.sub(r"(?i)\bp\.m\.", "\ue301", t)
     t = re.sub(r"[\U00010000-\U0010ffff]", "", t)
     t = re.sub(r"([!?,.:;])([A-Za-z])", r"\1 \2", t)
     t = re.sub(r"[ \t]+", " ", t)
     t = re.sub(r"\s+([.,;:!?])", r"\1", t)
     t = re.sub(r"\n+", " ", t)
+    t = t.replace("\ue300", "a.m.").replace("\ue301", "p.m.")
     return t
 
 
@@ -121,8 +96,10 @@ def verbalize_for_speech(text: str) -> str:
     """Transforms raw LLM output into fluent, human-ear friendly spoken English."""
     if not text:
         return ""
-    t = _speech_structure(text)
-    t = _speech_words(t)
-    t = _speech_units(t)
-    t = _speech_cadence(t)
-    return t.strip()
+    try:
+        masked, saved = protect_speech_literals(text)
+        spoken = _speech_structure(masked)
+        spoken = normalize_spoken_text(spoken)
+        return restore_speech_literals(_speech_cadence(spoken), saved).strip()
+    except Exception:
+        return text

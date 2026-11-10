@@ -16,6 +16,7 @@ fn computer_zone() -> Option<String> {
 }
 fn main() {
     let args: Vec<OsString> = std::env::args_os().skip(1).collect();
+    if args.first().is_some_and(|arg| arg == "settings") { std::process::exit(leko_cli::settings_store::run(&args[1..], std::env::var_os("HOME").as_deref(), &mut std::io::stdout(), &mut std::io::stderr())); }
     if args.first().is_some_and(|arg| arg == "agent") { std::process::exit(leko_cli::launch_agent::agent_command::run(&args[1..], std::env::var_os("HOME").as_deref(), computer_zone().as_deref(), &mut std::io::stdout(), &mut std::io::stderr())); }
     if args.first().is_some_and(|arg| arg == "enforce") {
         if args.len() != 2 || args[1].to_str().is_none() {

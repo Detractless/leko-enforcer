@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import urllib.request
 
 BASE_URL = "http://127.0.0.1:18080"
@@ -41,28 +42,42 @@ SPECIALIZED_PROMPTS = {
 ROUTING_MODE = os.environ.get("LEKO_ROUTING_MODE", "single")
 
 
-def classify_intent(user_text, history=None, ensure_server_fn=None):
-    if ensure_server_fn:
-        ensure_server_fn()
+def _emit_trace(callback, trace):
+    if callback is not None:
+        try:
+            callback(trace)
+        except Exception:
+            pass
+
+
+def classify_intent(user_text, history=None, ensure_server_fn=None, trace_callback=None):
     messages = [{"role": "system", "content": CLASSIFIER_PROMPT}]
     if history:
         messages.extend(list(history)[-2:])
     messages.append({"role": "user", "content": user_text})
     payload = {"model": "lfm3", "messages": messages, "temperature": 0.0, "max_tokens": 10}
-    req = urllib.request.Request(
-        f"{BASE_URL}/v1/chat/completions",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-    )
+    started = time.perf_counter()
     try:
+        if ensure_server_fn:
+            ensure_server_fn()
+        req = urllib.request.Request(
+            f"{BASE_URL}/v1/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
         with urllib.request.urlopen(req, timeout=180) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            content = data["choices"][0]["message"].get("content", "").strip().lower()
-            for cat in INTENT_CATEGORIES:
-                if cat in content:
-                    return cat
-            return "tool_call"
-    except Exception:
+        _emit_trace(trace_callback, {"status": "ok", "request": payload, "response": data,
+                                    "elapsed_seconds": round(time.perf_counter() - started, 3)})
+        content = data["choices"][0]["message"].get("content", "").strip().lower()
+        for cat in INTENT_CATEGORIES:
+            if cat in content:
+                return cat
+        return "tool_call"
+    except Exception as exc:
+        _emit_trace(trace_callback, {"status": "error", "request": payload,
+                                    "error": {"type": type(exc).__name__, "message": str(exc)},
+                                    "elapsed_seconds": round(time.perf_counter() - started, 3)})
         return "tool_call"
 
 

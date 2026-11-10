@@ -9,8 +9,10 @@ Evidence: "preserve thinking enabled"
 """
 import sys
 import os
+import json
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "voice"))
 import unittest
+from unittest.mock import MagicMock, patch
 
 import llm_router
 
@@ -66,3 +68,25 @@ class TestLlmConfig(unittest.TestCase):
         import inspect
         src = inspect.getsource(llm_router._chat_completion)
         self.assertIn("preserve_thinking", src)
+
+    def test_router_preserves_reasoning_for_reply_and_tool_call(self):
+        reasoning = "The request is clear; choose the matching response."
+        cases = [
+            ({"role": "assistant", "content": "Hello.", "reasoning_content": reasoning}, "reply"),
+            ({"role": "assistant", "content": "", "reasoning_content": reasoning,
+              "tool_calls": [{"function": {"name": "check_status",
+                             "arguments": json.dumps({"target_type": "device"})}}]},
+             "tool_call"),
+        ]
+        for message, action in cases:
+            response = MagicMock()
+            response.__enter__.return_value.read.return_value = json.dumps(
+                {"choices": [{"message": message, "finish_reason": action}]}
+            ).encode()
+            traces = []
+            with patch.object(llm_router.urllib.request, "urlopen", return_value=response):
+                result = llm_router._chat_completion(
+                    [{"role": "user", "content": "test"}], trace_callback=traces.append)
+            self.assertEqual(result["action"], action)
+            self.assertEqual(result["reasoning_content"], reasoning)
+            self.assertEqual(traces[0]["response"]["choices"][0]["message"], message)

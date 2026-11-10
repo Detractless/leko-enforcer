@@ -438,6 +438,70 @@
           "sha256": "3e0e361313f3d9f55e7bce6b981cf0a8e4156348a4334c19c6f88e9f1cecd0d2"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/push-to-talk.md",
+      "sha256": "0be2088d532cb16c8015ae06ce89953e893dd5051cbb31051a8028418f217a4c",
+      "state": "locked",
+      "reason": "contract \"push-to-talk\" opened by the user: /contract open push-to-talk",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-09T22:22:53.162Z",
+      "history": [
+        {
+          "at": "2026-11-09T22:22:53.162Z",
+          "event": "lock",
+          "sha256": "0be2088d532cb16c8015ae06ce89953e893dd5051cbb31051a8028418f217a4c"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/push-to-talk-flow.md",
+      "sha256": "8860402154b95adb82b6a58f9c29145e2950ea4eb05b0a9c8394b7d777e3e05b",
+      "state": "locked",
+      "reason": "contract \"push-to-talk-flow\" opened by the user: /contract open push-to-talk-flow",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-10T00:14:29.940Z",
+      "history": [
+        {
+          "at": "2026-11-10T00:14:29.940Z",
+          "event": "lock",
+          "sha256": "8860402154b95adb82b6a58f9c29145e2950ea4eb05b0a9c8394b7d777e3e05b"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/voice-window-and-session-logs.md",
+      "sha256": "cc1ea858d9c8867517f5292ed91431788f245475893d7a1438f57306626a17b4",
+      "state": "locked",
+      "reason": "contract \"voice-window-and-session-logs\" opened by the user: /contract open voice-window-and-session-logs",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-10T03:19:09.622Z",
+      "history": [
+        {
+          "at": "2026-11-10T03:19:09.622Z",
+          "event": "lock",
+          "sha256": "cc1ea858d9c8867517f5292ed91431788f245475893d7a1438f57306626a17b4"
+        }
+      ]
+    },
+    {
+      "path": ".agent/contracts/speech-normalization.md",
+      "sha256": "25a452741f144b0f790c8fd00f97bd56e117735721f6aad99a1de773cf10ff15",
+      "state": "locked",
+      "reason": "contract \"speech-normalization\" opened by the user: /contract open speech-normalization",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-10T06:06:56.720Z",
+      "history": [
+        {
+          "at": "2026-11-10T06:06:56.720Z",
+          "event": "lock",
+          "sha256": "25a452741f144b0f790c8fd00f97bd56e117735721f6aad99a1de773cf10ff15"
+        }
+      ]
     }
   ]
 }

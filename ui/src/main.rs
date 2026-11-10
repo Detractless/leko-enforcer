@@ -14,7 +14,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let window = WindowBuilder::new()
         .with_title("Leko")
-        .with_inner_size(LogicalSize::new(420.0, 600.0))
+        .with_inner_size(LogicalSize::new(420.0, 400.0))
+        .with_min_inner_size(LogicalSize::new(320.0, 380.0))
         .with_resizable(true)
         .build(&event_loop)?;
 

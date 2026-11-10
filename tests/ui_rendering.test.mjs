@@ -37,3 +37,13 @@ test('interface_renders_pure_minimalist_circle_with_no_external_assets', () => {
   const totalBytes = fs.statSync(htmlPath).size + fs.statSync(cssPath).size + fs.statSync(tokenPath).size + fs.statSync(jsPath).size + fs.statSync(controllerPath).size;
   assert.ok(totalBytes < 50 * 1024, `Total UI package size (${totalBytes} bytes) is well under 50 KB`);
 });
+
+test('native_window_keeps_420x400_size_and_circle_centered', () => {
+  const native = fs.readFileSync(path.join(ROOT, 'ui/src/main.rs'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'ui/web/styles/circle.css'), 'utf8');
+  assert.match(native, /LogicalSize::new\(420\.0, 400\.0\)/);
+  assert.match(native, /with_min_inner_size\(LogicalSize::new\(320\.0, 380\.0\)\)/);
+  assert.match(css, /\.circle-stage\s*\{[^}]*top:\s*50%;[^}]*left:\s*50%;[^}]*transform:\s*translate\(-50%, -50%\)/s);
+  assert.match(css, /\.draft-card\s*\{[^}]*position:\s*absolute;[^}]*bottom:\s*0;[^}]*left:\s*50%/s);
+  assert.match(css, /\.draft-card\.visible\s*\{[^}]*transform:\s*translate\(-50%, 0\)/s);
+});

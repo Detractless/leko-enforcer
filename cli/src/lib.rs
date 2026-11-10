@@ -92,4 +92,6 @@ pub mod launch_agent {
     pub mod agent_plist;
 }
 
+pub mod settings_store;
+
 pub use session::run_command::run;

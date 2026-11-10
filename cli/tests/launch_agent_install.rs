@@ -24,6 +24,20 @@ fn install_previews_and_checks_its_inputs() {
 }
 
 #[test]
+fn install_defaults_to_the_managed_settings_file() {
+    let folder = Scratch::new("agent-managed-settings");
+    let home = folder.path().canonicalize().unwrap();
+    let path = leko_cli::settings_store::default_path(Some(home.as_os_str())).unwrap();
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    settings_builder::write_settings(path.parent().unwrap(), "settings.zip", &[]);
+    let args = words(&["install", "--executable", env!("CARGO_BIN_EXE_leko")]);
+    let mut backend = Mock::default();
+    let (mut out, mut err) = (Vec::new(), Vec::new());
+    assert_eq!(run_with_backend(&args, Some(home.as_os_str()), Some("UTC"), &mut out, &mut err, &mut backend), 0, "{}", String::from_utf8_lossy(&err));
+    assert!(String::from_utf8(out).unwrap().contains(path.to_str().unwrap()));
+}
+
+#[test]
 fn install_is_idempotent_and_refuses_unrelated_files() {
     let folder = Scratch::new("agent-collision");
     let settings = settings_builder::write_settings(folder.path(), "rules.zip", &[]);

@@ -10,14 +10,14 @@ argument-hint: "new <feature> | open <feature> | verify <feature> [--judge] | do
 One contract per new feature, written before the code. While one is open the project is plan-first: a new code file needs a plan entry in `.agent/plans/ACTIVE.md` with a `Criterion:` line naming a criterion of that contract. Editing existing files is never gated. There is no on/off; the last contract closing ends plan-first. Arguments: the words the user typed after the skill name.
 
 Use only this tool. Never edit `.agent/contracts/*.state.json`, never lock or unlock a contract by hand, never work around a refusal:
-`node ~/.claude/hooks/contractctl.mjs <command> --root <project folder>`
+`node .agents/skills/contract/runtime/contractctl.mjs <command> --root <project folder>`
 Project folder = the git folder of the current directory (the current directory if there is no git).
 
-This project copy includes the skill instructions, templates, agent settings,
-and checklists. The `contractctl.mjs` runner and its host lock integration are
-still installed outside the repository. On another computer, verify that this
-runner and its required hooks are installed before using `/contract`; if they
-are missing, stop rather than editing contract state by hand.
+This project includes the runner and its required dependencies in
+.agents/skills/contract/runtime/. Use hooks.example.json to install the
+Claude Code hooks and README.md for the Codex, OpenCode, and Antigravity
+adapters. The hooks and adapters call the bundled runner; no copy from
+~/.claude is needed after installation.
 
 ## new <feature>
 1. Run `new <feature>`. Say exactly what it printed it made. Report a refusal as it came (home folder, bad name, name used).

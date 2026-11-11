@@ -107,6 +107,7 @@ class ConversationTests(unittest.TestCase):
         self.now = 121
         self.query("yes")
         self.assertFalse(self.writes())
+        self.assertFalse(self.state.active_request.active)
 
     def test_ui_id_is_required_to_match_and_intent_is_backend_owned(self):
         self.query("block reddit")

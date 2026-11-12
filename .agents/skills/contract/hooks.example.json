@@ -1,0 +1,78 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .agents/skills/contract/runtime/plan-gate.mjs",
+            "timeout": 20
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .agents/skills/contract/runtime/shell-scan.mjs",
+            "timeout": 10
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .agents/skills/contract/runtime/shell-scan.mjs",
+            "timeout": 10
+          }
+        ],
+        "matcher": "Bash"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .agents/skills/contract/runtime/plan-registry.mjs",
+            "timeout": 10
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .agents/skills/contract/runtime/plan-scan.mjs",
+            "timeout": 30
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .agents/skills/contract/runtime/plan-scan.mjs",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .agents/skills/contract/runtime/plan-reconcile.mjs",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

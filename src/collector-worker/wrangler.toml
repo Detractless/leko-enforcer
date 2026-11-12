@@ -1,0 +1,19 @@
+name = "leko-enforcer-collector"
+main = "worker.js"
+compatibility_date = "2026-11-12"
+
+[vars]
+GITHUB_OWNER = "Detractless"
+GITHUB_REPOSITORY = "Website-Analysis-Engine"
+GITHUB_BRANCH = "main"
+GITHUB_APP_ID = "REPLACE_WITH_APP_ID"
+GITHUB_INSTALLATION_ID = "REPLACE_WITH_INSTALLATION_ID"
+EXTENSION_ORIGIN = "chrome-extension://REPLACE_WITH_PUBLISHED_EXTENSION_ID"
+
+[[ratelimits]]
+name = "CAPTURE_LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 20
+  period = 60

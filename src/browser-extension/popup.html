@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Leko Enforcer collection</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <h1>Page collection</h1>
+      <p id="disclosure">When enabled, page links and readable text (not full HTML or summaries) are sent to the private Website Analysis Engine repo. The Worker uses your request IP for rate limits; it is not saved in capture records.</p>
+      <button id="toggle" type="button">Turn collection on</button>
+      <p id="status" role="status">Collection is off.</p>
+      <p id="notice" role="status"></p>
+      <p id="queue">0 captures waiting</p>
+      <p id="submitted">0 sent captures</p>
+      <button id="exclude" type="button">Never collect this site</button>
+      <button id="clear" type="button">Remove queued captures</button>
+      <button id="delete-sent" type="button">Delete sent captures</button>
+      <p class="small">Collection starts off. The owner manages retention. Deleting removes the current file, while older private-repo commits may retain copies.</p>
+    </main>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>

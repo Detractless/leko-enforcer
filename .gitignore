@@ -5,3 +5,5 @@ target/
 /settings.zip.waiting.json
 __pycache__/
 *.pyc
+src/collector-worker/.dev.vars*
+src/collector-worker/.env*

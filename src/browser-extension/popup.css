@@ -1,0 +1,7 @@
+body { box-sizing: border-box; width: 320px; margin: 0; color: inherit; font: 14px/1.45 system-ui, sans-serif; }
+main { padding: 16px; }
+h1 { margin: 0 0 10px; font-size: 18px; }
+p { margin: 8px 0 12px; }
+button { width: 100%; min-height: 36px; margin: 5px 0; border: 1px solid currentColor; border-radius: 6px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+button:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; }
+.small { font-size: 12px; }

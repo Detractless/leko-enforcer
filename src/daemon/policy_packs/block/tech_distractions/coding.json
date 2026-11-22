@@ -1,0 +1,29 @@
+{
+  "id": "coding",
+  "name": "Coding, AI & Software Development",
+  "effect": "block",
+  "hard_safety": false,
+  "version": 1,
+  "allow_exemptions": ["education", "work"],
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Is this a page about coding, software repositories, or local AI model development, including r/LocalLLaMA, GitHub, Hugging Face, or Stack Overflow? Exclude general entertainment and pure social timelines.",
+      "signals": ["github", "hugging face", "huggingface", "stack overflow", "stackoverflow", "coding tutorial", "code repository", "model card", "local llama", "localllama", "software development", "programming"],
+      "min_hits": 1,
+      "glide_threshold": 0.90
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Is the purpose reading or writing source code, model weights, commits, or developer Q&A?",
+      "signals": ["repository", "source code", "model weights", "commit", "developer", "code", "fine-tuning", "question", "answer", "tutorial", "community discussion", "posts", "comments", "local ai models"],
+      "min_hits": 1
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "Do not override hard safety policies (nsfw, streaming).",
+      "exempt_signals": ["news article", "general news", "social feed", "opinion piece"],
+      "veto_on_exempt": true
+    }
+  }
+}

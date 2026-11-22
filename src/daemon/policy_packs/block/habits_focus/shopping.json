@@ -1,0 +1,28 @@
+{
+  "id": "shopping",
+  "name": "Online Shopping & Marketplaces",
+  "effect": "block",
+  "hard_safety": false,
+  "version": 1,
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Is this page an online store or product marketplace?",
+      "signals": ["shopping", "online store", "marketplace", "amazon", "ebay", "etsy", "product listing", "online shop", "retail store", "cart"],
+      "min_hits": 1,
+      "glide_threshold": 0.90
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Does the page invite buying, adding to cart, or checking out?",
+      "signals": ["buy now", "add to cart", "checkout", "purchase", "shop deals", "order online", "price", "discount"],
+      "min_hits": 1
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "Exempt consumer research, reviews, and educational material.",
+      "exempt_signals": ["price comparison research", "consumer report", "product review article", "educational"],
+      "veto_on_exempt": true
+    }
+  }
+}

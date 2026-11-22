@@ -1,0 +1,11 @@
+{
+  "mode": "block_unless_allowed",
+  "default_deny": false,
+  "shadow_mode": false,
+  "hard_safety": ["nsfw"],
+  "hard_safety_packs": ["nsfw", "streaming"],
+  "allow_overrides_hard_safety": false,
+  "enabled_packs": ["nsfw", "streaming"],
+  "disabled_packs": ["games", "gambling", "music", "shopping", "food_delivery", "coding", "social_media", "ai_chatbots", "manga_comics", "education", "math", "language_arts", "email", "work", "news"],
+  "active_packs": []
+}

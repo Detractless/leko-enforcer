@@ -1,0 +1,34 @@
+{
+  "id": "reddit",
+  "name": "Reddit Adapter",
+  "url_patterns": [
+    "*://*.reddit.com/*",
+    "*://reddit.com/*"
+  ],
+  "selectors": {
+    "title": [
+      "shreddit-post [slot=\"title\"]",
+      "shreddit-post h1",
+      "h1",
+      "meta[property=\"og:title\"]"
+    ],
+    "description": [
+      "shreddit-subreddit-header [slot=\"description\"]",
+      "meta[name=\"description\"]",
+      "meta[property=\"og:description\"]"
+    ],
+    "post_body": [
+      "shreddit-post [slot=\"text-body\"]",
+      "shreddit-post .text-neutral-content",
+      "shreddit-post p",
+      "[data-testid=\"post-container\"] [data-click-id=\"text\"]"
+    ],
+    "comments": [
+      "shreddit-comment [slot=\"comment\"]",
+      "shreddit-comment .md",
+      "shreddit-comment p",
+      "-post-comment"
+    ]
+  },
+  "page_type": "forum_thread"
+}

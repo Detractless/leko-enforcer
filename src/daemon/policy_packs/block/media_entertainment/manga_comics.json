@@ -1,0 +1,28 @@
+{
+  "id": "manga_comics",
+  "name": "Manga, Manhwa, Webtoons & Comics",
+  "effect": "block",
+  "hard_safety": false,
+  "version": 1,
+  "allow_exemptions": ["news"],
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Is this a manga, manhwa, webtoon, or comic reading portal such as MangaDex, Asura Scans, or Webtoon? Exclude news articles and general reference pages about comics.",
+      "signals": ["mangadex", "asura scans", "asurascans", "webtoon", "manga", "manhwa", "comic reader", "comics"],
+      "min_hits": 1
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Is the purpose reading comic chapters or browsing a comic library?",
+      "signals": ["read manga", "read comics", "chapters", "latest chapters", "comic reader", "browse comics", "series"],
+      "min_hits": 1
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "Do not override hard safety policies (nsfw, streaming).",
+      "exempt_signals": ["news article", "general news", "reference page", "encyclopedia", "review article"],
+      "veto_on_exempt": true
+    }
+  }
+}

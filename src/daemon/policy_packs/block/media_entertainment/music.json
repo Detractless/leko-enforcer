@@ -1,0 +1,27 @@
+{
+  "id": "music",
+  "name": "Music & Audio Streaming",
+  "effect": "block",
+  "hard_safety": false,
+  "version": 1,
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Is this page a dedicated music streaming service, song generator, or music playlist? Exclude video games, gaming livestreams, esports, video platforms, and general entertainment.",
+      "signals": ["music streaming", "spotify", "soundcloud", "suno", "audio streaming", "songs", "albums", "playlist", "music video", "concert tickets"],
+      "min_hits": 1
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Does the page invite listening, generating, or downloading songs?",
+      "signals": ["listen now", "play song", "stream music", "generate music", "download song", "create song", "music video", "playlist"],
+      "min_hits": 1
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "Exempt music education, theory lessons, and neutral reporting.",
+      "exempt_signals": ["music theory lesson", "music education", "music history article", "news article", "educational tutorial"],
+      "veto_on_exempt": true
+    }
+  }
+}

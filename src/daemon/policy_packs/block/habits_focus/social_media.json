@@ -1,0 +1,28 @@
+{
+  "id": "social_media",
+  "name": "Social Media & Infinite Feeds",
+  "effect": "block",
+  "hard_safety": false,
+  "version": 1,
+  "allow_exemptions": ["email"],
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Is this page a social media feed or timeline from X/Twitter, Instagram, Facebook, Threads, LinkedIn, or Reddit? Exclude direct messaging, webmail, and private inbox pages.",
+      "signals": ["instagram", "twitter", "x.com", "facebook", "threads", "linkedin", "reddit", "social media", "feed", "timeline"],
+      "min_hits": 1
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Is the purpose browsing posts, scrolling a feed, or viewing a social timeline?",
+      "signals": ["scroll", "browse", "posts", "timeline", "feed", "stories", "photos", "comments"],
+      "min_hits": 1
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "Do not override hard safety policies (nsfw, streaming).",
+      "exempt_signals": ["inbox", "webmail", "direct message", "email"],
+      "veto_on_exempt": true
+    }
+  }
+}

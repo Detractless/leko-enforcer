@@ -1,0 +1,28 @@
+{
+  "id": "email",
+  "name": "Webmail & Direct Messaging",
+  "effect": "allow",
+  "hard_safety": false,
+  "version": 1,
+  "overrides": [],
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Is this a webmail, inbox, or direct-messaging page?",
+      "signals": ["webmail", "inbox", "email", "mail", "gmail", "outlook", "d2l", "brightspace", "direct message", "messaging"],
+      "min_hits": 1
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Is the purpose triaging or composing messages?",
+      "signals": ["inbox", "compose", "message", "announcement", "reply", "thread", "unread", "mailbox"],
+      "min_hits": 1
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "No exceptions: hard safety policies are never overridden here.",
+      "exempt_signals": [],
+      "veto_on_exempt": false
+    }
+  }
+}

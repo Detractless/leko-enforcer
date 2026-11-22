@@ -1,0 +1,28 @@
+{
+  "id": "math",
+  "name": "Mathematics & Statistics",
+  "effect": "allow",
+  "hard_safety": false,
+  "version": 1,
+  "overrides": ["games", "music"],
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Is this page about mathematics, statistics, proofs, or problem solving?",
+      "signals": ["mathematics", "math", "algebra", "calculus", "statistics", "theorem", "equation", "geometry", "probability", "linear algebra"],
+      "min_hits": 1
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Is the page explaining, deriving, or practicing math?",
+      "signals": ["proof", "problem solving", "equation", "tutorial", "lecture", "calculate", "derive", "example", "exercise"],
+      "min_hits": 1
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "No exceptions: hard safety policies are never overridden here.",
+      "exempt_signals": [],
+      "veto_on_exempt": false
+    }
+  }
+}

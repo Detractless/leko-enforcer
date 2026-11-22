@@ -1,0 +1,28 @@
+{
+  "id": "news",
+  "name": "Journalism & Current Events",
+  "effect": "allow",
+  "hard_safety": false,
+  "version": 1,
+  "overrides": ["games", "music", "shopping"],
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Does this page report or summarize news, current events, or notable developments, including an encyclopedia article with news details?",
+      "signals": ["news", "journalism", "current events", "wsj", "wall street journal", "finance yahoo", "financial news", "tech reporting", "newspaper", "reporting"],
+      "min_hits": 1
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Is the purpose reporting or analysing real-world events?",
+      "signals": ["reporting", "current events", "stock market", "headlines", "analysis", "investing", "article", "coverage", "reference article", "encyclopedia", "summarizes news", "history"],
+      "min_hits": 1
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "No exceptions: hard safety policies are never overridden here.",
+      "exempt_signals": [],
+      "veto_on_exempt": false
+    }
+  }
+}

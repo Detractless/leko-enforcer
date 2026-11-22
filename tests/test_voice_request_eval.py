@@ -64,9 +64,9 @@ class VoiceRequestEvalTests(unittest.TestCase):
         self.assertEqual(metrics["replayed_turns"], sum(len(case["turns"]) for case in cases))
 
     def test_dspy_experiment_cannot_change_production_routing(self):
-        assistant = (ROOT / "voice/assistant.py").read_text()
-        router = (ROOT / "voice/llm_router.py").read_text()
-        request = (ROOT / "voice/llm_request.py").read_text()
+        assistant = (ROOT / "voice/core/assistant.py").read_text()
+        router = (ROOT / "voice/routing/llm_router.py").read_text()
+        request = (ROOT / "voice/routing/llm_request.py").read_text()
         query_flow = (ROOT / "voice/session/query_flow.py").read_text()
         bench = (ROOT / "tests/bench_llm.py").read_text()
         self.assertNotIn("import dspy", assistant + router + request + query_flow)

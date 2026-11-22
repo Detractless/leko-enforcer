@@ -4,7 +4,7 @@ This is a first Chrome Manifest V3 collector package. It starts off, captures re
 
 ## Local setup
 
-1. Deploy the collector described in `../collector-worker/README.md`.
+1. Deploy the collector described in `../worker/README.md`.
 2. Set `COLLECTOR_ENDPOINT` in `collector-config.js` to the Worker URL. This URL is public configuration; it is not a credential.
 3. In Chrome, open `chrome://extensions`, enable Developer mode, and load this folder with **Load unpacked**. Refresh open pages after installing so Chrome adds the content script.
 4. In the extension popup, read the disclosure and click **Turn collection on** only if you want to contribute.

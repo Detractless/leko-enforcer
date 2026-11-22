@@ -11,10 +11,10 @@ import numpy as np
 
 import test_conversation as fixtures
 from test_capture_gate import FakeStream, eventually
-from audio_io.capture_gate import CaptureGate
-from session.session_log import SessionLog
-from session.turn_worker import SerializedTurnWorker
-from turn_detector import TurnDetector
+from voice.audio_io.capture_gate import CaptureGate
+from voice.session.session_log import SessionLog
+from voice.session.turn_worker import SerializedTurnWorker
+from voice.core.turn_detector import TurnDetector
 
 
 class RuntimeBusyTests(unittest.TestCase):

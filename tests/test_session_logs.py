@@ -12,8 +12,8 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "voice"))
-import llm_router
+sys.path.insert(0, str(ROOT))
+import voice.routing.llm_router as llm_router
 
 fake_voice = sys.modules.get("assistant") or types.ModuleType("assistant")
 fake_voice.LEKO_BIN = "FAKE-LEKO"
@@ -24,10 +24,10 @@ fake_voice.parse_user_intent_safe = lambda *_args, **_kwargs: {"action": "reply"
 fake_voice.speak = lambda *_args, **_kwargs: None
 sys.modules["assistant"] = fake_voice
 
-from memory.local_store import LocalMemory
-from session.conversation import Conversation
-from session.query_flow import process_query
-from session.session_log import SCHEMA_VERSION, SessionLog
+from voice.memory.local_store import LocalMemory
+from voice.session.conversation import Conversation
+from voice.session.query_flow import process_query
+from voice.session.session_log import SCHEMA_VERSION, SessionLog
 
 
 STAMP = datetime(2026, 11, 9, 12, 0, tzinfo=timezone.utc)
@@ -87,7 +87,7 @@ class SessionLogTests(unittest.TestCase):
                 return real_write(fd, content[:4])
             raise OSError("disk full")
 
-        with redirect_stderr(io.StringIO()), patch("session.session_log.os.write", side_effect=short_then_fail):
+        with redirect_stderr(io.StringIO()), patch("voice.session.session_log.os.write", side_effect=short_then_fail):
             self.assertFalse(log.append("second", "turn-2", value=2))
         self.assertEqual(log.path.read_bytes(), before)
         records, warning = SessionLog.read_records(log.path)
@@ -144,7 +144,7 @@ class SessionLogTests(unittest.TestCase):
         cli_result = types.SimpleNamespace(returncode=0, stdout="preview or write succeeded", stderr="")
         with patch.object(fake_voice, "parse_user_intent_safe", side_effect=model), \
                 patch.object(fake_voice, "speak", side_effect=speak), \
-                patch("session.query_flow.subprocess.run", return_value=cli_result):
+                patch("voice.session.query_flow.subprocess.run", return_value=cli_result):
             process_query("block reddit for 30 minutes", "settings.zip", conversation=state,
                           session_log=log, turn_id="turn-1", input_source="voice")
             action_id = state.pending["id"]

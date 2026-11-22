@@ -3,8 +3,8 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "voice"))
-from intent_validation import blocked_hours_to_open_hours, tool_to_cli_args, validate_intent
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from voice.routing.intent_validation import blocked_hours_to_open_hours, tool_to_cli_args, validate_intent
 
 
 class IntentValidationTests(unittest.TestCase):

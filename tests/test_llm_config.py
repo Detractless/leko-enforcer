@@ -10,11 +10,11 @@ Evidence: "preserve thinking enabled"
 import sys
 import os
 import json
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "voice"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import unittest
 from unittest.mock import MagicMock, patch
 
-import llm_router
+import voice.routing.llm_router as llm_router
 
 
 class TestLlmConfig(unittest.TestCase):

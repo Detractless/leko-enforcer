@@ -1,6 +1,7 @@
 """Stage 0 / WAE Local Pipeline Execution Service."""
 
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -13,7 +14,7 @@ import urllib.request
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-EXTRACT_MJS = ROOT / "src/analysis/capture-evaluation/page-regions/extract-single-page.mjs"
+EXTRACT_MJS = Path(os.environ.get("WAE_EXTRACT_MJS", str(ROOT / "src/page-regions/extract-single-page.mjs")))
 LLAMA_SERVER = Path("/Users/calibro/.t3/scratch/2026-10-29-based-on-these-documents-what-d76b9ec3/voice-beta/.runtime/llama-b11980/llama-server")
 LFM3_MODEL = Path("/Users/calibro/.t3/scratch/2026-10-29-based-on-these-documents-what-d76b9ec3/voice-beta/models/LFM3-1.7B-Q4_K_M.gguf")
 

@@ -11,9 +11,9 @@ from unittest.mock import Mock
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "voice"))
-from audio_io.push_to_talk.push_to_talk import PushToTalkDetector, PushToTalkTurnManager
-from session.session_log import SessionLog
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from voice.audio_io.push_to_talk.push_to_talk import PushToTalkDetector, PushToTalkTurnManager
+from voice.session.session_log import SessionLog
 
 
 def eventually(predicate, timeout=2):
@@ -172,7 +172,7 @@ class EmptyRuntimeTurnTests(unittest.TestCase):
         try:
             runtime.worker.submit(old_response)
             self.assertTrue(entered.wait(1))
-            with patch("session.runtime.voice.stop_playback", create=True) as stop_playback:
+            with patch("voice.session.runtime.voice.stop_playback", create=True) as stop_playback:
                 runtime.interrupt_response_for_capture()
             stop_playback.assert_called_once_with()
             runtime.turn_manager.finish_response.assert_called_once_with(

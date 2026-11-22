@@ -8,10 +8,10 @@ from unittest.mock import Mock
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "voice"))
-from audio_io.capture_gate import CaptureGate
-from session.turn_worker import SerializedTurnWorker
-from turn_detector import TurnDetector
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from voice.audio_io.capture_gate import CaptureGate
+from voice.session.turn_worker import SerializedTurnWorker
+from voice.core.turn_detector import TurnDetector
 
 
 def eventually(predicate):

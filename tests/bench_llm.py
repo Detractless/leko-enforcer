@@ -7,11 +7,11 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "voice"))
-from intent_validation import validate_intent
-from llm_router import parse_request_update, parse_user_intent
-from request_state.flow import advance_request
-from request_state.state import RequestState
+sys.path.insert(0, str(ROOT))
+from voice.routing.intent_validation import validate_intent
+from voice.routing.llm_router import parse_request_update, parse_user_intent
+from voice.request_state.flow import advance_request
+from voice.request_state.state import RequestState
 
 
 def load_cases(path, split="held_out"):

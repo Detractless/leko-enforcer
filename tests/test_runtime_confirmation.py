@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 import test_conversation as fixtures
-from session.session_log import SessionLog
+from voice.session.session_log import SessionLog
 
 
 def _submit_inline(fn, on_done=None):

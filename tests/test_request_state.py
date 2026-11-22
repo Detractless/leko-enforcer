@@ -3,9 +3,9 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "voice"))
-from request_state.state import RequestState
-from session.conversation import Conversation
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from voice.request_state.state import RequestState
+from voice.session.conversation import Conversation
 
 
 class RequestStateTests(unittest.TestCase):

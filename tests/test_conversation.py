@@ -8,11 +8,11 @@ import types
 import unittest
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "voice"))
-import llm_router
-from memory.local_store import LocalMemory
-from session.conversation import Conversation
-from ui_bridge import UIPipelineBridge
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import voice.routing.llm_router as llm_router
+from voice.memory.local_store import LocalMemory
+from voice.session.conversation import Conversation
+from voice.core.ui_bridge import UIPipelineBridge
 
 fake_voice = types.ModuleType("assistant")
 fake_voice.LEKO_BIN = "FAKE-LEKO"
@@ -20,7 +20,7 @@ fake_voice.tool_to_cli_args = llm_router.tool_to_cli_args
 fake_voice.verbalize_for_speech = lambda text: text
 fake_voice.format_status_summary = lambda output, *_: output
 sys.modules["assistant"] = fake_voice
-from session.query_flow import process_query, clear_pending
+from voice.session.query_flow import process_query, clear_pending
 
 
 class ConversationTests(unittest.TestCase):
@@ -36,7 +36,7 @@ class ConversationTests(unittest.TestCase):
             "name": "Social", "sites": ["reddit.com"], "schedule_type": "for_duration", "duration": "30m"}}
         self.model = patch.object(fake_voice, "parse_user_intent_safe", create=True,
                                   side_effect=lambda *a, **kw: self.intent).start()
-        self.runner = patch("session.query_flow.subprocess.run", side_effect=self.run_tool).start()
+        self.runner = patch("voice.session.query_flow.subprocess.run", side_effect=self.run_tool).start()
         self.addCleanup(patch.stopall)
 
     def run_tool(self, command, **kwargs):

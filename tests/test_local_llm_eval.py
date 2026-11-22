@@ -5,8 +5,8 @@ import time
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "voice"))
-from llm_router import parse_user_intent
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from voice.routing.llm_router import parse_user_intent
 
 AMBIGUOUS_WINDOW = (
     "I want a computer block starting at midnight until 4 a.m. No, sorry, 7 a.m. "

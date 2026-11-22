@@ -7,11 +7,11 @@ Evidence: "routed parse returns same format"
 Evidence: "correction context injected"
 """
 import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "voice"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import unittest
 from unittest.mock import patch, MagicMock
 
-import routing.intent_router as ir
+import voice.routing.intent_router as ir
 
 
 class TestIntentRouter(unittest.TestCase):

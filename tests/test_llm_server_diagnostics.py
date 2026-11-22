@@ -8,8 +8,8 @@ from contextlib import redirect_stderr
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "voice"))
-import llm_router
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import voice.routing.llm_router as llm_router
 
 
 class LlmServerDiagnosticsTests(unittest.TestCase):

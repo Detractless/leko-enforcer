@@ -1,0 +1,13 @@
+[package]
+name = "leko-enforcers-browser"
+version = "0.0.1"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "Browser extension heartbeat contract for mandatory Leko enforcement."
+
+[lib]
+name = "leko_enforcers_browser"
+path = "src/lib.rs"
+
+[dependencies]
+leko-core = { path = "../../core" }

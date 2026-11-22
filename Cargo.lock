@@ -1251,6 +1251,7 @@ dependencies = [
  "crc32fast",
  "flate2",
  "leko-core",
+ "leko-enforcers-browser",
  "serde_json",
 ]
 
@@ -1267,6 +1268,13 @@ dependencies = [
  "serde_json",
  "sha2",
  "unicode-normalization",
+]
+
+[[package]]
+name = "leko-enforcers-browser"
+version = "0.0.1"
+dependencies = [
+ "leko-core",
 ]
 
 [[package]]

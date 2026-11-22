@@ -15,6 +15,7 @@ path = "src/main.rs"
 
 [dependencies]
 leko-core = { path = "../core" }
+leko-enforcers-browser = { path = "../enforcers/browser" }
 serde_json = { version = "1", features = ["preserve_order"] }
 
 [dev-dependencies]

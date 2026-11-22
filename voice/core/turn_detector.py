@@ -60,9 +60,9 @@ class TurnDetector:
         try:
             if speech_detector is None:
                 try:
-                    from .audio_io.silero_vad import SileroVAD
+                    from ..audio_io.vad.silero_vad import SileroVAD
                 except ImportError:
-                    from audio_io.silero_vad import SileroVAD
+                    from voice.audio_io.vad.silero_vad import SileroVAD
                 speech_detector = SileroVAD()
             return speech_detector
         except Exception as exc:

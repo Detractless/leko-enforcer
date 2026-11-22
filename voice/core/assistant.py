@@ -35,16 +35,16 @@ REPO_ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 sys.modules.setdefault("assistant", sys.modules[__name__])
 
-from verbalizer import verbalize_for_speech
-from turn_detector import TurnDetector
+from ..normalization.verbalizer import verbalize_for_speech
+from .turn_detector import TurnDetector
 try:
-    from .stt.stt_lifecycle import SttLifecycle
+    from ..stt.stt_lifecycle import SttLifecycle
 except ImportError:
     from stt.stt_lifecycle import SttLifecycle
-from intent_validation import tool_to_cli_args
-from llm_request import parse_request_update_safe, parse_user_intent_safe
-from llm_router import ensure_server
-from session.turn_worker import SerializedTurnWorker
+from ..routing.intent_validation import tool_to_cli_args
+from ..routing.llm_request import parse_request_update_safe, parse_user_intent_safe
+from ..routing.llm_router import ensure_server
+from ..session.turn_worker import SerializedTurnWorker
 
 __all__ = [
     'parse_user_intent_safe',
@@ -64,7 +64,7 @@ __all__ = [
     'TurnDetector',
     'verbalize_for_speech',
 ]
-from audio_io.echo_canceller import EchoAudioProcessor, VoiceOutputPlayer
+from ..audio_io.echo_canceller import EchoAudioProcessor, VoiceOutputPlayer
 
 LEKO_BIN = REPO_ROOT / "target/release/leko"
 PHONON_25_MODEL = Path("/Users/calibro/.t3/scratch/2026-11-05-can-you-review-this-project-4f6400cb/phonon-2.5-en-mlx")
@@ -293,8 +293,8 @@ def process_query(*args, **kwargs) -> str:
     from session.query_flow import process_query as run_query
     return run_query(*args, **kwargs)
 
-from audio_io.capture_gate import CaptureGate
-from audio_io.push_to_talk.push_to_talk import PushToTalkTurnManager as _PushToTalkTurnManager
+from ..audio_io.capture_gate import CaptureGate
+from ..audio_io.push_to_talk.push_to_talk import PushToTalkTurnManager as _PushToTalkTurnManager
 
 class HandsfreeTurnManager(CaptureGate):
     def __init__(self, on_turn_complete, on_speech_onset=None, sample_rate=16000,

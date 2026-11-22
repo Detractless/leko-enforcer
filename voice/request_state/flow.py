@@ -3,7 +3,7 @@ from copy import deepcopy
 import re
 
 try:
-    from ..intent_validation import (_normalize_days, _requested_days, _valid_duration,
+    from ..routing.intent_validation import (_normalize_days, _requested_days, _valid_duration,
                                      _valid_window, validate_intent)
 except ImportError:
     from intent_validation import (_normalize_days, _requested_days, _valid_duration,

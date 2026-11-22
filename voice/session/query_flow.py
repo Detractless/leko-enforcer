@@ -6,7 +6,7 @@ from typing import Any
 import sqlite3
 import subprocess
 import assistant as voice
-from session.conversation import Conversation, confirmation
+from .conversation import Conversation, confirmation
 try:
     from ..request_state.flow import advance_request
     from ..request_state.draft_summary import draft_summary

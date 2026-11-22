@@ -16,7 +16,7 @@ from typing import Any, Dict
 # Compatibility re-export for callers that still import this helper from llm_router.
 try:
     from .intent_validation import tool_to_cli_args
-    from .request_state.extraction import (REQUEST_UPDATE_GUIDANCE, REQUEST_UPDATE_TOOL,
+    from ..request_state.extraction import (REQUEST_UPDATE_GUIDANCE, REQUEST_UPDATE_TOOL,
                                            completion_result as _completion_result)
 except ImportError:
     from intent_validation import tool_to_cli_args

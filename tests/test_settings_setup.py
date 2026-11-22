@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from voice.settings_setup import SettingsSetupError, prepare_settings
+from voice.core.settings_setup import SettingsSetupError, prepare_settings
 
 
 class SettingsSetupTests(unittest.TestCase):

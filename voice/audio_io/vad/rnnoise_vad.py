@@ -7,7 +7,7 @@ import numpy as np
 import soxr
 
 try:
-    from .mono_audio import finite_mono
+    from ..mono_audio import finite_mono
 except ImportError:
     from mono_audio import finite_mono
 

@@ -18,7 +18,7 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
 try:
-    from voice.verbalizer import verbalize_for_speech
+    from .verbalizer import verbalize_for_speech
 except ImportError:
     from verbalizer import verbalize_for_speech
 
@@ -64,7 +64,7 @@ def main():
 
         if args.listen:
             try:
-                from voice.assistant import speak
+                from ..core.assistant import speak
                 print("  [Playing audio through Maeve...]")
                 speak(r["verbalized"])
             except Exception as e:

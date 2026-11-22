@@ -4,7 +4,7 @@ import sys
 import numpy as np
 
 try:
-    from .mono_audio import finite_mono
+    from ..mono_audio import finite_mono
 except ImportError:
     from mono_audio import finite_mono
 

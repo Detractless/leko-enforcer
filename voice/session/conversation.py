@@ -6,7 +6,7 @@ import threading
 import time
 import uuid
 
-from memory.local_store import LocalMemory
+from ..memory.local_store import LocalMemory
 try:
     from ..request_state.state import RequestState
 except ImportError:

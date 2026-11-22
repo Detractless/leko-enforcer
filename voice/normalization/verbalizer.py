@@ -9,7 +9,7 @@ import re
 from typing import List
 
 try:
-    from .normalization.speech_text import normalize_spoken_text, protect_speech_literals, restore_speech_literals
+    from .speech_text import normalize_spoken_text, protect_speech_literals, restore_speech_literals
 except ImportError:
     from normalization.speech_text import normalize_spoken_text, protect_speech_literals, restore_speech_literals
 

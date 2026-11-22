@@ -51,3 +51,28 @@ def parse_user_intent_safe(user_text: str, endpoint_url: Optional[str] = None,
                 pass
         return {"action": "reply", "content":
                 "Sorry, I ran into an issue communicating with the local model. Please try again."}
+
+
+def parse_request_update_safe(user_text: str, history=None, memories=None, active_request=None,
+                              trace_callback=None):
+    """Safely request a structured field patch for the current user turn."""
+    started_at = time.monotonic()
+    try:
+        try:
+            from .llm_router import parse_request_update
+        except ImportError:
+            from llm_router import parse_request_update
+        return parse_request_update(user_text, history=history, memories=memories,
+                                    active_request=active_request, trace_callback=trace_callback)
+    except Exception as exc:
+        elapsed = time.monotonic() - started_at
+        print(f"[LLM Router Warning after {elapsed:.1f}s; {type(exc).__name__}]: {exc}", file=sys.stderr)
+        if trace_callback is not None:
+            try:
+                trace_callback({"status": "error", "request": {"user_text": user_text},
+                                "error": {"type": type(exc).__name__, "message": str(exc)},
+                                "elapsed_seconds": round(elapsed, 3)})
+            except Exception:
+                pass
+        return {"action": "reply", "content":
+                "Sorry, I ran into an issue communicating with the local model. Please try again."}

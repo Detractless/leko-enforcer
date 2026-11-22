@@ -42,12 +42,13 @@ try:
 except ImportError:
     from stt.stt_lifecycle import SttLifecycle
 from intent_validation import tool_to_cli_args
-from llm_request import parse_user_intent_safe
+from llm_request import parse_request_update_safe, parse_user_intent_safe
 from llm_router import ensure_server
 from session.turn_worker import SerializedTurnWorker
 
 __all__ = [
     'parse_user_intent_safe',
+    'parse_request_update_safe',
     'tool_to_cli_args',
     'ensure_server',
     'SerializedTurnWorker',

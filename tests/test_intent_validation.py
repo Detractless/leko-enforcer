@@ -78,11 +78,35 @@ class IntentValidationTests(unittest.TestCase):
         result = validate_intent(intent, "Lock my computer every day from midnight until 7 a.m.")
         self.assertEqual(result["action"], "reply")
         self.assertIn("repeating blocked-hours", result["content"])
+        end_only = validate_intent(intent, "Block reddit until 5 p.m.")
+        self.assertEqual(end_only["action"], "reply")
+        self.assertIn("one-time request", end_only["content"])
 
     def test_cli_mapper_never_turns_unknown_schedule_into_always(self):
         with self.assertRaises(ValueError):
             tool_to_cli_args("settings.zip", "add_block", {
                 "name": "bad", "apps": ["com.example"], "schedule_type": "unknown"})
+
+    def test_rejects_incomplete_or_conflicting_fields_for_every_action(self):
+        cases = [
+            {"action": "tool_call", "tool": "add_block", "arguments": {
+                "name": "Night", "apps": ["Chess"], "device": "lock",
+                "schedule_type": "always"}},
+            {"action": "tool_call", "tool": "add_block", "arguments": {
+                "name": "Night", "sites": ["reddit.com"], "schedule_type": "for_duration",
+                "duration": "until 7pm"}},
+            {"action": "tool_call", "tool": "start_session", "arguments": {"length": "0m"}},
+            {"action": "tool_call", "tool": "switch_off", "arguments": {"id": " "}},
+            {"action": "tool_call", "tool": "check_status", "arguments": {"target_type": "site"}},
+        ]
+        for intent in cases:
+            with self.subTest(tool=intent["tool"]):
+                self.assertEqual(validate_intent(intent, "") ["action"], "reply")
+        for tool, args in (("start_session", {"length": "until 7pm"}),
+                           ("switch_off", {"id": ""}),
+                           ("check_status", {"target_type": "app"})):
+            with self.subTest(mapper=tool), self.assertRaises(ValueError):
+                tool_to_cli_args("settings.zip", tool, args)
 
 
 if __name__ == "__main__":

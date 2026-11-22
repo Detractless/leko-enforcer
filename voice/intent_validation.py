@@ -22,6 +22,7 @@ _WEEKEND_WORDS = re.compile(r"\bweekends?\b", re.I)
 _CLOCK_MARKER = re.compile(
     r"\b(?:midnight|noon|\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?))(?![A-Za-z])", re.I)
 _CLOCK_RANGE_WORDS = re.compile(r"\b(?:from|between)\b.*\b(?:to|until|and)\b", re.I)
+_UNTIL_CLOCK = re.compile(r"\b(?:until|by)\s+(?:midnight|noon|\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.)?)\b", re.I)
 _DAY_ALIASES = {
     "mon": r"\bmon(?:day)?s?\b", "tue": r"\btue(?:s(?:day)?)?s?\b",
     "wed": r"\bwed(?:nesday)?s?\b", "thu": r"\bthu(?:rs(?:day)?)?s?\b",
@@ -150,11 +151,11 @@ def _blocked_hours_reply(args: dict[str, Any], user_text: str) -> dict[str, str]
         return _reply("What exact start and end times should be blocked? Use one time range.")
     days = _normalize_days(args.get("days"))
     requested_days = _requested_days(user_text)
-    if requested_days is None:
+    if requested_days is None and days is None:
         return _reply(_clarify_blocked_days())
     if days is None:
         days = requested_days
-    if days != requested_days:
+    if requested_days is not None and days != requested_days:
         return _reply("The days in that schedule do not match what you said. Which days should I use?")
     start, end = blocked.split("-")
     if _clock_minutes(start) > _clock_minutes(end) and _clock_minutes(end) != 0 and days != list(WEEKDAYS):
@@ -181,11 +182,17 @@ def _duration_reply(args: dict[str, Any], user_text: str) -> dict[str, str] | No
     """The for_duration schedule checks. None means ok."""
     if _has_clock_range(user_text):
         return _reply("You gave clock times, so I need to know whether you want a repeating blocked-hours schedule or a one-time block.")
-    if not isinstance(args.get("duration"), str) or args.get("days"):
+    if _UNTIL_CLOCK.search(user_text):
+        return _reply("Do you mean a one-time request ending at that time, or a repeating hours schedule?")
+    if not _valid_duration(args.get("duration")) or args.get("days"):
         return _reply("How long should the block last? Give one duration, such as 2 hours.")
     if args.get("open_hours") or args.get("blocked_hours"):
         return _reply("I got conflicting schedule details. Please repeat the duration.")
     return None
+
+
+def _valid_duration(value: Any) -> bool:
+    return isinstance(value, str) and bool(re.fullmatch(r"[1-9]\d*[mh]", value))
 
 
 def _schedule_reply(args: dict[str, Any], user_text: str) -> dict[str, str] | None:
@@ -208,14 +215,32 @@ def _schedule_reply(args: dict[str, Any], user_text: str) -> dict[str, str] | No
 
 
 def validate_intent(intent: dict[str, Any], user_text: str) -> dict[str, Any]:
-    """Reject unsafe or incomplete block intents before preview or confirmation."""
+    """Reject unsafe or incomplete actions before preview or confirmation."""
     if not isinstance(intent, dict):
-        return _reply("I couldn't prepare that request. Please say what you want to block.")
-    if intent.get("action") != "tool_call" or intent.get("tool") != "add_block":
+        return _reply("I couldn't prepare that request. Please say what you want to do.")
+    if intent.get("action") != "tool_call":
         return intent
     args = intent.get("arguments")
     if not isinstance(args, dict):
-        return _reply("I couldn't prepare that block. Please tell me what to block and when.")
+        return _reply("I couldn't prepare that request. Please repeat the details.")
+    tool = intent.get("tool")
+    if tool == "start_session":
+        return intent if _valid_duration(args.get("length")) else _reply(
+            "How long should the focus session last? Give one duration, such as 25 minutes.")
+    if tool == "switch_off":
+        return intent if isinstance(args.get("id"), str) and args["id"].strip() else _reply(
+            "Which block should I turn off?")
+    if tool == "check_status":
+        target = args.get("target_type")
+        if target not in {"app", "site", "device"}:
+            return _reply("Should I check an app, a website, or the whole computer?")
+        if target == "device":
+            return intent if not args.get("name") else _reply(
+                "For a whole-computer check, I don't need an app or website name.")
+        return intent if isinstance(args.get("name"), str) and args["name"].strip() else _reply(
+            "Which app or website should I check?")
+    if tool != "add_block":
+        return _reply("That action is not supported.")
     args = dict(args)
     problem = _block_target_problem(args) or _schedule_reply(args, user_text)
     if problem is not None:
@@ -227,10 +252,18 @@ def validate_intent(intent: dict[str, Any], user_text: str) -> dict[str, Any]:
 
 def tool_to_cli_args(settings_zip: str, tool_name: str, args: Dict[str, Any], write: bool = False) -> List[str]:
     """Map structured tool calls into `leko` CLI arguments."""
+    if not isinstance(args, dict):
+        raise ValueError("Action arguments must be an object.")
     cli_args: List[str] = []
     if tool_name == "start_session":
+        if not _valid_duration(args.get("length")):
+            raise ValueError("A focus session needs one positive duration.")
         return ["session", args["length"]]
     if tool_name == "add_block":
+        args = dict(args)
+        problem = _block_target_problem(args) or _schedule_reply(args, "")
+        if problem:
+            raise ValueError(problem["content"])
         cli_args.extend(["add-block", settings_zip, "--name", args["name"]])
         if args.get("device"):
             cli_args.extend(["--device", args["device"]])
@@ -238,12 +271,14 @@ def tool_to_cli_args(settings_zip: str, tool_name: str, args: Dict[str, Any], wr
             cli_args.extend(["--app", app])
         for site in args.get("sites", []):
             cli_args.extend(["--site", site])
-        schedule = args.get("schedule_type", "always")
+        schedule = args.get("schedule_type")
         if schedule == "always":
             cli_args.append("--always")
         elif schedule == "for_duration" and args.get("duration"):
+            if not _valid_duration(args["duration"]):
+                raise ValueError("A duration block needs one positive duration.")
             cli_args.extend(["--for", args["duration"]])
-        elif schedule == "open_hours" and args.get("open_hours"):
+        elif schedule == "open_hours" and _valid_window(args.get("open_hours"), allow_24_end=True):
             cli_args.extend(["--open-hours", args["open_hours"]])
         elif schedule == "blocked_hours" and args.get("blocked_hours"):
             days = _normalize_days(args.get("days"))
@@ -258,17 +293,28 @@ def tool_to_cli_args(settings_zip: str, tool_name: str, args: Dict[str, Any], wr
             cli_args.append("--write")
         return cli_args
     if tool_name == "switch_off":
+        if not isinstance(args.get("id"), str) or not args["id"].strip():
+            raise ValueError("Turning off a block needs its name or identifier.")
         cli_args.extend(["switch-off", settings_zip, "--id", args["id"]])
         if write:
             cli_args.append("--write")
         return cli_args
     if tool_name == "check_status":
+        target = args.get("target_type")
+        if target not in {"app", "site", "device"}:
+            raise ValueError("A status check needs app, site, or device as its target.")
         cli_args.extend(["status", settings_zip])
-        if args["target_type"] == "device":
+        if target == "device":
+            if args.get("name"):
+                raise ValueError("A whole-computer status check does not take a name.")
             cli_args.append("--device")
-        elif args["target_type"] == "app":
+        elif target == "app":
+            if not isinstance(args.get("name"), str) or not args["name"].strip():
+                raise ValueError("An app status check needs a name.")
             cli_args.extend(["--app", args["name"]])
         else:
+            if not isinstance(args.get("name"), str) or not args["name"].strip():
+                raise ValueError("A website status check needs a domain.")
             cli_args.extend(["--site", args["name"]])
         return cli_args
     raise ValueError(f"Unknown tool: {tool_name}")

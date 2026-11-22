@@ -7,6 +7,10 @@ import time
 import uuid
 
 from memory.local_store import LocalMemory
+try:
+    from ..request_state.state import RequestState
+except ImportError:
+    from request_state.state import RequestState
 
 
 def confirmation(text):
@@ -28,6 +32,7 @@ class Conversation:
         self.clock = clock
         self.history = deque(maxlen=6)
         self.pending = None
+        self.active_request = RequestState()
         self.epoch = 0
         self.lock = threading.RLock()
         self.turn_lock = threading.RLock()
@@ -36,6 +41,7 @@ class Conversation:
         with self.lock:
             self.epoch += 1
             self.pending = None
+            self.active_request.clear()
 
     def record(self, query, reply):
         self.history.extend([{"role": "user", "content": query[:400]},
@@ -52,6 +58,7 @@ class Conversation:
             return None
         if self.clock() >= self.pending["expires"]:
             self.pending = None
+            self.active_request.clear()
             return None
         if expected_id is not None and expected_id != self.pending["id"]:
             return None

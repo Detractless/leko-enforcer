@@ -8,9 +8,11 @@ import subprocess
 import assistant as voice
 from session.conversation import Conversation, confirmation
 try:
-    from ..intent_validation import validate_intent
+    from ..request_state.flow import advance_request
+    from ..request_state.draft_summary import draft_summary
 except ImportError:
-    from intent_validation import validate_intent
+    from request_state.flow import advance_request
+    from request_state.draft_summary import draft_summary
 
 DEFAULT_CONVERSATION = Conversation()
 MUTATIONS = {"add_block", "switch_off", "start_session"}
@@ -71,17 +73,21 @@ def _memory_stage(state, query):
 
 
 def _llm_intent(query, state, memories):
-    """Call the model, validate what it returns, and print the outcome line."""
+    """Request a turn-local patch, with fallback for older test/runtime adapters."""
     llm_started = time.perf_counter()
     trace_callback = None
     if state.session_log is not None:
         trace_callback = lambda trace: _log(state, "model_call", trace=trace)
-    intent = voice.parse_user_intent_safe(query, history=list(state.history), memories=memories,
-                                          trace_callback=trace_callback)
-    intent = validate_intent(intent, query)
+    parser = getattr(voice, "parse_request_update_safe", None)
+    if parser:
+        intent = parser(query, history=list(state.history), memories=memories,
+                        active_request=state.active_request.context(), trace_callback=trace_callback)
+    else:
+        intent = voice.parse_user_intent_safe(query, history=list(state.history), memories=memories,
+                                              trace_callback=trace_callback)
     llm_elapsed = time.perf_counter() - llm_started
-    tool = intent.get("tool")
-    args = intent.get("arguments", {})
+    tool = intent.get("tool") or intent.get("intent")
+    args = intent.get("arguments", intent.get("fields", {}))
     print(f"[LLM Result] elapsed={llm_elapsed:.2f}s action={intent.get('action')} tool={tool}", flush=True)
     _log(state, "model_decision", elapsed_seconds=round(llm_elapsed, 3), action=intent.get("action"),
          tool=tool, arguments=args, content=intent.get("content"),
@@ -200,6 +206,7 @@ def _execute_pending(state, bridge, cancelled, expected_id=None):
              returncode=result.returncode, stdout=result.stdout, stderr=result.stderr)
         if result.returncode != 0:
             return "Could not complete the action. Please make a new request.", False
+        state.active_request.clear()
         if intent["tool"] == "start_session":
             return f"Started a focus session of {intent['arguments']['length']}.", True
         return "Changes have been locked and saved.", True
@@ -223,6 +230,7 @@ def _confirmation_reply(query, state, bridge, speak, cancelled, confirmation_id)
         _log(state, "tool_confirmation", accepted=False, action_id=pending.get("id"),
              origin_turn_id=pending.get("origin_turn_id"))
         state.pending = None
+        state.active_request.clear()
         if bridge:
             bridge.emit({"type": "reset"})
     return _respond(query, state, bridge, speak, cancelled, "Action dismissed.")
@@ -256,8 +264,9 @@ def _route_intent(query, settings_zip, auto_confirm, bridge, state, speak,
         return _respond(query, state, bridge, speak, cancelled, reply)
     if cancelled():
         return ""
-    summary, name, kind, description = _draft_summary(tool, args, stdout)
+    summary, name, kind, description = draft_summary(tool, args, stdout, voice.format_status_summary)
     if tool not in MUTATIONS:
+        state.active_request.clear()
         return _respond(query, state, bridge, speak, cancelled, summary)
     summary += " Say yes to confirm or no to cancel."
     action_id = _stage_pending(tool, args, settings_zip, intent, name, kind, description,
@@ -280,9 +289,12 @@ def _process_query(query, settings_zip, auto_confirm=False, bridge=None,
     with state.turn_lock:
         if cancelled():
             return ""
-        replied = _confirmation_reply(query, state, bridge, speak, cancelled, confirmation_id)
-        if replied is not None:
-            return replied
+        decision = confirmation(query)
+        answer_to_active = decision is True and state.pending is None and state.active_request.active
+        if not answer_to_active:
+            replied = _confirmation_reply(query, state, bridge, speak, cancelled, confirmation_id)
+            if replied is not None:
+                return replied
         # A new request invalidates the old draft, but history still resolves revisions.
         _reset_pending(state, bridge)
         memory_kind, payload = _memory_stage(state, query)
@@ -294,57 +306,11 @@ def _process_query(query, settings_zip, auto_confirm=False, bridge=None,
         intent = _llm_intent(query, state, memories)
         if cancelled():
             return ""
+        progress = advance_request(state.active_request, intent, query, state.current_turn_id)
+        if progress["kind"] == "clarify":
+            _log(state, "request_clarification", field=progress["field"], action=state.active_request.action)
+            return _respond(query, state, bridge, speak, cancelled, progress["text"])
+        if progress["kind"] == "reply":
+            return _respond(query, state, bridge, speak, cancelled, progress["text"])
         return _route_intent(query, settings_zip, auto_confirm, bridge, state, speak,
-                             cancelled, confirmation_id, intent)
-
-
-def _draft_summary(tool: str, args: dict[str, Any], stdout: str) -> tuple[str, str, str, str]:
-    if tool == "start_session":
-        length = args.get("length")
-        return f"Prepared a focus session of {length}.", "Focus Session", "Session", f"Unskippable session for {length}."
-    if tool == "add_block":
-        device = args.get("device")
-        targets = list(args.get("apps", [])) + list(args.get("sites", []))
-        target_str = f"the whole computer ({device})" if device else (", ".join(targets) if targets else "selected targets")
-        if args.get("schedule_type") == "blocked_hours":
-            start, end = args["blocked_hours"].split("-")
-            window = f"{_spoken_clock(start)} to {_spoken_clock(end)} {_spoken_days(args.get('days', ''))}"
-            return (f"Drafted a block for {target_str} from {window}.", "Block Rule", "Block",
-                    f"Blocks {target_str} from {window}.")
-        if args.get("schedule_type") == "open_hours":
-            schedule = f"usable during {args['open_hours']}"
-        else:
-            schedule = args.get("duration") or "all day"
-        return (f"Drafted a block for {target_str}, {schedule}.", "Block Rule", "Block",
-                f"Blocks {target_str}, {schedule}.")
-    if tool == "switch_off":
-        block_id = args.get("id")
-        return f"Prepared to turn off block {block_id}.", f"Turn Off Block {block_id}", "Switch Off", f"Turns off rule {block_id}."
-    if tool == "check_status":
-        summary = voice.format_status_summary(stdout, args.get("target_type", ""), args.get("name", ""))
-        return summary, "Status Report", "Status", summary
-    return "Action prepared.", "Action", "Command", "Prepared action."
-
-
-def _spoken_clock(value: str) -> str:
-    hour, minute = map(int, value.split(":"))
-    if hour == 0 and minute == 0:
-        return "midnight"
-    if hour == 12 and minute == 0:
-        return "noon"
-    suffix = "a.m." if hour < 12 else "p.m."
-    shown_hour = hour % 12 or 12
-    return f"{shown_hour} {suffix}" if minute == 0 else f"{shown_hour}:{minute:02d} {suffix}"
-
-
-def _spoken_days(value: str) -> str:
-    days = [day.strip() for day in value.split(",") if day.strip()]
-    if days == ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]:
-        return "every day"
-    if days == ["mon", "tue", "wed", "thu", "fri"]:
-        return "every weekday"
-    if days == ["sat", "sun"]:
-        return "every weekend"
-    names = {"mon": "Monday", "tue": "Tuesday", "wed": "Wednesday", "thu": "Thursday",
-             "fri": "Friday", "sat": "Saturday", "sun": "Sunday"}
-    return "on " + ", ".join(names.get(day, day) for day in days)
+                             cancelled, confirmation_id, progress["intent"])

@@ -24,6 +24,7 @@ def _capture_manager(callbacks, manager, **kwargs):
 
 class RuntimeConfirmationTests(unittest.TestCase):
     setUp = fixtures.ConversationTests.setUp
+    query = fixtures.ConversationTests.query
     run_tool = fixtures.ConversationTests.run_tool
     writes = fixtures.ConversationTests.writes
 
@@ -53,6 +54,20 @@ class RuntimeConfirmationTests(unittest.TestCase):
         self.assertEqual(len(self.writes()), 2)
         self.assertIn("add-block", self.writes()[-1])
         return "exit"
+
+    def test_changed_request_cannot_use_stale_confirmation(self):
+        self.query("Block reddit for 30 minutes")
+        stale_id = self.state.pending["id"]
+        self.intent["arguments"]["duration"] = "45m"
+        self.query("Actually make that 45 minutes")
+        current_id = self.state.pending["id"]
+        self.assertNotEqual(current_id, stale_id)
+        self.query("yes", confirmation_id=stale_id)
+        self.assertEqual(len(self.writes()), 0)
+        self.assertEqual(self.state.pending["id"], current_id)
+        self.query("yes", confirmation_id=current_id)
+        self.assertEqual(len(self.writes()), 1)
+        self.assertEqual(self.writes()[0][self.writes()[0].index("--for") + 1], "45m")
 
     def test_spoken_filler_order_and_ui_cancel_stop_mute(self):
         voice = fixtures.fake_voice

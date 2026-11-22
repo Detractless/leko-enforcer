@@ -90,3 +90,35 @@ class TestLlmConfig(unittest.TestCase):
             self.assertEqual(result["action"], action)
             self.assertEqual(result["reasoning_content"], reasoning)
             self.assertEqual(traces[0]["response"]["choices"][0]["message"], message)
+
+    def test_request_update_uses_one_tool_and_active_request_context(self):
+        message = {"role": "assistant", "content": "", "tool_calls": [{"function": {
+            "name": "request_update", "arguments": json.dumps({
+                "action": "start_session", "fields": {"length": "45 minutes"},
+                "evidence": {"length": "45 minutes"}})}}]}
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = json.dumps(
+            {"choices": [{"message": message}]}).encode()
+        with patch.object(llm_router, "ensure_server"), patch.object(
+                llm_router.urllib.request, "urlopen", return_value=response) as request:
+            result = llm_router.parse_request_update(
+                "Make it 45 minutes", active_request={"action": "start_session", "fields": {"length": "25m"}})
+        payload = json.loads(request.call_args.args[0].data)
+        self.assertEqual(result["action"], "request_update")
+        self.assertEqual(result["fields"]["length"], "45m")
+        self.assertEqual(len(payload["tools"]), 1)
+        self.assertEqual(payload["tool_choice"]["function"]["name"], "request_update")
+        self.assertIn("25m", payload["messages"][1]["content"])
+
+    def test_duration_normalization_does_not_guess_from_until(self):
+        result = llm_router._completion_result({"choices": [{"message": {"tool_calls": [{
+            "function": {"name": "start_session", "arguments": json.dumps({"length": "until 7pm"})}}]}}]})
+        self.assertEqual(result["arguments"]["length"], "until 7pm")
+
+    def test_multiple_model_actions_are_rejected(self):
+        data = {"choices": [{"message": {"tool_calls": [
+            {"function": {"name": "switch_off", "arguments": "{}"}},
+            {"function": {"name": "check_status", "arguments": "{}"}},
+        ]}}]}
+        with self.assertRaises(ValueError):
+            llm_router._completion_result(data)

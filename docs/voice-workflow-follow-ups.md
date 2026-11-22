@@ -81,7 +81,6 @@ tests. Their detailed rules and listening limits are recorded in
 
 The structured request checklist and one-question-at-a-time workflow above
 remain planning work. They were not changed as part of the speech conversion.
-
 ## DSPy prompt-optimization pilot
 
 See [the DSPy pilot proposal](dspy-pilot-proposal.md) for a possible offline

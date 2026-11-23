@@ -1,3 +1,5 @@
+#![cfg(target_os = "macos")]
+
 mod scratch_folder;
 mod launch_agent_mock;
 use leko_cli::launch_agent::agent_command::{run, run_with_backend};

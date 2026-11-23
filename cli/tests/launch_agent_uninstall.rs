@@ -1,3 +1,5 @@
+#![cfg(target_os = "macos")]
+
 mod scratch_folder;
 mod settings_builder;
 mod launch_agent_mock;

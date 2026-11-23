@@ -1,0 +1,30 @@
+{
+  "id": "youtube",
+  "name": "YouTube Video & Channel Adapter",
+  "url_patterns": [
+    "*://*.youtube.com/watch*",
+    "*://*.youtube.com/@*",
+    "*://*.youtube.com/channel/*"
+  ],
+  "selectors": {
+    "title": [
+      "#title h1 yt-formatted-string",
+      "h1.ytd-video-primary-info-renderer",
+      "meta[name='title']"
+    ],
+    "channel": [
+      "#channel-name a",
+      "ytd-channel-name a",
+      "#owner #channel-name"
+    ],
+    "description": [
+      "#description-inline-expander",
+      "#description",
+      "meta[name='description']"
+    ],
+    "category": [
+      "meta[itemprop='genre']"
+    ]
+  },
+  "page_type": "video_page"
+}

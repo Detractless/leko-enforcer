@@ -1,3 +1,5 @@
+#![cfg(target_os = "macos")]
+
 use leko_cli::launch_agent::agent_plist::{owned, render, LABEL};
 use std::path::Path;
 mod scratch_folder;

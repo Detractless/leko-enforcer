@@ -1,0 +1,29 @@
+{
+  "id": "education",
+  "name": "General Education & LMS Portals",
+  "effect": "allow",
+  "hard_safety": false,
+  "version": 1,
+  "overrides": ["games", "music", "shopping", "food_delivery"],
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Is this an education, LMS, academic study, or tutorial page?",
+      "signals": ["education", "university", "college", "course", "student", "lecture", "tutorial", "lms", "d2l", "brightspace", "kennesaw", "school", "academic", "ocw"],
+      "min_hits": 1,
+      "glide_threshold": 0.95
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Is the purpose studying, coursework, or instructional learning?",
+      "signals": ["study", "assignment", "course", "lecture", "tutorial", "homework", "syllabus", "grade", "lesson", "learn"],
+      "min_hits": 1
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "No exceptions: hard safety policies are never overridden here.",
+      "exempt_signals": [],
+      "veto_on_exempt": false
+    }
+  }
+}

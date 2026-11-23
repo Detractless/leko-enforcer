@@ -1,0 +1,27 @@
+{
+  "id": "food_delivery",
+  "name": "Food Delivery & Fast Food",
+  "effect": "block",
+  "hard_safety": false,
+  "version": 1,
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Is this page about ordering food delivery or fast food?",
+      "signals": ["food delivery", "doordash", "ubereats", "grubhub", "fast food", "restaurant menu", "pizza", "takeout", "meal delivery", "food order"],
+      "min_hits": 1
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Does the page invite placing an order or browsing a menu?",
+      "signals": ["order food", "delivery", "menu", "place order", "coupon", "promo code", "delivery time"],
+      "min_hits": 1
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "Exempt nutrition education, recipes, and food science.",
+      "exempt_signals": ["nutrition education", "restaurant review blog", "recipe article", "food science"],
+      "veto_on_exempt": true
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "ai_chatbots",
+  "name": "AI Chatbots & Roleplay Platforms",
+  "effect": "block",
+  "hard_safety": false,
+  "version": 1,
+  "allow_exemptions": ["work"],
+  "exemption_blocked_by": ["coding"],
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Is this an interactive AI chatbot or AI roleplay chat interface such as ChatGPT, Claude web chat, or Character.AI? Exclude static technical documentation and model weight repositories.",
+      "signals": ["chatgpt", "claude web chat", "character.ai", "ai chatbot", "chat interface", "ai chat", "roleplay", "interactive ai"],
+      "min_hits": 1
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Is the purpose having a live conversation with an AI assistant or character?",
+      "signals": ["chat with", "conversation", "ask the assistant", "roleplay", "generate reply", "chat"],
+      "min_hits": 1
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "Do not override hard safety policies (nsfw, streaming).",
+      "exempt_signals": ["technical documentation", "model card", "model weights", "reference docs"],
+      "veto_on_exempt": true
+    }
+  }
+}

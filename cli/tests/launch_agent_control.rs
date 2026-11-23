@@ -1,3 +1,5 @@
+#![cfg(target_os = "macos")]
+
 use leko_cli::launch_agent::agent_control::{current_domain, parse_status, status, Service};
 
 #[test]

@@ -6,7 +6,7 @@ import time
 
 import numpy as np
 
-from audio_io.capture_gate import CaptureGate
+from ..capture_gate import CaptureGate
 
 
 class PushToTalkDetector:

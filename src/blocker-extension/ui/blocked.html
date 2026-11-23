@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Access Restricted | Leko Enforcer</title>
+  <link rel="stylesheet" href="blocked.css">
+</head>
+<body>
+  <div class="card">
+    <div class="badge" id="policy-badge">Policy Enforced</div>
+    <h1 id="page-title">Page Blocked</h1>
+    <div class="summary" id="page-summary">This page was restricted according to your content policy.</div>
+    <div class="meta">
+      <strong>URL:</strong> <span id="target-url">Loading...</span>
+    </div>
+    <div class="actions">
+      <button id="close-btn">Close Tab</button>
+      <button class="secondary" id="history-back-btn">Go Back</button>
+    </div>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const policy = params.get('policy') || 'Content Block';
+    const summary = params.get('summary') || 'Classified as restricted content.';
+    const url = params.get('url') || '';
+    const title = params.get('title') || 'Access Restricted';
+
+    document.getElementById('policy-badge').textContent = policy.toUpperCase() + ' BLOCKED';
+    document.getElementById('page-title').textContent = title;
+    document.getElementById('page-summary').textContent = summary;
+    document.getElementById('target-url').textContent = url;
+
+    document.getElementById('close-btn').addEventListener('click', () => {
+      window.close();
+    });
+    document.getElementById('history-back-btn').addEventListener('click', () => {
+      window.history.go(-2);
+    });
+  </script>
+</body>
+</html>

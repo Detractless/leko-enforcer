@@ -1,0 +1,30 @@
+{
+  "id": "work",
+  "name": "Software Engineering & Productivity",
+  "effect": "allow",
+  "hard_safety": false,
+  "version": 1,
+  "overrides": ["games", "music", "shopping", "food_delivery"],
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Is this a software engineering, documentation, job portal, or productivity page?",
+      "signals": ["software", "github", "huggingface", "developer", "repository", "documentation", "api", "programming", "engineering", "job portal", "productivity"],
+      "min_hits": 1,
+      "glide_threshold": 0.40
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Is the purpose building, documenting, or shipping work?",
+      "signals": ["code", "documentation", "commit", "pull request", "repository", "deploy", "build", "debug", "job listing", "career", "question and answer", "Q&A"],
+      "min_hits": 1,
+      "glide_threshold": 0.45
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "No exceptions: hard safety policies are never overridden here.",
+      "exempt_signals": [],
+      "veto_on_exempt": false
+    }
+  }
+}

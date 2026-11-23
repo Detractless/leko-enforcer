@@ -1,7 +1,10 @@
 //! Applies the core's decisions to an injected list of running applications, and the device action a
 //! closed device block asks for, to an injected system request.
+use super::browser_guard::{any_block_locked, judge_browsers};
 use super::macos_applications::Application;
 use crate::status::settings_file::read_settings_and_bytes;
+use leko_enforcers_browser::{default_guard, BrowserId, Heartbeat};
+use std::collections::HashMap;
 use crate::status::zone_choice::choose_zone;
 use leko_core::config_time::zone_time::ZoneTime;
 use leko_core::decision::block_cover::Target;
@@ -40,10 +43,29 @@ pub fn judge_apps<F: FnMut(&Application) -> Result<(), String>>(
     }
 }
 
-pub fn run<C, Z, A, T, M, S, D>(path: &str, mut clock: C, mut zone_name: Z, mut apps: A, mut terminate: T, own_pid: i32, mut monotonic_ms: M, mut sleep: S, mut device: D, err: &mut dyn Write) -> i32
+pub fn run<C, Z, A, T, M, S, D>(path: &str, clock: C, zone_name: Z, apps: A, terminate: T, own_pid: i32, monotonic_ms: M, sleep: S, device: D, err: &mut dyn Write) -> i32
 where C: FnMut() -> Result<i64, String>, Z: FnMut() -> Option<String>,
       A: FnMut() -> Result<Vec<Application>, String>, T: FnMut(&Application) -> Result<(), String>, M: FnMut() -> u64, S: FnMut(u64),
-      D: FnMut(DeviceAction) -> Result<(), String> {
+      D: FnMut(DeviceAction) -> Result<(), String>,
+{
+    run_with_browser_guard(
+        path, clock, zone_name, apps, terminate, own_pid, monotonic_ms, sleep, device,
+        || Ok(Vec::new()), || HashMap::new(), |_: &BrowserId| {}, |_: &BrowserId| {}, err,
+    )
+}
+
+pub fn run_with_browser_guard<C, Z, A, T, M, S, D, B, H, W, X>(
+    path: &str, mut clock: C, mut zone_name: Z, mut apps: A, mut terminate: T, own_pid: i32,
+    mut monotonic_ms: M, mut sleep: S, mut device: D,
+    mut browsers: B, mut heartbeats: H, mut warn: W, mut close: X, err: &mut dyn Write,
+) -> i32
+where C: FnMut() -> Result<i64, String>, Z: FnMut() -> Option<String>,
+      A: FnMut() -> Result<Vec<Application>, String>, T: FnMut(&Application) -> Result<(), String>,
+      M: FnMut() -> u64, S: FnMut(u64), D: FnMut(DeviceAction) -> Result<(), String>,
+      B: FnMut() -> Result<Vec<BrowserId>, String>,
+      H: FnMut() -> HashMap<BrowserId, Heartbeat>,
+      W: FnMut(&BrowserId), X: FnMut(&BrowserId),
+{
     let (_, mut settings) = match read_settings_and_bytes(path) {
         Ok(value) => value,
         Err(_) => { let _ = writeln!(err, "The settings file could not be read or is invalid; enforcement did not start."); return 1; }
@@ -54,6 +76,7 @@ where C: FnMut() -> Result<i64, String>, Z: FnMut() -> Option<String>,
     let mut last_problem = String::new();
     let mut last_device_error: Option<DeviceAction> = None;
     let mut previous_start: Option<u64> = None;
+    let mut guard = default_guard();
     loop {
         let started = monotonic_ms();
         if let Some(previous) = previous_start {
@@ -80,6 +103,15 @@ where C: FnMut() -> Result<i64, String>, Z: FnMut() -> Option<String>,
         match apps() {
             Ok(current) => judge_apps(&settings, &current, now, &zone, own_pid, &mut terminate, err),
             Err(problem) => { let _ = writeln!(err, "{problem}"); }
+        }
+        match browsers() {
+            Ok(observed) => {
+                let beats = heartbeats();
+                let bundle_ids: Vec<String> = observed.iter().map(|b| b.bundle_id.clone()).collect();
+                let locked = any_block_locked(&settings, now, &zone, &bundle_ids);
+                judge_browsers(&mut guard, &observed, &beats, now, locked, &mut warn, &mut close);
+            }
+            Err(problem) => { let _ = writeln!(err, "Browser probe failed: {problem}"); }
         }
         match device_action(&settings, now, &zone) {
             Some(action) => match device(action) {

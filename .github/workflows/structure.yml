@@ -1,0 +1,16 @@
+name: structure
+
+on:
+  push:
+    branches: ["feat/glide-policy-enforcer"]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check file and directory limits
+        run: python3 tools/contract-runtime/check_structure.py
+      - name: Rust tests
+        run: cargo test -p leko-core -p leko-cli -p leko-enforcers-browser -p leko-platform-macos -p leko-platform-android

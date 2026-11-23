@@ -9,12 +9,12 @@ import queue
 from typing import Any, Dict
 
 import numpy as np
-import assistant as voice
-from ui_bridge import UIPipelineBridge
-from session.conversation import Conversation, confirmation
-from session.session_log import SessionLog
-from session.query_flow import clear_pending
-from settings_setup import SettingsSetupError, prepare_settings
+import voice.core.assistant as voice
+from ..core.ui_bridge import UIPipelineBridge
+from .conversation import Conversation, confirmation
+from .session_log import SessionLog
+from .query_flow import clear_pending
+from ..core.settings_setup import SettingsSetupError, prepare_settings
 
 IGNORE_ISOLATED_PHRASES = {
     "yeah", "oh yeah", "yeah yeah", "uh-huh", "uh huh", "mhm", "mm-hmm",
@@ -43,7 +43,7 @@ def _select_speech_detector(args, parser):
     selected_detector = False if args.speech_detector == "loudness" else None
     if args.speech_detector == "webrtc":
         try:
-            from audio_io.webrtc_vad import WebRTCVAD
+            from ..audio_io.vad.webrtc_vad import WebRTCVAD
             selected_detector = WebRTCVAD()
             if selected_detector._failed:
                 raise RuntimeError("WebRTC VAD failed to initialize")
@@ -51,13 +51,13 @@ def _select_speech_detector(args, parser):
             parser.exit(2, f"WebRTC VAD unavailable: {exc}\n")
     elif args.speech_detector == "rnnoise":
         try:
-            from audio_io.rnnoise_vad import RNNoiseVAD
+            from ..audio_io.vad.rnnoise_vad import RNNoiseVAD
             selected_detector = RNNoiseVAD()
         except Exception as exc:
             parser.exit(2, f"RNNoise unavailable: {exc}\n")
     elif args.speech_detector == "ten":
         try:
-            from audio_io.ten_vad import TENVAD
+            from ..audio_io.vad.ten_vad import TENVAD
             selected_detector = TENVAD()
         except Exception as exc:
             parser.exit(2, f"TEN VAD unavailable: {exc}\n")
@@ -327,7 +327,7 @@ class RuntimeController:
             voice.ensure_server()
             if self.args.query:
                 self.submit_query(self.args.query, input_source="cli")
-                self.worker.q.join()
+                self.worker.q.join(timeout=5)
             else:
                 self._run_console()
         except KeyboardInterrupt:

@@ -502,6 +502,51 @@
           "sha256": "25a452741f144b0f790c8fd00f97bd56e117735721f6aad99a1de773cf10ff15"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/voice-request-state-and-evaluation.md",
+      "sha256": "8c8fb90e4cc7a6fe6915e4ea76fd296a454d30ace1383222c427279cd2da37d0",
+      "state": "locked",
+      "reason": "Corrected seven evidence labels to exact test names; all acceptance criteria and contract state are unchanged",
+      "evidence": "contractctl verify reports 7 of 7 criteria have evidence and the verbose Python test suite passes",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-11T03:04:45.200Z",
+      "history": [
+        {
+          "at": "2026-11-11T01:43:09.993Z",
+          "event": "lock",
+          "sha256": "cd5e9460a8e86ca491765fdba20f971f4d2ead1a4466cbc0fcebc98530c0dc8c"
+        },
+        {
+          "at": "2026-11-11T03:02:37.028Z",
+          "event": "unlock",
+          "authorizedBy": "yes",
+          "purpose": "Correct only the seven contract evidence references to the exact existing Python test names, then rerun contract verification; do not change acceptance criteria or contract state.",
+          "staleAtUnlock": false
+        },
+        {
+          "at": "2026-11-11T03:03:42.753Z",
+          "event": "relock-failed",
+          "command": "node /Users/calibro/.claude/hooks/contractctl.mjs verify voice-request-state-and-evaluation --root /Users/calibro/Projects/leko-enforcer --run \"/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3 -m unittest discover -s tests -p 'test_*.py'\"",
+          "summary": "exit 1"
+        },
+        {
+          "at": "2026-11-11T03:04:45.200Z",
+          "event": "relock",
+          "sha256": "8c8fb90e4cc7a6fe6915e4ea76fd296a454d30ace1383222c427279cd2da37d0",
+          "command": "node /Users/calibro/.claude/hooks/contractctl.mjs verify voice-request-state-and-evaluation --root /Users/calibro/Projects/leko-enforcer --run \"/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3 -m unittest discover -s tests -p 'test_*.py' -v\""
+        }
+      ],
+      "purpose": "Correct only the seven contract evidence references to the exact existing Python test names, then rerun contract verification; do not change acceptance criteria or contract state.",
+      "unlockedAt": "2026-11-11T03:02:37.028Z",
+      "unlockedFromSha256": "cd5e9460a8e86ca491765fdba20f971f4d2ead1a4466cbc0fcebc98530c0dc8c",
+      "staleAtUnlock": false,
+      "verified": {
+        "at": "2026-11-11T03:04:45.200Z",
+        "command": "node /Users/calibro/.claude/hooks/contractctl.mjs verify voice-request-state-and-evaluation --root /Users/calibro/Projects/leko-enforcer --run \"/Users/calibro/.t3/scratch/phone-pilot/talk-venv/bin/python3 -m unittest discover -s tests -p 'test_*.py' -v\"",
+        "exitCode": 0,
+        "output": "7 of 7 criteria have evidence (test command passed)\n  ok      AC-001\n  ok      AC-002\n  ok      AC-003\n  ok      AC-004\n  ok      AC-005\n  ok      AC-006\n  ok      AC-007"
+      }
     }
   ]
 }

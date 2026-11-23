@@ -1,0 +1,13 @@
+[package]
+name = "leko-platform-android"
+version = "0.0.1"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "Android platform adapter stub for future Leko enforcement."
+
+[lib]
+name = "leko_platform_android"
+path = "src/lib.rs"
+
+[dependencies]
+leko-core = { path = "../../core" }

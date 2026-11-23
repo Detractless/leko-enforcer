@@ -1,0 +1,17 @@
+[package]
+name = "leko-platform-macos"
+version = "0.0.1"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "macOS process, LaunchAgent, and device enforcement adapters."
+
+[lib]
+name = "leko_platform_macos"
+path = "src/lib.rs"
+
+[dependencies]
+leko-core = { path = "../../core" }
+
+[[bin]]
+name = "leko-nmh"
+path = "src/bin/leko-nmh.rs"

@@ -1,0 +1,28 @@
+{
+  "id": "language_arts",
+  "name": "Reading, Writing & Literature",
+  "effect": "allow",
+  "hard_safety": false,
+  "version": 1,
+  "overrides": ["games", "music"],
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Is this page about reading, writing, literature, or grammar?",
+      "signals": ["literature", "reading", "writing", "grammar", "composition", "essay", "poetry", "book", "author", "language arts"],
+      "min_hits": 1
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Is the page teaching or practising composition and analysis?",
+      "signals": ["essay", "grammar", "composition", "analyze text", "close reading", "creative writing", "poem", "rewrite", "study guide"],
+      "min_hits": 1
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "No exceptions: hard safety policies are never overridden here.",
+      "exempt_signals": [],
+      "veto_on_exempt": false
+    }
+  }
+}

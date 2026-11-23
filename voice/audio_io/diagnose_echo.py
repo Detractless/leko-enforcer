@@ -9,8 +9,8 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import assistant as voice
-from audio_io.echo_canceller import EchoAudioProcessor, VoiceOutputPlayer
+import voice.core.assistant as voice
+from .echo_canceller import EchoAudioProcessor, VoiceOutputPlayer
 
 
 def _state(name):

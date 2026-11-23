@@ -1,0 +1,28 @@
+{
+  "id": "games",
+  "name": "Video Games & Livestreams",
+  "effect": "block",
+  "hard_safety": false,
+  "version": 1,
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Is this page specifically about video games, gaming platforms, or game livestreams? Exclude gambling, casinos, sports betting, and poker sites.",
+      "signals": ["video game", "gaming", "game store", "playstation", "xbox", "nintendo", "steam", "twitch", "esports", "minecraft", "roblox", "gameplay", "games"],
+      "min_hits": 1,
+      "glide_threshold": 0.60
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Does the page invite playing, buying, downloading, or watching gameplay?",
+      "signals": ["play now", "play free", "download game", "buy game", "livestream", "watch stream", "stream gameplay", "multiplayer", "game guide", "top up", "in game"],
+      "min_hits": 1
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "Exempt genuine education, research, and neutral news about games.",
+      "exempt_signals": ["game development tutorial", "computer science course", "academic research", "game theory", "mathematical game", "news report", "educational lecture"],
+      "veto_on_exempt": true
+    }
+  }
+}

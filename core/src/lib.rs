@@ -1,6 +1,8 @@
 //! Leko Enforcer core: reads Enforcer settings (format 2) and judges which changes land now and
 //! which must wait. It makes no operating system calls and never reads the clock.
 
+pub mod enforcement;
+
 pub mod io {
     pub mod zip_check;
     pub mod zip_reader;

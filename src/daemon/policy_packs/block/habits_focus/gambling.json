@@ -1,0 +1,27 @@
+{
+  "id": "gambling",
+  "name": "Gambling & Sports Betting",
+  "effect": "block",
+  "hard_safety": false,
+  "version": 1,
+  "tree": {
+    "gate": {
+      "node": "gate",
+      "instructions": "Is this page specifically about gambling, casinos, or sports betting?",
+      "signals": ["gambling", "casino", "betting", "sports betting", "poker", "slot machine", "slots", "lottery", "wager", "odds", "bookmaker"],
+      "min_hits": 1
+    },
+    "intent": {
+      "node": "intent",
+      "instructions": "Does the page invite placing bets, depositing money, or claiming bonuses?",
+      "signals": ["place bet", "bet now", "deposit", "live betting", "casino games", "spin", "sign up bonus", "payout", "wager"],
+      "min_hits": 1
+    },
+    "boundary": {
+      "node": "boundary",
+      "instructions": "Exempt support resources, regulation reporting, and academic study.",
+      "exempt_signals": ["responsible gambling", "addiction support", "regulation news", "academic study", "statistics of gambling"],
+      "veto_on_exempt": true
+    }
+  }
+}

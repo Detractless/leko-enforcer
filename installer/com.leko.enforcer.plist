@@ -7,7 +7,8 @@
   <key>ProgramArguments</key>
   <array>
     <string>__LEKO_BIN__</string>
-    <string>agent</string>
+    <string>enforce</string>
+    <string>__LEKO_SETTINGS__</string>
   </array>
   <key>RunAtLoad</key>
   <true/>

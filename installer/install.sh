@@ -6,6 +6,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 HOME_DIR="${HOME:-/Users/$(whoami)}"
 LEKO_BIN="${LEKO_BIN:-$HERE/../target/release/leko}"
+LEKO_SETTINGS="${LEKO_SETTINGS:-$HOME_DIR/Library/Application Support/Leko/settings.zip}"
 NMH_BIN="${NMH_BIN:-$HERE/../target/release/leko-nmh}"
 EXTENSION_ID="${LEKO_EXTENSION_ID:-}"
 DRY_RUN="${DRY_RUN:-0}"
@@ -32,7 +33,7 @@ write_file() {
     return
   fi
   mkdir -p "$(dirname "$dst")"
-  sed -e "s|__LEKO_BIN__|$LEKO_BIN|g" "$src" > "$dst"
+  sed -e "s|__LEKO_BIN__|$LEKO_BIN|g" -e "s|__LEKO_SETTINGS__|$LEKO_SETTINGS|g" "$src" > "$dst"
   echo "installed $dst"
 }
 

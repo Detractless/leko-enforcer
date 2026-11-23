@@ -2,6 +2,7 @@
 
 pub mod applications;
 pub mod device_lock;
+#[cfg(target_os = "macos")]
 pub mod objc;
 
 pub use leko_core::models::specs::DeviceAction;

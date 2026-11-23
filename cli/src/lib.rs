@@ -89,6 +89,7 @@ pub mod enforcement {
     pub mod macos_device_lock {
         pub use leko_platform_macos::device_lock::*;
     }
+    #[cfg(target_os = "macos")]
     pub mod macos_objc {
         pub use leko_platform_macos::objc::*;
     }

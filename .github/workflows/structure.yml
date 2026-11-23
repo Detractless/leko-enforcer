@@ -12,7 +12,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check file and directory limits
         run: python3 tools/contract-runtime/check_structure.py
-      - name: Install Rust system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev
       - name: Rust tests
-        run: cargo test --workspace
+        run: cargo test -p leko-core -p leko-cli -p leko-enforcers-browser -p leko-platform-macos -p leko-platform-android

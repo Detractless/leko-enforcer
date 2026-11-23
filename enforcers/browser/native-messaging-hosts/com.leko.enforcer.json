@@ -1,0 +1,9 @@
+{
+  "name": "com.leko.enforcer",
+  "description": "Leko mandatory browser extension heartbeat host",
+  "path": "REPLACE_WITH_ABSOLUTE_PATH_TO_leko_nmh",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://REPLACE_WITH_LEKO_EXTENSION_ID/"
+  ]
+}

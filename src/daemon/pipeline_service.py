@@ -86,7 +86,9 @@ class DaemonService:
         return ".".join(parts[-2:])
 
     def _save_record(self, record: dict, is_test: bool = False) -> None:
-        target_file = ROOT / "test_evaluations.jsonl" if is_test else ROOT / "evaluations.jsonl"
+        runtime_dir = Path(os.environ.get("WAE_RUNTIME_DIR", str(ROOT / "data/runtime")))
+        runtime_dir.mkdir(parents=True, exist_ok=True)
+        target_file = runtime_dir / ("test_evaluations.jsonl" if is_test else "evaluations.jsonl")
         try:
             with open(target_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")

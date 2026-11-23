@@ -115,3 +115,43 @@ pub fn judge_guard<H: ExtensionHandshake>(
     }
     actions
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn browser() -> BrowserId {
+        BrowserId { pid: 42, bundle_id: "com.google.Chrome".into(), profile: "Default".into() }
+    }
+
+    fn config() -> GuardConfig {
+        GuardConfig { stale_after_ms: 5_000, grace_ms: 60_000 }
+    }
+
+    #[test]
+    fn healthy_heartbeat_keeps_browser_open() {
+        let mut beats = HashMap::new();
+        beats.insert(browser(), Heartbeat { seen_at_ms: 9_000, block_id: "b1".into(), attached: true });
+        let mut seen = HashMap::new();
+        let actions = judge_guard(&DefaultHandshake, &[browser()], &beats, 10_000, true, &mut seen, &config());
+        assert_eq!(actions[0].1, GuardAction::None);
+    }
+
+    #[test]
+    fn missing_heartbeat_warns_then_closes_after_grace() {
+        let beats = HashMap::new();
+        let mut seen = HashMap::new();
+        let first = judge_guard(&DefaultHandshake, &[browser()], &beats, 10_000, true, &mut seen, &config());
+        assert_eq!(first[0].1, GuardAction::Warn);
+        let second = judge_guard(&DefaultHandshake, &[browser()], &beats, 70_000, true, &mut seen, &config());
+        assert_eq!(second[0].1, GuardAction::Close);
+    }
+
+    #[test]
+    fn no_locked_block_never_closes() {
+        let beats = HashMap::new();
+        let mut seen = HashMap::new();
+        let actions = judge_guard(&DefaultHandshake, &[browser()], &beats, 70_000, false, &mut seen, &config());
+        assert_eq!(actions[0].1, GuardAction::None);
+    }
+}

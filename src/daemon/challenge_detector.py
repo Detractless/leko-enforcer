@@ -14,6 +14,7 @@ CHALLENGE_TITLE_PATTERNS = [
     re.compile(r"access denied\s*\|", re.I),
     re.compile(r"ddos protection by cloudflare", re.I),
     re.compile(r"are you a human", re.I),
+    re.compile(r"^loading\b", re.I),
 ]
 
 CHALLENGE_BODY_SIGNATURES = [

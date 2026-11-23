@@ -2,6 +2,7 @@
 
 from http.server import HTTPServer, ThreadingHTTPServer, BaseHTTPRequestHandler
 import json
+import os
 from pathlib import Path
 import sys
 import time
@@ -72,7 +73,7 @@ class DaemonHTTPHandler(BaseHTTPRequestHandler):
             self._send_json(200, {"status": "ok", "service": "wae-daemon", "port": 8765})
         elif self.path == "/api/history":
             history = []
-            hist_file = ROOT / "evaluations.jsonl"
+            hist_file = Path(os.environ.get("WAE_RUNTIME_DIR", str(ROOT / "data/runtime"))) / "evaluations.jsonl"
             if hist_file.exists():
                 for line in hist_file.read_text(encoding="utf-8").splitlines():
                     if line.strip():

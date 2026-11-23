@@ -10,12 +10,12 @@ import unittest
 import urllib.request
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent
+ROOT = HERE.parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 DAEMON_SCRIPT = ROOT / "src/daemon/server.py"
-PYTHON_BIN = ROOT / "decide_venv/bin/python"
+PYTHON_BIN = Path(sys.executable) if "sys" in globals() else Path("python3")
 
 
 class TestExtensionDaemonIntegration(unittest.TestCase):

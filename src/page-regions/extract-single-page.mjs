@@ -1,29 +1,36 @@
+// Repo-relative page extraction wrapper for the Leko daemon.
+// regions.mjs is vendored verbatim; this wrapper uses a dependency-free text
+// fallback so the unified host does not require the external collector tree.
+
 import { readFileSync } from 'node:fs';
-import { JSDOM } from '../../../../wae-source-reference/collector/node_modules/jsdom/lib/api.js';
-import { extract } from '../../../../wae-source-reference/collector/src/extractor/index.ts';
-import { renderPool } from '../../../../wae-source-reference/collector/src/describe/facts.ts';
-import { context } from '../../../../wae-source-reference/collector/test/extractor/helpers.ts';
-import { productRegions, regionFacts } from './regions.mjs';
 
 const input = JSON.parse(readFileSync(0, 'utf8'));
-let targetUrl = input.url || 'https://example.com';
-if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-  targetUrl = 'https://example.com';
+const html = input.html || '';
+const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+const title = (titleMatch ? titleMatch[1] : '').replace(/<[^>]+>/g, '').trim();
+
+function decode(text) {
+  return text
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
 }
-const dom = new JSDOM(input.html, { url: targetUrl });
-const ctx = context(targetUrl);
-const record = extract(dom.window.document, ctx, { adapters: [] });
-const pool = renderPool([record])[0];
-const regions = productRegions(dom.window.document);
-const facts = regions.status === 'separate_items' ? regionFacts(regions, pool.page.text) : pool.page.text;
 
-const result = {
-  title: record.title || dom.window.document.title || '',
-  status: regions.status,
-  method: regions.method || 'fallback_text',
-  item_count: regions.item_count || 0,
-  facts,
-};
+let facts = html
+  .replace(/<(script|style|noscript|svg)[\s\S]*?<\/\1>/gi, ' ')
+  .replace(/<[^>]+>/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+facts = decode(facts).slice(0, 20000);
 
-dom.window.close();
-process.stdout.write(JSON.stringify(result) + '\n');
+const lines = facts.split(/(?<=[.!?])\s+/).filter((line) => line.trim().length > 1);
+process.stdout.write(JSON.stringify({
+  title: title || input.url || '',
+  status: 'fallback_text',
+  method: 'fallback_text',
+  item_count: lines.length,
+  facts: facts,
+}) + '\n');

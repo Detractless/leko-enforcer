@@ -9,12 +9,12 @@ import queue
 from typing import Any, Dict
 
 import numpy as np
-import assistant as voice
-from ui_bridge import UIPipelineBridge
+import voice.core.assistant as voice
+from ..core.ui_bridge import UIPipelineBridge
 from .conversation import Conversation, confirmation
 from .session_log import SessionLog
 from .query_flow import clear_pending
-from settings_setup import SettingsSetupError, prepare_settings
+from ..core.settings_setup import SettingsSetupError, prepare_settings
 
 IGNORE_ISOLATED_PHRASES = {
     "yeah", "oh yeah", "yeah yeah", "uh-huh", "uh huh", "mhm", "mm-hmm",
@@ -327,7 +327,7 @@ class RuntimeController:
             voice.ensure_server()
             if self.args.query:
                 self.submit_query(self.args.query, input_source="cli")
-                self.worker.q.join()
+                self.worker.q.join(timeout=5)
             else:
                 self._run_console()
         except KeyboardInterrupt:

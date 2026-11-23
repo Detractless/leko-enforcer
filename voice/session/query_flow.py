@@ -5,7 +5,7 @@ import time
 from typing import Any
 import sqlite3
 import subprocess
-import assistant as voice
+import voice.core.assistant as voice
 from .conversation import Conversation, confirmation
 try:
     from ..request_state.flow import advance_request

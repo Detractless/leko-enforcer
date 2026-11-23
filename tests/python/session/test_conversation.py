@@ -23,7 +23,9 @@ fake_voice.parse_user_intent_safe = lambda *_args, **_kwargs: {"action": "reply"
 fake_voice.speak = lambda *_args, **_kwargs: None
 sys.modules["voice.core.assistant"] = fake_voice
 sys.modules["voice.core"].assistant = fake_voice
+from voice.session import query_flow as _query_flow
 from voice.session.query_flow import process_query, clear_pending
+_query_flow.voice = fake_voice
 
 
 class ConversationTests(unittest.TestCase):

@@ -23,8 +23,7 @@ try:
     if any(importlib.util.find_spec(mod) is None for mod in ("mlx_audio", "onnxruntime")):
         raise ImportError
 except ImportError:
-    if TALK_VENV_PYTHON.exists() and sys.executable != str(TALK_VENV_PYTHON):
-        os.execv(str(TALK_VENV_PYTHON), [str(TALK_VENV_PYTHON)] + sys.argv)
+    pass
 
 import numpy as np
 import mlx.core as mx

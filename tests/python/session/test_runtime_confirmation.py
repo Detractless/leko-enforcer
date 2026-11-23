@@ -5,7 +5,7 @@ import types
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-import tests.python.session.test_conversation as fixtures
+import python.session.test_conversation as fixtures
 from voice.session.session_log import SessionLog
 
 
@@ -83,6 +83,7 @@ class RuntimeConfirmationTests(unittest.TestCase):
         self.bridge.close = lambda: None
         with patch.dict(sys.modules, {"numpy": types.SimpleNamespace(ndarray=object)}):
             runtime = importlib.import_module("voice.session.runtime")
+            runtime.voice = fixtures.fake_voice
         drive = lambda *_: self._drive_ui_scenario(callbacks, voice)
         with patch.multiple(voice, create=True,
                 REPO_ROOT=fixtures.Path("/fake"), SerializedTurnWorker=lambda: worker,

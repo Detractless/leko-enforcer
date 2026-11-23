@@ -9,8 +9,8 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 
-import tests.python.session.test_conversation as fixtures
-from tests.python.voice.test_capture_gate import FakeStream, eventually
+import python.session.test_conversation as fixtures
+from python.voice.test_capture_gate import FakeStream, eventually
 from voice.audio_io.capture_gate import CaptureGate
 from voice.session.session_log import SessionLog
 from voice.session.turn_worker import SerializedTurnWorker
@@ -23,6 +23,7 @@ class RuntimeBusyTests(unittest.TestCase):
 
     def run_runtime(self, drive, transcribe, query):
         runtime = importlib.import_module('voice.session.runtime')
+        runtime.voice = fixtures.fake_voice
         self.callbacks, self.streams, self.failures = {}, [], []
         logs = []
         def make_log():

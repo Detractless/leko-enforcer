@@ -13,18 +13,9 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
+from python.session.test_conversation import fake_voice
+
 import voice.routing.llm_router as llm_router
-
-fake_voice = sys.modules.get("voice.core.assistant") or types.ModuleType("voice.core.assistant")
-fake_voice.LEKO_BIN = "FAKE-LEKO"
-fake_voice.tool_to_cli_args = llm_router.tool_to_cli_args
-fake_voice.verbalize_for_speech = lambda text: text
-fake_voice.format_status_summary = lambda output, *_: output
-fake_voice.parse_user_intent_safe = lambda *_args, **_kwargs: {"action": "reply", "content": "Ready."}
-fake_voice.speak = lambda *_args, **_kwargs: None
-sys.modules["voice.core.assistant"] = fake_voice
-sys.modules["voice.core"].assistant = fake_voice
-
 from voice.memory.local_store import LocalMemory
 from voice.session.conversation import Conversation
 from voice.session.query_flow import process_query

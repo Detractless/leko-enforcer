@@ -1,10 +1,7 @@
 """Offline conversation-flow checks using fake model and CLI adapters."""
 import unittest
 from unittest.mock import patch
-try:
-    from . import test_conversation as fixtures
-except ImportError:
-    import test_conversation as fixtures
+import python.session.test_conversation as fixtures
 
 
 class QueryFlowTests(unittest.TestCase):

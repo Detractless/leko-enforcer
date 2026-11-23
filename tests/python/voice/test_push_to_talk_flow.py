@@ -12,6 +12,21 @@ from unittest.mock import Mock
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+import types
+import voice.core
+fake_voice = types.ModuleType("voice.core.assistant")
+fake_voice.LEKO_BIN = "FAKE-LEKO"
+fake_voice.REPO_ROOT = Path(__file__).resolve().parents[3]
+fake_voice.tool_to_cli_args = lambda *a, **k: []
+fake_voice.verbalize_for_speech = lambda text: text
+fake_voice.format_status_summary = lambda output, *_: output
+fake_voice.parse_user_intent_safe = lambda *a, **k: {"action": "reply", "content": "Ready."}
+fake_voice.parse_request_update_safe = lambda *a, **k: {}
+fake_voice.speak = lambda *a, **k: None
+fake_voice.stop_playback = lambda: None
+fake_voice.SerializedTurnWorker = object
+sys.modules["voice.core.assistant"] = fake_voice
+sys.modules["voice.core"].assistant = fake_voice
 from voice.audio_io.push_to_talk.push_to_talk import PushToTalkDetector, PushToTalkTurnManager
 from voice.session.session_log import SessionLog
 

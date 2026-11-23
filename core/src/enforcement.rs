@@ -148,6 +148,21 @@ mod tests {
     }
 
     #[test]
+    fn detached_heartbeat_fails_closed() {
+        let mut beats = HashMap::new();
+        beats.insert(browser(), Heartbeat {
+            seen_at_ms: 0,
+            block_id: "b1".into(),
+            attached: true,
+        });
+        let mut seen = HashMap::new();
+        let first = judge_guard(&DefaultHandshake, &[browser()], &beats, 20_000, true, &mut seen, &config());
+        assert_eq!(first[0].1, GuardAction::Warn);
+        let second = judge_guard(&DefaultHandshake, &[browser()], &beats, 80_000, true, &mut seen, &config());
+        assert_eq!(second[0].1, GuardAction::Close);
+    }
+
+    #[test]
     fn no_locked_block_never_closes() {
         let beats = HashMap::new();
         let mut seen = HashMap::new();

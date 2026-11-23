@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-SCAN_ROOTS = ["core", "cli", "voice", "ui", "enforcers", "tests", "src/daemon"]
+SCAN_ROOTS = ["core", "cli", "voice", "ui", "enforcers", "platform", "installer", "tests", "src/daemon"]
 SKIP_DIRS = {"__pycache__", "node_modules", "target", ".git", "fixtures"}
 CODE_SUFFIXES = {".py", ".rs", ".js", ".mjs", ".ts"}
 MAX_LINES = 350

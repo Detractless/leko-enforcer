@@ -82,9 +82,16 @@ pub mod status {
 pub mod enforcement {
     pub mod browser_guard;
     pub mod enforcement_loop;
-    pub mod macos_applications;
-    pub mod macos_device_lock;
-    pub mod macos_objc;
+
+    pub mod macos_applications {
+        pub use leko_platform_macos::applications::*;
+    }
+    pub mod macos_device_lock {
+        pub use leko_platform_macos::device_lock::*;
+    }
+    pub mod macos_objc {
+        pub use leko_platform_macos::objc::*;
+    }
 }
 
 pub mod launch_agent {

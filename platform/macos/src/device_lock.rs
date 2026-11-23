@@ -7,7 +7,7 @@ use leko_core::models::specs::DeviceAction;
 
 #[cfg(target_os = "macos")]
 mod platform {
-    use crate::enforcement::macos_objc::{objc_autoreleasePoolPop, objc_autoreleasePoolPush, objc_getClass, objc_msgSend, sel_registerName, Id, Sel};
+    use crate::objc::{objc_autoreleasePoolPop, objc_autoreleasePoolPush, objc_getClass, objc_msgSend, sel_registerName, Id, Sel};
     use super::DeviceAction;
     use std::ffi::{c_char, c_int, c_void, CString};
     use std::ptr;

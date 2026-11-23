@@ -8,7 +8,7 @@ pub struct Application {
 
 #[cfg(target_os = "macos")]
 mod platform {
-    use crate::enforcement::macos_objc::{objc_autoreleasePoolPop, objc_autoreleasePoolPush, objc_getClass, objc_msgSend, sel_registerName, Id, Sel};
+    use crate::objc::{objc_autoreleasePoolPop, objc_autoreleasePoolPush, objc_getClass, objc_msgSend, sel_registerName, Id, Sel};
     use super::Application;
     use std::ffi::{c_char, CStr};
     use std::ptr;

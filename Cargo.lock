@@ -1252,6 +1252,7 @@ dependencies = [
  "flate2",
  "leko-core",
  "leko-enforcers-browser",
+ "leko-platform-macos",
  "serde_json",
 ]
 
@@ -1272,6 +1273,20 @@ dependencies = [
 
 [[package]]
 name = "leko-enforcers-browser"
+version = "0.0.1"
+dependencies = [
+ "leko-core",
+]
+
+[[package]]
+name = "leko-platform-android"
+version = "0.0.1"
+dependencies = [
+ "leko-core",
+]
+
+[[package]]
+name = "leko-platform-macos"
 version = "0.0.1"
 dependencies = [
  "leko-core",

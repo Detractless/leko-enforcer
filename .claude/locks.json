@@ -547,6 +547,22 @@
         "exitCode": 0,
         "output": "7 of 7 criteria have evidence (test command passed)\n  ok      AC-001\n  ok      AC-002\n  ok      AC-003\n  ok      AC-004\n  ok      AC-005\n  ok      AC-006\n  ok      AC-007"
       }
+    },
+    {
+      "path": ".agent/contracts/native-leko-rewrite.md",
+      "sha256": "c21a3d926551c428ade9a1abcd8fd64b0ff205f77dbb0e0ab475b8d80788955e",
+      "state": "locked",
+      "reason": "contract \"native-leko-rewrite\" opened by the user: open native-leko-rewrite",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-24T05:23:14.368Z",
+      "history": [
+        {
+          "at": "2026-11-24T05:23:14.368Z",
+          "event": "lock",
+          "sha256": "c21a3d926551c428ade9a1abcd8fd64b0ff205f77dbb0e0ab475b8d80788955e"
+        }
+      ]
     }
   ]
 }

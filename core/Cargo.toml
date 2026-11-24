@@ -3,7 +3,7 @@ name = "leko-core"
 version = "0.0.1"
 edition = "2021"
 license = "GPL-3.0-or-later"
-description = "Leko Enforcer core: reads Enforcer settings (format 2) and judges which changes land now and which wait."
+description = "Leko native core: canonical 5-pillar rules with deterministic evaluators and a fail-closed verifier hook."
 
 [lib]
 name = "leko_core"
@@ -12,12 +12,13 @@ path = "src/lib.rs"
 [dependencies]
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 crc32fast = "1"
+serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 unicode-normalization = "0.1"
 pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
 sha2 = "0.10"
 base64 = "0.22"
-chrono = { version = "0.4", default-features = false, features = ["std"] }
+chrono = { version = "0.4", features = ["std", "clock"] }
 chrono-tz = "0.10"
 
 [dev-dependencies]

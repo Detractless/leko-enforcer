@@ -1,3 +1,7 @@
+pub mod specs {
+    pub use super::target::DeviceAction;
+}
+
 pub mod pass;
 pub mod penalty;
 pub mod rule;

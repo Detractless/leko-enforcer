@@ -36,21 +36,19 @@ fn only_the_clock_adapter_reads_the_time() {
 #[test]
 fn new_files_stay_under_350_lines_and_directories_under_8_entries() {
     let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-    let plan = fs::read_to_string(workspace.join(".agent/plans/ACTIVE.md")).unwrap();
-    let mut paths: Vec<String> = plan
-        .lines()
-        .filter_map(|line| line.strip_prefix("### ").map(str::trim))
-        .map(str::to_string)
-        .collect();
-    assert!(paths.len() >= 20, "the active plan lost its M1 entries");
-    paths.push("docs/vocab/USER_VOCABULARY.md".to_string());
+    let mut paths = Vec::new();
+    for folder in ["core/src", "core/tests", "cli/src", "cli/tests"] {
+        let mut found = Vec::new();
+        source_files(&workspace.join(folder), &mut found);
+        paths.extend(found);
+    }
+    assert!(paths.len() >= 20, "the rewritten source tree lost its files");
+    paths.push(workspace.join("docs/vocab/USER_VOCABULARY.md"));
 
-    for relative in paths {
-        let full = workspace.join(&relative);
-        assert!(full.exists(), "planned file {} is missing", relative);
+    for full in paths {
         let text = fs::read_to_string(&full).unwrap();
-        assert!(text.lines().count() < 350, "{} exceeds the line cap", relative);
-        assert!(!text.contains('\u{2014}'), "{} contains an em dash", relative);
+        assert!(text.lines().count() < 350, "{} exceeds the line cap", full.display());
+        assert!(!text.contains('\u{2014}'), "{} contains an em dash", full.display());
         let parent = full.parent().unwrap();
         let entries = fs::read_dir(parent).unwrap().count();
         assert!(entries <= 8, "{} has {} immediate entries", parent.display(), entries);

@@ -3,6 +3,9 @@
 
 pub mod clock;
 pub mod domain;
+
+#[path = "domain/enforcement_bridge.rs"]
+pub mod enforcement;
 pub mod error;
 pub mod io;
 pub mod models;

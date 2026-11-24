@@ -1301,13 +1301,13 @@ dependencies = [
 name = "leko-cli"
 version = "0.0.1"
 dependencies = [
- "base64",
- "crc32fast",
- "flate2",
+ "chrono",
+ "chrono-tz",
  "leko-core",
  "leko-enforcers-browser",
  "leko-platform-macos",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]

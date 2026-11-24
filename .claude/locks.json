@@ -563,6 +563,22 @@
           "sha256": "c21a3d926551c428ade9a1abcd8fd64b0ff205f77dbb0e0ab475b8d80788955e"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/native-leko-cli.md",
+      "sha256": "c853216621145fddbddd271d253c5e1d9f81efd8bc3dc1c9608e2b3009d69bd5",
+      "state": "locked",
+      "reason": "contract \"native-leko-cli\" opened by the user: open native-leko-cli",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-24T06:48:38.214Z",
+      "history": [
+        {
+          "at": "2026-11-24T06:48:38.214Z",
+          "event": "lock",
+          "sha256": "c853216621145fddbddd271d253c5e1d9f81efd8bc3dc1c9608e2b3009d69bd5"
+        }
+      ]
     }
   ]
 }

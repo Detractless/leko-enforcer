@@ -39,12 +39,12 @@ class TestLlmConfig(unittest.TestCase):
     """Evidence: "correction awareness in prompt" """
     def test_correction_awareness_in_prompt(self):
         prompt = llm_router.get_system_prompt()
-        self.assertIn("corrects or clarifies", prompt)
+        self.assertIn("If the user corrects", prompt)
 
     def test_blocked_and_allowed_windows_have_distinct_meanings(self):
         prompt = llm_router.get_system_prompt()
-        self.assertIn("Never put a blocked interval into `open_hours`", prompt)
-        self.assertIn("never turn that window into a duration", prompt)
+        self.assertIn("Never invert a blocked window into open hours", prompt)
+        self.assertIn("Routine Schedule with days and windows", prompt)
 
     """Evidence: "uncertainty rule in prompt" """
     def test_uncertainty_rule_in_prompt(self):
@@ -53,8 +53,9 @@ class TestLlmConfig(unittest.TestCase):
 
     def test_unclear_block_target_names_apps_sites_and_whole_computer(self):
         prompt = llm_router.get_system_prompt()
-        self.assertIn("apps, websites, or the whole computer", prompt)
-        self.assertIn("Do not leave out whole-computer blocking", prompt)
+        self.assertIn("Specific Apps", prompt)
+        self.assertIn("Specific Websites", prompt)
+        self.assertIn("Whole Device", prompt)
 
     """Evidence: "history and memory caps" """
     def test_history_and_memory_caps(self):

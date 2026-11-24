@@ -1,53 +1,55 @@
-"""Build fixed spoken summaries for validated action previews."""
+"""Build fixed canonical spoken summaries for validated action previews."""
+
+import json
+
+from ..routing.canonical_speech import canonical_name, empty_notice, status_sentence
 
 
-def draft_summary(tool: str, args: dict, stdout: str, format_status_summary) -> tuple[str, str, str, str]:
-    if tool == "start_session":
-        length = args["length"]
-        return (f"Prepared a focus session of {length}.", "Focus Session", "Session",
-                f"Unskippable session for {length}.")
-    if tool == "add_block":
-        device = args.get("device")
-        targets = list(args.get("apps", [])) + list(args.get("sites", []))
-        target = f"the whole computer ({device})" if device else ", ".join(targets)
-        if args["schedule_type"] == "blocked_hours":
-            start, end = args["blocked_hours"].split("-")
-            window = f"{_spoken_clock(start)} to {_spoken_clock(end)} {_spoken_days(args['days'])}"
-            return (f"Drafted a block for {target} from {window}.", "Block Rule", "Block",
-                    f"Blocks {target} from {window}.")
-        schedule = (f"usable during {args['open_hours']}" if args["schedule_type"] == "open_hours"
-                    else args.get("duration") or "all day")
-        return (f"Drafted a block for {target}, {schedule}.", "Block Rule", "Block",
-                f"Blocks {target}, {schedule}.")
-    if tool == "switch_off":
-        block_id = args["id"]
-        return (f"Prepared to turn off block {block_id}.", f"Turn Off Block {block_id}",
-                "Switch Off", f"Turns off rule {block_id}.")
-    if tool == "check_status":
-        summary = format_status_summary(stdout, args["target_type"], args.get("name", ""))
+def _count(stdout):
+    try:
+        value = json.loads(stdout)
+    except (TypeError, ValueError):
+        return 0
+    if isinstance(value, dict):
+        rules = value.get("rules")
+        if isinstance(rules, list):
+            return len(rules)
+    return 0
+
+
+def draft_summary(tool: str, args: dict, stdout: str, format_status_summary):
+    """Return a spoken preview and three short labels for one validated tool."""
+    if tool == "create_rule":
+        target = args.get("target") or {}
+        kind = target.get("kind")
+        if not kind:
+            if args.get("device"):
+                kind = "whole_device"
+            elif args.get("sites"):
+                kind = "specific_websites"
+            else:
+                kind = "specific_apps"
+        summary = "Prepared a Technology Management Rule for {}.".format(canonical_name(kind))
+    elif tool == "list_rules":
+        count = _count(stdout)
+        summary = empty_notice() if count == 0 else "{} Technology Management Rules are stored.".format(count)
+    elif tool == "show_rule":
+        summary = "Showing Technology Management Rule {}.".format(args.get("id", ""))
+    elif tool == "edit_rule":
+        summary = "Prepared an edit to the Technology Management Rule, subject to its Seal."
+    elif tool == "delete_rule":
+        summary = "Prepared to delete the Technology Management Rule."
+    elif tool == "queue_edit":
+        summary = "Prepared a Queued Delay Seal edit."
+    elif tool == "cancel_edit":
+        summary = "Prepared to cancel the queued edit."
+    elif tool == "request_pass":
+        summary = "Prepared a Pass request. The rule will not be edited."
+    elif tool in ("check_status", "evaluate_rule"):
+        summary = format_status_summary(stdout)
+    else:
+        summary = "Action prepared."
+
+    if tool in ("check_status", "evaluate_rule"):
         return summary, "Status Report", "Status", summary
-    return "Action prepared.", "Action", "Command", "Prepared action."
-
-
-def _spoken_clock(value: str) -> str:
-    hour, minute = map(int, value.split(":"))
-    if hour == 0 and minute == 0:
-        return "midnight"
-    if hour == 12 and minute == 0:
-        return "noon"
-    suffix = "a.m." if hour < 12 else "p.m."
-    shown_hour = hour % 12 or 12
-    return f"{shown_hour} {suffix}" if minute == 0 else f"{shown_hour}:{minute:02d} {suffix}"
-
-
-def _spoken_days(value: str) -> str:
-    days = [day.strip() for day in value.split(",") if day.strip()]
-    if days == ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]:
-        return "every day"
-    if days == ["mon", "tue", "wed", "thu", "fri"]:
-        return "every weekday"
-    if days == ["sat", "sun"]:
-        return "every weekend"
-    names = {"mon": "Monday", "tue": "Tuesday", "wed": "Wednesday", "thu": "Thursday",
-             "fri": "Friday", "sat": "Saturday", "sun": "Sunday"}
-    return "on " + ", ".join(names.get(day, day) for day in days)
+    return summary, "Rule Preview", "Rule", summary

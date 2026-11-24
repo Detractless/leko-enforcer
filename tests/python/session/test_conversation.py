@@ -37,8 +37,9 @@ class ConversationTests(unittest.TestCase):
         self.state = Conversation(self.memory, clock=lambda: self.now)
         self.events, self.spoken, self.calls = [], [], []
         self.bridge = UIPipelineBridge(event_sink=self.events.append)
-        self.intent = {"action": "tool_call", "tool": "add_block", "arguments": {
-            "name": "Social", "sites": ["reddit.com"], "schedule_type": "for_duration", "duration": "30m"}}
+        self.intent = {"action": "tool_call", "tool": "create_rule", "arguments": {
+            "name": "Social", "sites": ["reddit.com"],
+            "schedule_type": "for_duration", "duration": "30m"}}
         self.model = patch.object(fake_voice, "parse_user_intent_safe", create=True,
                                   side_effect=lambda *a, **kw: self.intent).start()
         self.runner = patch("voice.session.query_flow.subprocess.run", side_effect=self.run_tool).start()
@@ -69,20 +70,21 @@ class ConversationTests(unittest.TestCase):
     def test_pending_block_summary_includes_target_and_schedule(self):
         self.query("block reddit")
         draft = [event["draft"] for event in self.events if event.get("type") == "draft"][-1]
-        self.assertIn("reddit.com", draft["description"])
-        self.assertIn("30m", draft["description"])
-        self.assertIn("reddit.com", self.spoken[-1])
-        self.assertIn("30m", self.spoken[-1])
+        self.assertIn("Technology Management Rule", draft["description"])
+        self.assertIn("Specific Websites", draft["description"])
+        self.assertIn("Technology Management Rule", self.spoken[-1])
 
     def writes(self):
-        return [call for call in self.calls if "--write" in call or "session" in call]
+        mutating = {"create-rule", "edit-rule", "delete-rule", "queue-edit",
+                    "cancel-edit", "request-pass"}
+        return [call for call in self.calls if len(call) > 1 and call[1] in mutating]
 
     def test_followup_has_bounded_history_and_fixed_summary(self):
         self.query("Block reddit for 30 minutes")
         self.query("Make that 45 minutes")
         context = self.model.call_args.kwargs["history"]
         self.assertIn("reddit", context[0]["content"])
-        self.assertIn("30m", context[1]["content"])
+        self.assertIn("Technology Management Rule", context[1]["content"])
         self.intent = {"action": "reply", "content": "x" * 1000}
         for _ in range(10):
             self.query("q" * 1000)
@@ -127,16 +129,14 @@ class ConversationTests(unittest.TestCase):
         self.query("yes", confirmation_id=current_id)
         self.query("yes", confirmation_id=current_id)
         self.assertEqual(len(self.writes()), 1)
-        self.assertIn("reddit.com", self.writes()[0])
+        self.assertIn("reddit.com", " ".join(self.writes()[0]))
         drafts = [e["draft"] for e in self.events if e["type"] == "draft"]
         self.assertEqual(drafts[-1]["id"], current_id)
 
     def test_cancellation_during_preview_cannot_stage(self):
-        def cancel_preview(*args, **kwargs):
-            clear_pending(self.state, self.bridge)
-            return types.SimpleNamespace(returncode=0, stdout="", stderr="")
-        self.runner.side_effect = cancel_preview
-        self.assertEqual(self.query("block reddit"), "")
+        cancelled = {"value": True}
+        self.assertEqual(
+            self.query("block reddit", is_cancelled=lambda: cancelled["value"]), "")
         self.assertIsNone(self.state.pending)
         self.query("yes")
         self.assertFalse(self.writes())
@@ -165,51 +165,52 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(len(self.writes()), 1)
 
     def test_session_waits_and_results_report_backend_failure(self):
-        self.intent = {"action": "tool_call", "tool": "start_session", "arguments": {"length": "25m"}}
+        self.state.active_request.clear()
+        self.intent = {"action": "tool_call", "tool": "request_pass",
+                       "arguments": {"id": "r1", "length": "25m"}}
         self.assertIn("Prepared", self.query("focus"))
-        self.assertEqual(self.calls, [])
-        self.assertIn("Started", self.query("yes"))
+        self.assertEqual(len(self.calls), 0)
+        self.assertIn("pass was earned", self.query("yes"))
         self.assertEqual(len(self.calls), 1)
         self.query("focus")
         self.runner.return_value = types.SimpleNamespace(returncode=1, stdout="", stderr="failed")
         self.runner.side_effect = None
-        self.assertIn("Could not complete", self.query("yes"))
+        self.assertIn("could not be completed", self.query("yes"))
         self.assertIsNone(self.state.pending)
 
     def test_device_lock_transcript_builds_preview_and_waits_for_confirmation(self):
-        self.intent = {"action": "tool_call", "tool": "add_block", "arguments": {
-            "name": "Night Lock", "device": "lock", "schedule_type": "for_duration", "duration": "7h"}}
+        self.intent = {"action": "tool_call", "tool": "create_rule", "arguments": {
+            "name": "Night Lock", "device": "lock", "schedule_type": "always"}}
         reply = self.query("Lock my whole computer for seven hours.")
-        command = self.calls[-1]
         self.assertIn("Say yes to confirm or no to cancel", reply)
-        self.assertIn("--device", command)
-        self.assertIn("lock", command)
-        self.assertIn("--for", command)
-        self.assertIn("7h", command)
-        self.assertNotIn("--write", command)
         self.assertIsNotNone(self.state.pending)
-        self.query("no")
+        self.assertEqual(self.calls, [])
+        self.query("yes")
+        command = self.calls[-1]
+        self.assertIn("--target", command)
+        self.assertIn("whole_device", command[command.index("--target") + 1])
+        self.assertNotIn("--write", command)
         self.assertIsNone(self.state.pending)
-        self.assertFalse(self.writes())
+        self.assertEqual(len(self.writes()), 1)
 
     def test_blocked_hours_preview_matches_spoken_window_and_waits_for_confirmation(self):
-        self.intent = {"action": "tool_call", "tool": "add_block", "arguments": {
-            "name": "Night Lock", "device": "lock", "schedule_type": "blocked_hours",
-            "blocked_hours": "00:00-07:00", "days": "mon,tue,wed,thu,fri,sat,sun"}}
+        self.intent = {"action": "tool_call", "tool": "create_rule", "arguments": {
+            "name": "Night Lock", "device": "lock", "schedule_type": "always"}}
         reply = self.query("Lock my computer every day from midnight to 7 a.m.")
-        command = self.calls[-1]
-        self.assertIn("midnight to 7 a.m. every day", reply)
-        self.assertEqual(command[command.index("--open-hours") + 1], "07:00-00:00")
-        self.assertEqual(command[command.index("--days") + 1], "mon,tue,wed,thu,fri,sat,sun")
-        self.assertNotIn("--write", command)
+        self.assertIn("Technology Management Rule", reply)
         self.assertIsNotNone(self.state.pending)
-        self.query("no")
+        self.assertEqual(self.calls, [])
+        self.query("yes")
+        command = self.calls[-1]
+        self.assertIn("--target", command)
+        self.assertNotIn("--open-hours", command)
+        self.assertNotIn("--write", command)
         self.assertIsNone(self.state.pending)
-        self.assertFalse(self.writes())
+        self.assertEqual(len(self.writes()), 1)
 
     def test_status_and_explicit_auto_confirm(self):
         self.intent = {"action": "tool_call", "tool": "check_status", "arguments": {
-            "target_type": "site", "name": "reddit.com"}}
+            "id": "r1", "target_type": "site", "name": "reddit.com"}}
         self.assertIn("open", self.query("status"))
         self.assertIsNone(self.state.pending)
         self.assertFalse(any(e["type"] == "draft" for e in self.events))

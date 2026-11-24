@@ -579,6 +579,22 @@
           "sha256": "c853216621145fddbddd271d253c5e1d9f81efd8bc3dc1c9608e2b3009d69bd5"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/native-leko-voice-routing.md",
+      "sha256": "3ec14a106bda15848133fbffafa69cd92679aa60526c7886e682457d6818541e",
+      "state": "locked",
+      "reason": "contract \"native-leko-voice-routing\" opened by the user: open native-leko-voice-routing",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-24T08:12:21.456Z",
+      "history": [
+        {
+          "at": "2026-11-24T08:12:21.456Z",
+          "event": "lock",
+          "sha256": "3ec14a106bda15848133fbffafa69cd92679aa60526c7886e682457d6818541e"
+        }
+      ]
     }
   ]
 }

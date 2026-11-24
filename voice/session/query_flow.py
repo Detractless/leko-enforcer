@@ -6,6 +6,7 @@ from typing import Any
 import sqlite3
 import subprocess
 import voice.core.assistant as voice
+from ..routing import canonical_speech
 from .conversation import Conversation, confirmation
 try:
     from ..request_state.flow import advance_request
@@ -15,7 +16,9 @@ except ImportError:
     from request_state.draft_summary import draft_summary
 
 DEFAULT_CONVERSATION = Conversation()
-MUTATIONS = {"add_block", "switch_off", "start_session"}
+MUTATIONS = {"create_rule", "edit_rule", "delete_rule", "queue_edit",
+             "cancel_edit", "request_pass"}
+READS = {"list_rules", "show_rule", "check_status", "evaluate_rule"}
 
 
 def clear_pending(conversation=DEFAULT_CONVERSATION, bridge=None):
@@ -107,12 +110,12 @@ def _prepare_draft(tool, args, settings_zip, cancelled, state=None):
     prep_started = time.perf_counter()
     try:
         cli_args = voice.tool_to_cli_args(settings_zip, tool, args, write=False)
-        # Session CLI launches immediately: it has no preview mode.
-        if tool == "start_session":
-            print("[CLI Draft] preview unavailable for immediate focus sessions", flush=True)
+        if not cli_args:
+            return "", canonical_speech.error_notice("that feature is not available yet"), False
+        if tool in MUTATIONS:
             if state:
-                _log(state, "tool_preview", tool=tool, arguments=args, status="unavailable")
-            return "", None, False
+                _log(state, "tool_preview", tool=tool, arguments=args, status="local")
+            return json.dumps({"preview": True, "tool": tool}), None, False
         if cancelled():
             if state:
                 _log(state, "tool_preview", tool=tool, arguments=args, status="cancelled")
@@ -128,7 +131,7 @@ def _prepare_draft(tool, args, settings_zip, cancelled, state=None):
                 _log(state, "tool_preview", tool=tool, arguments=args, status="error",
                      command=command, returncode=proc.returncode, stdout=proc.stdout,
                      stderr=proc.stderr, elapsed_seconds=round(elapsed, 3))
-            return "", "Sorry, that request could not be prepared.", False
+            return "", canonical_speech.error_notice("the CLI refused the preview"), False
         stdout = proc.stdout.strip()
         print(f"[CLI Draft] elapsed={elapsed:.2f}s exit=0 output={stdout!r}", flush=True)
         if state:
@@ -144,7 +147,7 @@ def _prepare_draft(tool, args, settings_zip, cancelled, state=None):
             _log(state, "tool_preview", tool=tool, arguments=args, status="error",
                  error={"type": type(exc).__name__, "message": str(exc)},
                  elapsed_seconds=round(elapsed, 3))
-        return "", "Sorry, that request could not be prepared.", False
+        return "", canonical_speech.error_notice("the preview could not be prepared"), False
 
 
 def _stage_pending(tool, args, settings_zip, intent, name, kind, description, state, bridge, cancelled):
@@ -170,7 +173,7 @@ def _respond(query, state, bridge, speak, cancelled, text, confirmed=False):
     speak(voice.verbalize_for_speech(text), cancelled)
     if bridge and not cancelled():
         if confirmed:
-            bridge.emit_confirmed("Session started" if text.startswith("Started") else "Locked & Saved")
+            bridge.emit_confirmed("Rule Saved" if "Rule" in text or "Pass" in text else "Action Completed")
         else:
             bridge.emit_idle()
     return text
@@ -199,17 +202,24 @@ def _execute_pending(state, bridge, cancelled, expected_id=None):
             _log(state, "tool_execution", status="error", origin_turn_id=origin_turn_id,
                  tool=intent.get("tool"), arguments=intent.get("arguments"),
                  error={"type": type(exc).__name__, "message": str(exc)})
-            return "Could not complete the action. Please make a new request.", False
+            return canonical_speech.error_notice("the action could not be completed"), False
         _log(state, "tool_execution", status="ok" if result.returncode == 0 else "error",
              origin_turn_id=origin_turn_id, tool=intent.get("tool"),
              arguments=intent.get("arguments"), command=[str(voice.LEKO_BIN)] + command,
              returncode=result.returncode, stdout=result.stdout, stderr=result.stderr)
         if result.returncode != 0:
-            return "Could not complete the action. Please make a new request.", False
+            if "seal" in result.stderr.lower():
+                return canonical_speech.seal_refusal("seal"), False
+            return canonical_speech.error_notice("the CLI refused the change"), False
         state.active_request.clear()
-        if intent["tool"] == "start_session":
-            return f"Started a focus session of {intent['arguments']['length']}.", True
-        return "Changes have been locked and saved.", True
+        tool = intent.get("tool")
+        if tool == "request_pass":
+            return canonical_speech.pass_notice(), True
+        if tool == "queue_edit":
+            return canonical_speech.queued_notice(intent.get("arguments", {}).get("delay_seconds", 0)), True
+        if tool == "cancel_edit":
+            return canonical_speech.cancelled_notice(), True
+        return "The Technology Management Rule was saved.", True
 
 
 def _confirmation_reply(query, state, bridge, speak, cancelled, confirmation_id):
@@ -255,7 +265,7 @@ def _route_intent(query, settings_zip, auto_confirm, bridge, state, speak,
     _log(state, "tool_call_selected", tool=tool, arguments=args)
     if isinstance(args, dict):
         print(f"[LLM Draft] {json.dumps({'tool': tool, 'arguments': args}, ensure_ascii=False, default=str)}", flush=True)
-    if tool not in MUTATIONS | {"check_status"} or not isinstance(args, dict):
+    if tool not in MUTATIONS | READS or not isinstance(args, dict):
         return _respond(query, state, bridge, speak, cancelled, "That action is not supported.")
     stdout, reply, was_cancelled = _prepare_draft(tool, args, settings_zip, cancelled, state)
     if was_cancelled:
@@ -289,6 +299,9 @@ def _process_query(query, settings_zip, auto_confirm=False, bridge=None,
     with state.turn_lock:
         if cancelled():
             return ""
+        planned = canonical_speech.planned_reply(query)
+        if planned:
+            return _respond(query, state, bridge, speak, cancelled, planned)
         decision = confirmation(query)
         answer_to_active = decision is True and state.pending is None and state.active_request.active
         if not answer_to_active:

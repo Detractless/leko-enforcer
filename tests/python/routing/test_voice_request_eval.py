@@ -21,7 +21,8 @@ class VoiceRequestEvalTests(unittest.TestCase):
             "Block reddit": ("add_block", {"sites": ["reddit.com"]}, {"sites": "reddit"}),
             "For 30 minutes": ("add_block", {"schedule_type": "for_duration", "duration": "30m"},
                                 {"schedule_type": "for 30 minutes", "duration": "30 minutes"}),
-            "Focus for 25 minutes": ("start_session", {"length": "25m"}, {"length": "25 minutes"}),
+            "Focus for 25 minutes": ("start_session", {"length": "25m"},
+                                     {"length": "25 minutes"}),
             "Actually make it 45 minutes": ("start_session", {"length": "45m"},
                                             {"length": "45 minutes"}),
             "Block reddit every weekday from 9 a.m. to 5 p.m.": (
@@ -34,7 +35,7 @@ class VoiceRequestEvalTests(unittest.TestCase):
             "Turn off the block called bedtime": ("switch_off", {"id": "bedtime"},
                                                   {"id": "bedtime"}),
             "Is reddit blocked?": ("check_status", {"target_type": "site", "name": "reddit.com"},
-                                   {"target_type": "reddit", "name": "reddit"}),
+                                    {"target_type": "reddit", "name": "reddit"}),
         }
 
         def structured(text, **_):

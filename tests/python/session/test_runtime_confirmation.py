@@ -43,7 +43,7 @@ class RuntimeConfirmationTests(unittest.TestCase):
         self.assertEqual(self.model.call_count, before)
         for action in ("cancel", "stop", "mute"):
             ui({"action": "query", "text": "block reddit"})
-            draft = {"id": self.state.pending["id"], "intent": {"tool": "start_session"}}
+            draft = {"id": self.state.pending["id"], "intent": {"tool": "request_pass"}}
             ui({"action": action, "draft": draft})
             ui({"action": "confirm", "draft": draft})
             self.assertIsNone(self.state.pending)
@@ -52,7 +52,7 @@ class RuntimeConfirmationTests(unittest.TestCase):
         draft = {"id": self.state.pending["id"], "intent": {"tool": "start_session"}}
         ui({"action": "confirm", "draft": draft})
         self.assertEqual(len(self.writes()), 2)
-        self.assertIn("add-block", self.writes()[-1])
+        self.assertIn("create-rule", self.writes()[-1])
         return "exit"
 
     def test_changed_request_cannot_use_stale_confirmation(self):
@@ -67,7 +67,7 @@ class RuntimeConfirmationTests(unittest.TestCase):
         self.assertEqual(self.state.pending["id"], current_id)
         self.query("yes", confirmation_id=current_id)
         self.assertEqual(len(self.writes()), 1)
-        self.assertEqual(self.writes()[0][self.writes()[0].index("--for") + 1], "45m")
+        self.assertIn("specific_websites", self.writes()[0][self.writes()[0].index("--target") + 1])
 
     def test_spoken_filler_order_and_ui_cancel_stop_mute(self):
         voice = fixtures.fake_voice

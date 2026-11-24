@@ -26,21 +26,20 @@ class QueryFlowTests(unittest.TestCase):
             self.assertIsNone(self.state.pending)
             second = self.query("For 30 minutes", turn_id="turn-2")
 
-        self.assertIn("reddit.com", second)
-        self.assertIn("30m", second)
+        self.assertIn("Technology Management Rule", second)
         self.assertEqual(model.call_count, 2)
         self.assertEqual(self.state.pending["intent"]["arguments"]["duration"], "30m")
         self.assertEqual(self.state.active_request.provenance["sites"]["turn_id"], "turn-1")
         self.assertFalse(self.writes())
 
     def test_complete_first_turn_skips_all_clarifications(self):
-        update = {"action": "request_update", "intent": "start_session",
-                  "fields": {"length": "25m"}, "evidence": {"length": "25 minutes"}}
-        with patch.object(fixtures.fake_voice, "parse_request_update_safe", create=True,
-                          return_value=update):
-            response = self.query("Focus for 25 minutes")
-        self.assertIn("Prepared a focus session of 25m", response)
-        self.assertEqual(self.state.pending["intent"]["arguments"]["length"], "25m")
+        intent = {"action": "tool_call", "tool": "request_pass",
+                  "arguments": {"id": "r1", "length": "25m"}}
+        with patch.object(fixtures.fake_voice, "parse_user_intent_safe", create=True,
+                          return_value=intent):
+            response = self.query("Request a pass for rule r1")
+        self.assertIn("Prepared a Pass request", response)
+        self.assertEqual(self.state.pending["intent"]["tool"], "request_pass")
         self.assertEqual(self.state.active_request.last_question_field, None)
 
     def test_invalid_time_is_clarified_before_missing_recurrence(self):

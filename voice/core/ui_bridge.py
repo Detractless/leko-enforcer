@@ -1,5 +1,5 @@
 """UI IPC Bridge for Leko Voice Assistant.
-Translates voice pipeline states and drafts into JSON-line IPC events for the minimalist circle UI.
+Translates voice pipeline states into JSON-line IPC events for the floating pill.
 """
 from __future__ import annotations
 
@@ -11,8 +11,9 @@ from pathlib import Path
 from typing import Callable, Optional, Dict, Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-LEKO_UI_DEBUG = REPO_ROOT / "target/debug/leko-ui"
-LEKO_UI_RELEASE = REPO_ROOT / "target/release/leko-ui"
+LEKO_UI_DEBUG = REPO_ROOT / "target/debug/leko-pill"
+LEKO_UI_RELEASE = REPO_ROOT / "target/release/leko-pill"
+PILL_ACTIONS = Path.home() / "Library/Application Support/Leko/pill-actions.json"
 
 class UIPipelineBridge:
     def __init__(self, event_sink: Optional[Callable[[Dict[str, Any]], None]] = None):
@@ -80,10 +81,10 @@ class UIPipelineBridge:
         self.emit_state("idle", "Ready")
 
     def start_ui_process(self, on_action: Optional[Callable[[Dict[str, Any]], None]] = None) -> None:
-        """Launches native leko-ui WebKit window in background and opens stdio pipe."""
+        """Launches the native leko-pill panel and watches its action file."""
         ui_bin = LEKO_UI_RELEASE if LEKO_UI_RELEASE.exists() else LEKO_UI_DEBUG
         if not ui_bin.exists():
-            raise FileNotFoundError(f"leko-ui binary not found at {LEKO_UI_DEBUG}")
+            raise FileNotFoundError(f"leko-pill binary not found at {LEKO_UI_DEBUG}")
 
         self._on_action_callback = on_action
         self._proc = subprocess.Popen(
@@ -113,6 +114,25 @@ class UIPipelineBridge:
 
         self._reader_thread = threading.Thread(target=_read_loop, daemon=True)
         self._reader_thread.start()
+
+        def _watch_actions():
+            last = ""
+            while self._proc is not None:
+                try:
+                    if not PILL_ACTIONS.exists():
+                        threading.Event().wait(0.1)
+                        continue
+                    data = json.loads(PILL_ACTIONS.read_text(encoding="utf-8"))
+                    action = data.get("action", "")
+                    if action and action != last and self._on_action_callback:
+                        last = action
+                        self._on_action_callback({"action": action})
+                except (OSError, json.JSONDecodeError):
+                    pass
+                threading.Event().wait(0.1)
+
+        self._action_thread = threading.Thread(target=_watch_actions, daemon=True)
+        self._action_thread.start()
 
     def close(self) -> None:
         if self._proc:

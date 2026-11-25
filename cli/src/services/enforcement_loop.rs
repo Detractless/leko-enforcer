@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::io::Write;
+
+use chrono::Utc;
 use std::path::{Path, PathBuf};
 
 use leko_core::domain::{decide, PassState, UsageState};
@@ -14,7 +16,7 @@ use crate::clock::CliClock;
 use crate::commands::{refused, CommandResult};
 use crate::services::os_executor::{ObservedApp, OsExecutor, SystemExecutor};
 
-const USAGE: &str = "Usage: leko enforce STORE.json [--once] [--dry-run] [--interval-ms N] [--heartbeats PATH]";
+const USAGE: &str = "Usage: leko enforce STORE.json [--once] [--dry-run] [--interval-ms N] [--heartbeats PATH] [--pill-events PATH]";
 
 const PROTECTED: &[&str] = &[
     "com.apple.finder", "com.apple.dock", "loginwindow", "com.apple.systemuiserver",
@@ -74,6 +76,27 @@ pub fn pass_state_for(args: &CliArgs, store: &Path, rule_id: &str) -> PassState 
     leko_core::services::domain_state(&saved, rule_id)
 }
 
+fn write_pill_event(args: &CliArgs, kind: &str, target: &str) {
+    let Some(path) = args.flags.get("pill-events") else {
+        return;
+    };
+    let value = serde_json::json!({
+        "version": 1,
+        "event": "blocked",
+        "kind": kind,
+        "target": target,
+        "at": Utc::now().to_rfc3339(),
+    });
+    let Ok(bytes) = serde_json::to_vec(&value) else {
+        return;
+    };
+    let path = PathBuf::from(path);
+    let temp = path.with_extension("tmp");
+    if std::fs::write(&temp, bytes).is_ok() {
+        let _ = std::fs::rename(temp, path);
+    }
+}
+
 fn is_protected(app: &ObservedApp) -> bool {
     if app.pid == std::process::id() as i32 {
         return true;
@@ -84,6 +107,7 @@ fn is_protected(app: &ObservedApp) -> bool {
 }
 
 fn terminate_apps<E: OsExecutor>(
+    args: &CliArgs,
     executor: &mut E,
     apps: &[String],
     allow_only: bool,
@@ -103,12 +127,15 @@ fn terminate_apps<E: OsExecutor>(
             let _ = writeln!(err, "Dry run: would terminate {}.", bundle);
         } else if let Err(problem) = executor.terminate_app(&app) {
             let _ = writeln!(err, "Could not terminate {}: {}; will retry.", bundle, problem);
+        } else {
+            write_pill_event(args, "app", &bundle);
         }
     }
     Ok(())
 }
 
 fn judge_browsers<E: OsExecutor>(
+    args: &CliArgs,
     executor: &mut E,
     now_ms: i64,
     first_unhealthy: &mut HashMap<BrowserId, i64>,
@@ -123,7 +150,10 @@ fn judge_browsers<E: OsExecutor>(
     ) {
         match action {
             GuardAction::Warn if !dry_run => executor.warn_browser(&browser),
-            GuardAction::Close if !dry_run => executor.close_browser(&browser),
+            GuardAction::Close if !dry_run => {
+                executor.close_browser(&browser);
+                write_pill_event(args, "website", &browser.bundle_id);
+            }
             GuardAction::Warn => { let _ = writeln!(err, "Dry run: would warn {}.", browser.bundle_id); }
             GuardAction::Close => { let _ = writeln!(err, "Dry run: would close {}.", browser.bundle_id); }
             GuardAction::None => {}
@@ -175,11 +205,11 @@ pub fn enforce_with<E: OsExecutor>(
             }
             match &rule.target {
                 Target::SpecificApps { apps } => {
-                    terminate_apps(executor, apps, false, options.dry_run, err)
+                    terminate_apps(args, executor, apps, false, options.dry_run, err)
                         .map_err(|message| refused(message, 1))?;
                 }
                 Target::AllowOnlyApps { allowed_apps } => {
-                    terminate_apps(executor, allowed_apps, true, options.dry_run, err)
+                    terminate_apps(args, executor, allowed_apps, true, options.dry_run, err)
                         .map_err(|message| refused(message, 1))?;
                 }
                 Target::SpecificWebsites { .. }
@@ -190,13 +220,15 @@ pub fn enforce_with<E: OsExecutor>(
                         let _ = writeln!(err, "Dry run: would perform {:?}.", action);
                     } else if let Err(problem) = executor.device_action(*action) {
                         let _ = writeln!(err, "Could not perform {:?}: {}; will retry.", action, problem);
+                    } else {
+                        write_pill_event(args, "device", &format!("{:?}", action));
                     }
                 }
             }
         }
 
         if website_locked {
-            judge_browsers(executor, clock.now_ms(), &mut first_unhealthy, options.dry_run, err)
+            judge_browsers(args, executor, clock.now_ms(), &mut first_unhealthy, options.dry_run, err)
                 .map_err(|message| refused(message, 1))?;
         }
 

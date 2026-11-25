@@ -200,6 +200,30 @@ class EmptyRuntimeTurnTests(unittest.TestCase):
             release.set()
             runtime.worker.stop()
 
+    def test_dictation_trigger_does_not_edit_protected_voice_files(self):
+        ROOT = Path(__file__).resolve().parents[3]
+        import subprocess
+        roots = ["src/daemon", "src/blocker-extension", "src/page-regions", "enforcers",
+                 "voice/audio_io", "voice/normalization"]
+        listed = subprocess.run(
+            ["git", "ls-files", *roots], cwd=ROOT, capture_output=True, text=True, check=True,
+        ).stdout.splitlines()
+        import hashlib
+        combined = hashlib.sha256()
+        for name in sorted(listed):
+            combined.update(name.encode("utf-8"))
+            combined.update(b"\0")
+            combined.update((ROOT / name).read_bytes())
+        self.assertEqual(
+            combined.hexdigest(),
+            "92aaff9716e775ab77c0f10c332395ecfb81daeff9194df8542a57b4c7728b4e",
+        )
+        runtime = (ROOT / "voice/session/runtime.py").read_text(encoding="utf-8")
+        self.assertLessEqual(len(runtime.splitlines()), 349)
+        runtime_text = (ROOT / "voice/session/runtime.py").read_text(encoding="utf-8")
+        self.assertIn("ptt_start", runtime_text)
+        self.assertIn("ptt_end", runtime_text)
+
 
 if __name__ == "__main__":
     unittest.main()

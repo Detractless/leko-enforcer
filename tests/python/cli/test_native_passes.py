@@ -75,6 +75,19 @@ class NativePassTests(unittest.TestCase):
             self.assertTrue(state.exists())
             self.assertEqual(store.read_bytes(), before)
 
+    def test_shape_limits_and_protected_paths_hold(self):
+        for relative in ("ui/pill/main.swift", "ui/pill/PillState.swift",
+                         "ui/pill/EventBridge.swift", "ui/pill/PillPanel.swift",
+                         "cli/src/services/enforcement_loop.rs", "voice/core/ui_bridge.py"):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertLess(len(text.splitlines()), 350, relative)
+            self.assertNotIn("\u2014", text, relative)
+        for folder in ("ui", "ui/pill", "tests/ui", "cli/src/services", "core/tests"):
+            self.assertLessEqual(sum(1 for _ in (ROOT / folder).iterdir()), 8, folder)
+        self.assertEqual(protected_digest()[1], PROTECTED_HASH)
+        self.assertFalse((ROOT / "ui/web").exists())
+        self.assertFalse((ROOT / "ui/src").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

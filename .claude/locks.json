@@ -643,6 +643,22 @@
           "sha256": "1a8a8022911ce878838fafae6ff7a8a3a7f9f0aa659f3efca3994aa15be7cac5"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/native-leko-voice-pill.md",
+      "sha256": "cab525e0ec0151bcf5db0ac264d94ba6405c8e94ffbfc2cd2ae0f5b295c52005",
+      "state": "locked",
+      "reason": "contract \"native-leko-voice-pill\" opened by the user: open native-leko-voice-pill",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-25T12:31:29.114Z",
+      "history": [
+        {
+          "at": "2026-11-25T12:31:29.114Z",
+          "event": "lock",
+          "sha256": "cab525e0ec0151bcf5db0ac264d94ba6405c8e94ffbfc2cd2ae0f5b295c52005"
+        }
+      ]
     }
   ]
 }

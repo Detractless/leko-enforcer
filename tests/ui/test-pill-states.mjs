@@ -71,9 +71,11 @@ test('quiet_timer_only_appears_for_an_active_timed_pass', () => {
 test('panel_configuration_is_non_activating_and_always_on_top', () => {
   const main = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
   for (const flag of ['with_transparent(true)', 'with_always_on_top(true)',
-                      'with_decorations(false)', 'with_focused(false)']) {
+                      'with_decorations(false)', 'with_focused(false)',
+                      '.with_html(&html)']) {
     assert.ok(main.includes(flag), flag);
   }
+  assert.equal((main.match(/with_transparent\(true\)/g) || []).length, 2);
   assert.ok(existsSync(resolve(ROOT, 'ui/src/web/pill.css')));
 });
 

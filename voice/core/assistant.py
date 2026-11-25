@@ -137,7 +137,7 @@ def acquire_single_instance_lock(lock_file: Optional[Path] = None) -> bool:
             pass
 
     try:
-        subprocess.run(["pkill", "-f", "leko-ui"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["pkill", "-f", "leko-pill"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(0.15)
     except Exception:
         pass

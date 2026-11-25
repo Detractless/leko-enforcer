@@ -10,7 +10,7 @@ name = "leko-pill"
 path = "src/main.rs"
 
 [dependencies]
-wry = "0.47"
+wry = { version = "0.47", features = ["transparent"] }
 tao = "0.30"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }

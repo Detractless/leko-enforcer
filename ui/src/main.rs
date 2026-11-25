@@ -162,10 +162,13 @@ fn main() {
     }
     let window = builder.build(&event_loop).expect("build pill window");
 
-    let html = format!("<style>{}</style><style>{}</style>{}{}", TOKENS, CSS, HTML,
-        format!("<script>{}</script>", JS));
+    let html = HTML
+        .replace("<title>Leko Pill</title>",
+            &format!("<title>Leko Pill</title><style>{}</style><style>{}</style>", TOKENS, CSS))
+        .replace("</body>", &format!("<script>{}</script></body>", JS));
     let handler_proxy = proxy.clone();
     let webview = WebViewBuilder::new()
+        .with_transparent(true)
         .with_html(&html)
         .with_initialization_script(&format!(
             "document.body.dataset.theme='{}';window.__leko_config={{quietTimer:{}}};",

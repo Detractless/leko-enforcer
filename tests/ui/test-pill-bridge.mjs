@@ -33,20 +33,22 @@ test('atomic_event_file_bridge_is_deterministic', () => {
 });
 
 test('swift_pill_builds_without_new_rust_dependencies', () => {
-  assert.ok(existsSync(PILL), 'swiftc ui/pill/*.swift must build leko-pill');
+  assert.ok(existsSync(PILL), 'cargo build --release must build leko-pill');
   const workspace = readFileSync(resolve(ROOT, 'Cargo.toml'), 'utf8');
-  assert.doesNotMatch(workspace, /"ui"/);
-  const sources = ['main.swift', 'PillState.swift', 'EventBridge.swift', 'PillPanel.swift',
-                   'PillTheme.swift', 'PillController.swift'];
+  assert.match(workspace, /"ui"/);
+  assert.equal(existsSync(resolve(ROOT, 'ui/pill')), false);
+  const sources = ['src/main.rs', 'src/state.rs', 'src/web/pill.html',
+                   'src/web/pill.css', 'src/web/pill.js', 'src/web/tokens.css'];
   for (const source of sources) {
-    assert.ok(existsSync(resolve(ROOT, 'ui/pill', source)));
-    assert.ok(readFileSync(resolve(ROOT, 'ui/pill', source), 'utf8').split('\n').length < 350);
+    const path = resolve(ROOT, 'ui', source);
+    assert.ok(existsSync(path), source);
+    assert.ok(readFileSync(path, 'utf8').split('\n').length < 350, source);
   }
 });
 
 test('legacy_ui_and_voice_events_are_absent', () => {
   assert.equal(existsSync(resolve(ROOT, 'ui/web')), false);
-  assert.equal(existsSync(resolve(ROOT, 'ui/src')), false);
+  assert.equal(existsSync(resolve(ROOT, 'ui/pill')), false);
   const bridge = readFileSync(resolve(ROOT, 'voice/core/ui_bridge.py'), 'utf8');
   assert.doesNotMatch(bridge, /leko-ui/);
   assert.match(bridge, /leko-pill/);

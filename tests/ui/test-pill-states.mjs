@@ -17,8 +17,9 @@ function headless(events) {
 
 test('one_unified_pill_replaces_the_circle_ui', () => {
   assert.equal(existsSync(resolve(ROOT, 'ui/web')), false);
-  assert.equal(existsSync(resolve(ROOT, 'ui/src')), false);
-  assert.ok(existsSync(resolve(ROOT, 'ui/pill/main.swift')));
+  assert.equal(existsSync(resolve(ROOT, 'ui/src')), true);
+  assert.equal(existsSync(resolve(ROOT, 'ui/pill')), false);
+  assert.ok(existsSync(resolve(ROOT, 'ui/src/web/pill.html')));
 });
 
 test('idle_pill_is_a_tiny_textless_capsule', () => {
@@ -68,41 +69,39 @@ test('quiet_timer_only_appears_for_an_active_timed_pass', () => {
 });
 
 test('panel_configuration_is_non_activating_and_always_on_top', () => {
-  const source = readFileSync(resolve(ROOT, 'ui/pill/PillPanel.swift'), 'utf8');
-  assert.match(source, /nonactivatingPanel/);
-  assert.match(source, /level = \.floating/);
-  assert.match(source, /hidesOnDeactivate = false/);
-  assert.match(source, /acceptsFirstMouse/);
-  assert.match(source, /NSTrackingArea/);
-  const main = readFileSync(resolve(ROOT, 'ui/pill/main.swift'), 'utf8');
-  assert.match(main, /setActivationPolicy\(\.accessory\)/);
-  assert.match(main, /availableData/);
+  const main = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
+  for (const flag of ['with_transparent(true)', 'with_always_on_top(true)',
+                      'with_decorations(false)', 'with_focused(false)']) {
+    assert.ok(main.includes(flag), flag);
+  }
+  assert.ok(existsSync(resolve(ROOT, 'ui/src/web/pill.css')));
 });
 
 test('both_themes_are_monochrome_without_dots_or_chevrons', () => {
-  const theme = readFileSync(resolve(ROOT, 'ui/pill/PillTheme.swift'), 'utf8');
-  assert.doesNotMatch(theme, /NSColor\.system/);
-  assert.match(theme, /calibratedRed/);
-  assert.match(theme, /0\.55/);
-  assert.match(theme, /0\.14/);
-  const panel = readFileSync(resolve(ROOT, 'ui/pill/PillPanel.swift'), 'utf8');
-  assert.doesNotMatch(panel, /chevron|disclosureTriangle|NSMenu/);
-  assert.match(panel, /cornerRadius = size\.height \/ 2/);
+  const tokens = readFileSync(resolve(ROOT, 'ui/src/web/tokens.css'), 'utf8');
+  for (const color of ['#181818', '#222222', '#303030', '#F2F2F2', '#8E8E8E',
+                       '#FAFAFA', '#FFFFFF', '#CCCCCC', '#141414', '#6E6E6E']) {
+    assert.ok(tokens.includes(color), color);
+  }
+  assert.doesNotMatch(tokens, /--color-(accent|blue|red|green|pink|orange)/);
+  const css = readFileSync(resolve(ROOT, 'ui/src/web/pill.css'), 'utf8');
+  assert.doesNotMatch(css, /chevron|dot|NSMenu/);
+  assert.match(css, /cubic-bezier\(0\.22, 1, 0\.36, 1\)/);
 });
 
 test('headless_tests_never_grab_the_microphone_or_open_windows', () => {
-  const main = readFileSync(resolve(ROOT, 'ui/pill/main.swift'), 'utf8');
+  const main = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
   assert.match(main, /--headless/);
-  assert.match(main, /NSApplication\.shared\.run\(\)/);
-  const panel = readFileSync(resolve(ROOT, 'ui/pill/PillPanel.swift'), 'utf8');
-  assert.doesNotMatch(panel, /AVAudio|AVAudioSession|microphone/);
+  assert.match(main, /event_loop\.run/);
+  assert.doesNotMatch(main, /AVAudio|microphone/);
 });
 
 test('hold_and_click_actions_are_written_with_stdout_flush', () => {
-  const controller = readFileSync(resolve(ROOT, 'ui/pill/PillController.swift'), 'utf8');
-  assert.match(controller, /ptt_start/);
-  assert.match(controller, /ptt_end/);
-  assert.match(controller, /held <= 0\.2/);
-  const bridge = readFileSync(resolve(ROOT, 'ui/pill/EventBridge.swift'), 'utf8');
-  assert.match(bridge, /standardOutput/);
+  const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
+  assert.match(js, /pointerdown/);
+  assert.match(js, /pointerup/);
+  assert.match(js, /heldFor <= 200/);
+  assert.match(js, /window\.ipc\.postMessage/);
+  const main = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
+  assert.match(main, /stdout\(\)\.flush/);
 });

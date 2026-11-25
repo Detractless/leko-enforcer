@@ -4,6 +4,9 @@ use std::fs;
 use leko_core::models::{Pass, Penalty, Schedule, Seal, Target};
 use leko_core::store::{load, NativeStore};
 use leko_core::TechnologyManagementRule;
+use leko_cli::arguments::parse;
+use leko_cli::services::enforcement_loop::enforce_with;
+use leko_cli::services::os_executor::MockExecutor;
 
 fn call(args: &[&str]) -> (i32, String, String) {
     let raw: Vec<OsString> = args.iter().map(OsString::from).collect();
@@ -71,5 +74,51 @@ fn a_broken_store_is_reported_and_a_partial_save_keeps_the_old_one() {
     assert_eq!(load(&store).unwrap().rules.len(), 1, "the old store was lost");
     assert_eq!(load(&store).unwrap().rules[0].id, "r1");
 
+    fs::remove_dir_all(dir).unwrap();
+}
+
+fn loop_dir(label: &str) -> std::path::PathBuf {
+    let dir = std::env::temp_dir().join(format!("leko-loop-store-{}-{}", std::process::id(), label));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+#[test]
+fn a_corrupt_or_missing_store_keeps_the_last_valid_state() {
+    let dir = loop_dir("corrupt");
+    let store = dir.join("store.json");
+    let valid = sample();
+    leko_core::store::save(&store, &NativeStore { version: 1, rules: vec![valid] }).unwrap();
+    let argv = ["enforce", store.to_str().unwrap(), "--once", "--at", "2026-01-01T12:00:00Z"]
+        .iter().map(|value| value.to_string()).collect::<Vec<String>>();
+    let parsed = parse(&argv).unwrap();
+    let mut mock = MockExecutor::default();
+    assert!(enforce_with(&parsed, &mut Vec::new(), &mut Vec::new(), &mut mock).is_ok());
+
+    fs::write(&store, b"{not json").unwrap();
+    let before = fs::read(&store).unwrap();
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    let failure = enforce_with(&parsed, &mut out, &mut err, &mut mock).unwrap_err();
+    assert!(out.is_empty());
+    assert!(!failure.0.is_empty());
+    assert_eq!(fs::read(&store).unwrap(), before);
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn native_store_version_is_preserved() {
+    let dir = loop_dir("version");
+    let store = dir.join("store.json");
+    leko_core::store::save(&store, &NativeStore { version: 1, rules: vec![sample()] }).unwrap();
+    let argv = ["enforce", store.to_str().unwrap(), "--once", "--at", "2026-01-01T12:00:00Z"]
+        .iter().map(|value| value.to_string()).collect::<Vec<String>>();
+    let parsed = parse(&argv).unwrap();
+    let mut mock = MockExecutor::default();
+    assert!(enforce_with(&parsed, &mut Vec::new(), &mut Vec::new(), &mut mock).is_ok());
+    let saved: serde_json::Value = serde_json::from_slice(&fs::read(&store).unwrap()).unwrap();
+    assert_eq!(saved["version"], 1);
+    assert!(saved.get("outsideHours").is_none());
     fs::remove_dir_all(dir).unwrap();
 }

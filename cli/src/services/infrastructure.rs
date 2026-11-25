@@ -5,8 +5,7 @@ use std::path::{Path, PathBuf};
 use serde_json::json;
 
 use crate::arguments::CliArgs;
-use crate::clock::CliClock;
-use crate::services::{output_human, output_json};
+use crate::services::output_human;
 
 type CommandResult = Result<(), (String, i32)>;
 
@@ -130,39 +129,11 @@ fn agent(args: &CliArgs, out: &mut dyn Write) -> CommandResult {
     }
 }
 
-fn enforce(args: &CliArgs, out: &mut dyn Write) -> CommandResult {
-    let path = args.positional.first().ok_or_else(|| {
-        refused("Usage: leko enforce STORE.json [--interval-ms N]".to_string())
-    })?;
-    let store = leko_core::store::load(Path::new(path)).map_err(|e| refused(e.to_string()))?;
-    let clock = CliClock::from_args(args).map_err(refused)?;
-    let usage = leko_core::domain::UsageState {
-        period_key: String::new(),
-        used_minutes: 0,
-        sessions: 0,
-    };
-    let pass = leko_core::domain::PassState {
-        earned_at: None,
-        used_in_window: 0,
-        window_key: String::new(),
-    };
-    for rule in &store.rules {
-        let answer = leko_core::domain::decide(rule, &clock.moment, &usage, &pass);
-        if args.flags.contains_key("json") {
-            writeln!(out, "{}", output_json::decision(&answer)).map_err(|e| refused(e.to_string()))?;
-        } else {
-            writeln!(out, "Rule {}: Enforced: {}", rule.id, answer.enforced)
-                .map_err(|e| refused(e.to_string()))?;
-        }
-    }
-    Ok(())
-}
-
-pub fn run(args: &CliArgs, out: &mut dyn Write) -> CommandResult {
+pub fn run(args: &CliArgs, out: &mut dyn Write, err: &mut dyn Write) -> CommandResult {
     match args.command.as_str() {
         "settings" => settings(args, out),
         "agent" => agent(args, out),
-        "enforce" => enforce(args, out),
+        "enforce" => crate::services::enforcement_loop::enforce(args, out, err),
         _ => Err(refused("That command is not infrastructure.".to_string())),
     }
 }

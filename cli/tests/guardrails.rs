@@ -5,6 +5,9 @@ use std::path::{Path, PathBuf};
 
 use leko_core::enforcement::{BrowserId, DefaultHandshake, ExtensionHandshake, GuardConfig};
 use leko_core::models::specs::DeviceAction;
+use leko_cli::arguments::parse;
+use leko_cli::services::enforcement_loop::enforce_with;
+use leko_cli::services::os_executor::MockExecutor;
 
 fn workspace() -> &'static Path {
     Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap()
@@ -115,4 +118,26 @@ fn shape_limits_protected_paths_and_fixed_flags_hold() {
     assert_eq!(settings["shadow_mode"], false);
     assert_eq!(settings["nsfw"], false);
     assert_eq!(settings["nsfw_overridable"], false);
+}
+
+#[test]
+fn keepalive_compatible_loop_shuts_down_cleanly() {
+    let dir = workspace().join("target").join(format!("leko-shutdown-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let store = dir.join("store.json");
+    leko_core::store::save(&store, &leko_core::store::NativeStore {
+        version: 1,
+        rules: vec![],
+    }).unwrap();
+    let argv = ["enforce", store.to_str().unwrap(), "--at", "2026-01-01T12:00:00Z"]
+        .iter().map(|value| value.to_string()).collect::<Vec<String>>();
+    let parsed = parse(&argv).unwrap();
+    let mut mock = MockExecutor::default();
+    mock.shutdown = true;
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    assert!(enforce_with(&parsed, &mut out, &mut err, &mut mock).is_ok());
+    assert!(String::from_utf8(out).unwrap().contains("Enforcement ticks: 0"));
+    fs::remove_dir_all(dir).unwrap();
 }

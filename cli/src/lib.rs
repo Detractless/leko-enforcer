@@ -20,7 +20,7 @@ pub fn run(raw: &[OsString], out: &mut dyn Write, err: &mut dyn Write) -> i32 {
             return EXIT_USAGE;
         }
     };
-    match commands::dispatch(&parsed, out) {
+    match commands::dispatch(&parsed, out, err) {
         Ok(()) => EXIT_OK,
         Err((message, code)) => {
             let _ = writeln!(err, "{}", message);

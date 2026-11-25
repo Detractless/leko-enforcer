@@ -611,6 +611,22 @@
           "sha256": "59cb0611b8b08781f7724f5e48438c5a137825b97189312aa8a85d0d829a04ba"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/native-leko-enforcer-loop.md",
+      "sha256": "338c992282ae9470cb89ca5f62ab08f0d3c3f8a0e014257d7e2b18b21588e31a",
+      "state": "locked",
+      "reason": "contract \"native-leko-enforcer-loop\" opened by the user: open native-leko-enforcer-loop",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-25T04:06:32.597Z",
+      "history": [
+        {
+          "at": "2026-11-25T04:06:32.597Z",
+          "event": "lock",
+          "sha256": "338c992282ae9470cb89ca5f62ab08f0d3c3f8a0e014257d7e2b18b21588e31a"
+        }
+      ]
     }
   ]
 }

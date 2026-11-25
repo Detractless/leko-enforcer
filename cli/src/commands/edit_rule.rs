@@ -38,6 +38,9 @@ fn report(args: &CliArgs, message: &str, out: &mut dyn Write) -> CommandResult {
 }
 
 pub fn run(args: &CliArgs, out: &mut dyn Write) -> CommandResult {
+    if !crate::services::addon::check_pinned(args).map_err(|message| refused(message, 1))? {
+        return Err(refused("the custom verifier was not satisfied", 1));
+    }
     let id = args
         .flags
         .get("id")

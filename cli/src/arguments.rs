@@ -11,6 +11,8 @@ pub const RULE_COMMANDS: &[&str] = &[
 
 pub const INFRA_COMMANDS: &[&str] = &["settings", "agent", "enforce"];
 
+pub const ADDON_COMMANDS: &[&str] = &["pin-addon", "list-addons", "verify-addon"];
+
 pub const LEGACY_COMMANDS: &[&str] = &[
     "add-block", "session", "switch-off", "switch-on", "status", "edit-block",
     "edit-schedule", "delay", "settle", "cancel", "waiting",
@@ -36,6 +38,7 @@ pub struct CliArgs {
 pub fn usage() -> String {
     let mut commands: Vec<&str> = RULE_COMMANDS.to_vec();
     commands.extend_from_slice(INFRA_COMMANDS);
+    commands.extend_from_slice(ADDON_COMMANDS);
     format!("Usage: leko <{}> [flags]", commands.join("|"))
 }
 
@@ -48,7 +51,10 @@ pub fn parse(args: &[String]) -> Result<CliArgs, String> {
     if LEGACY_COMMANDS.contains(&command.as_str()) {
         return Err(format!("The legacy command {} was removed. {}", command, usage()));
     }
-    if !RULE_COMMANDS.contains(&command.as_str()) && !INFRA_COMMANDS.contains(&command.as_str()) {
+    if !RULE_COMMANDS.contains(&command.as_str())
+        && !INFRA_COMMANDS.contains(&command.as_str())
+        && !ADDON_COMMANDS.contains(&command.as_str())
+    {
         return Err(format!("Unknown command {}. {}", command, usage()));
     }
 

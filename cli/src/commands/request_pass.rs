@@ -10,6 +10,9 @@ use crate::commands::{emit_json, find_rule, load, refused, CommandResult};
 use crate::services::output_human;
 
 pub fn run(args: &CliArgs, out: &mut dyn Write) -> CommandResult {
+    if !crate::services::addon::check_pinned(args).map_err(|message| refused(message, 1))? {
+        return Err(refused("the custom verifier was not satisfied", 1));
+    }
     let id = args
         .flags
         .get("id")

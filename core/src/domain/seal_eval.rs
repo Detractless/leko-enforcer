@@ -68,14 +68,17 @@ pub fn seal_satisfied(seal: &Seal, moment: &Moment, proof: &SealProof) -> bool {
         Seal::ActiveScheduleSeal { .. } => proof.edit_window_ok,
         Seal::PartnerPasswordSeal { .. } => proof.password_ok,
         Seal::CustomVerifier { fallback_seal, .. } => {
-            if proof.verifier_satisfied {
-                true
+            let result = if proof.verifier_satisfied {
+                crate::services::verifier::Verification::Satisfied
             } else {
-                fallback_seal
-                    .as_ref()
-                    .map(|inner| seal_satisfied(inner, moment, proof))
-                    .unwrap_or(false)
-            }
+                crate::services::verifier::Verification::NotSatisfied
+            };
+            crate::services::verifier::apply_fallback(
+                result,
+                fallback_seal.as_deref(),
+                moment,
+                proof,
+            )
         }
     }
 }

@@ -66,6 +66,7 @@ pub fn dispatch(args: &CliArgs, out: &mut dyn Write) -> CommandResult {
         "check-status" => check_status::run(args, out),
         "evaluate-rule" => evaluate_rule::run(args, out),
         "settings" | "agent" | "enforce" => infrastructure::run(args, out),
+        "pin-addon" | "list-addons" | "verify-addon" => crate::services::addon::run(args, out),
         _ => Err(refused("That command is not available.", 2)),
     }
 }

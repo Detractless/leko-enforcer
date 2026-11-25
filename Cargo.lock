@@ -1320,9 +1320,11 @@ dependencies = [
  "crc32fast",
  "flate2",
  "pbkdf2",
+ "rand 0.8.8",
  "serde",
  "serde_json",
  "sha2",
+ "toml",
  "unicode-normalization",
 ]
 

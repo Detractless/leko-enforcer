@@ -12,6 +12,19 @@ except ImportError:
 
 _SUPPORTED_ACTIONS = {"add_block", "start_session", "switch_off", "check_status"}
 
+_CANONICAL_TO_INTERNAL = {
+    "create_rule": "add_block",
+    "request_pass": "start_session",
+    "delete_rule": "switch_off",
+    "check_status": "check_status",
+    "show_rule": "check_status",
+    "evaluate_rule": "check_status",
+    "edit_rule": "add_block",
+    "queue_edit": "add_block",
+    "cancel_edit": "switch_off",
+    "list_rules": "check_status",
+}
+
 
 def _question(action, slots):
     if action == "add_block":
@@ -127,11 +140,13 @@ def advance_request(request_state, model_result, utterance, turn_id=None):
         return {"kind": "reply", "text": model_result.get("content") or "How can I help?"}
     if model_result.get("action") == "request_update":
         action = model_result.get("intent")
+        action = _CANONICAL_TO_INTERNAL.get(action, action)
         fields = model_result.get("fields", {})
         evidence = model_result.get("evidence", {})
         require_evidence = True
     elif model_result.get("action") == "tool_call":
         action = model_result.get("tool")
+        action = _CANONICAL_TO_INTERNAL.get(action, action)
         fields = deepcopy(model_result.get("arguments", {}))
         if action == "add_block" and isinstance(fields, dict) and _requested_days(utterance or "") is None:
             fields.pop("days", None)

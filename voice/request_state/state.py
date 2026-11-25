@@ -6,9 +6,9 @@ import re
 ACTION_FIELDS = {
     "add_block": {"name", "apps", "sites", "device", "target_kind", "schedule_type",
                   "duration", "open_hours", "blocked_hours", "days"},
-    "start_session": {"length"},
+    "start_session": {"id", "length"},
     "switch_off": {"id"},
-    "check_status": {"target_type", "name"},
+    "check_status": {"id", "target_type", "name"},
 }
 _DEVICE_ACTIONS = {"lock", "logoff", "shutdown"}
 _SCHEDULE_TYPES = {"always", "for_duration", "open_hours", "blocked_hours"}

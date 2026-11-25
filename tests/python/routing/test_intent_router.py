@@ -44,7 +44,7 @@ class TestIntentRouter(unittest.TestCase):
         import voice.routing.llm_router as llm_router
         mock_resp = MagicMock()
         mock_resp.__enter__.return_value.read.return_value = \
-            b'{"choices":[{"message":{"tool_calls":[{"function":{"name":"add_block","arguments":"{\\"name\\":\\"Test\\"}"}}]}}]}'
+            b'{"choices":[{"message":{"tool_calls":[{"function":{"name":"create_rule","arguments":"{\\"name\\":\\"Test\\"}"}}]}}]}'
         with patch.object(llm_router, "ensure_server"), patch.object(
                 llm_router.urllib.request, "urlopen", return_value=mock_resp):
             r = llm_router.parse_user_intent("block reddit")

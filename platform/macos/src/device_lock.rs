@@ -86,6 +86,7 @@ mod platform {
             DeviceAction::Lock => lock(),
             DeviceAction::Logoff => apple_event(LOG_OUT),
             DeviceAction::Shutdown => apple_event(SHUT_DOWN),
+            DeviceAction::Restart => Err("a restart request is not available on this macOS build.".into()),
         }
     }
 }

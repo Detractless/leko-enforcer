@@ -1,52 +1,40 @@
-"""Exercise the production release CLI's device-block draft without saving settings."""
+"""Exercise the native CLI rule creation against a temporary store."""
+
+import json
 import subprocess
 import tempfile
 import unittest
-import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-LEKO = ROOT / "target" / "release" / "leko"
+LEKO = ROOT / "target" / "debug" / "leko"
 
 
-@unittest.skipUnless(LEKO.exists(), "build leko-cli in release mode first")
-class DeviceCliPreviewTests(unittest.TestCase):
-    def make_settings(self, folder):
-        settings = Path(folder) / "settings.zip"
-        with zipfile.ZipFile(settings, "w") as archive:
-            archive.writestr("GUIDE.md", "guide")
-            archive.writestr("general.json", '{"schema": 2}')
-        return settings
-
-    def test_device_flag_builds_a_draft_without_writing(self):
+@unittest.skipUnless(LEKO.exists(), "build leko-cli with cargo test first")
+class NativeCliPreviewTests(unittest.TestCase):
+    def test_device_rule_uses_canonical_target(self):
         with tempfile.TemporaryDirectory() as folder:
-            settings = self.make_settings(folder)
-            original = settings.read_bytes()
-
+            store = Path(folder) / "rules.json"
             result = subprocess.run(
-                [str(LEKO), "add-block", str(settings), "--name", "Night Lock",
-                 "--device", "lock", "--for", "7h"],
+                [str(LEKO), "create-rule", "--store", str(store), "--id", "w1",
+                 "--name", "Night Lock",
+                 "--target", json.dumps({"kind": "whole_device", "action": "lock"}),
+                 "--at", "2026-01-01T00:00:00Z"],
                 capture_output=True, text=True, timeout=10)
-
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("the whole computer: the screen is locked", result.stdout)
-            self.assertIn("Nothing was saved", result.stdout)
-            self.assertEqual(settings.read_bytes(), original)
+            saved = json.loads(store.read_text(encoding="utf-8"))
+            self.assertEqual(saved["rules"][0]["target"]["kind"], "whole_device")
+            self.assertIsNone(saved["rules"][0]["penalty"])
 
-    def test_complemented_blocked_hours_preview_does_not_write(self):
+    def test_list_json_has_stable_pillar_shape(self):
         with tempfile.TemporaryDirectory() as folder:
-            settings = self.make_settings(folder)
-            original = settings.read_bytes()
+            store = Path(folder) / "rules.json"
             result = subprocess.run(
-                [str(LEKO), "add-block", str(settings), "--name", "Night Lock",
-                 "--device", "lock", "--open-hours", "07:00-00:00",
-                 "--days", "mon,tue,wed,thu,fri,sat,sun"],
+                [str(LEKO), "list-rules", "--store", str(store), "--json"],
                 capture_output=True, text=True, timeout=10)
-
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("open only during 07:00-00:00", result.stdout)
-            self.assertIn("Nothing was saved", result.stdout)
-            self.assertEqual(settings.read_bytes(), original)
+            value = json.loads(result.stdout)
+            self.assertIn("rules", value)
 
 
 if __name__ == "__main__":

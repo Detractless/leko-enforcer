@@ -41,6 +41,7 @@ try:
 except ImportError:
     from stt.stt_lifecycle import SttLifecycle
 from ..routing.intent_validation import tool_to_cli_args
+from ..routing.canonical_speech import format_status_summary as _canonical_status
 from ..routing.llm_request import parse_request_update_safe, parse_user_intent_safe
 from ..routing.llm_router import ensure_server
 from ..session.turn_worker import SerializedTurnWorker
@@ -65,7 +66,7 @@ __all__ = [
 ]
 from ..audio_io.echo_canceller import EchoAudioProcessor, VoiceOutputPlayer
 
-LEKO_BIN = REPO_ROOT / "target/release/leko"
+LEKO_BIN = Path(os.environ.get("LEKO_CLI_BIN", str(REPO_ROOT / "target/release/leko")))
 PHONON_25_MODEL = Path("/Users/calibro/.t3/scratch/2026-11-05-can-you-review-this-project-4f6400cb/phonon-2.5-en-mlx")
 VOICE_NAME = "Zoey"
 DEFAULT_LOCK_FILE = Path("/tmp/leko_assistant.pid")
@@ -267,25 +268,8 @@ def transcribe_audio(audio_f32: np.ndarray) -> str:
     return getattr(res, "text", str(res)).strip()
 
 def format_status_summary(raw_stdout: str, target_type: str = "", name: str = "") -> str:
-    """Formats raw CLI status output directly into a clean, natural spoken sentence."""
-    if not raw_stdout:
-        return f"{name} status is unavailable." if name else "Status check completed."
-
-    first_line = raw_stdout.strip().split("\n")[0].strip()
-    parts = re.split(r"\.\s+", first_line)
-    first_sentence = parts[0].strip()
-
-    if first_sentence.startswith("Site "):
-        first_sentence = first_sentence[5:]
-    elif first_sentence.startswith("App "):
-        first_sentence = first_sentence[4:]
-    elif first_sentence.startswith("Device: "):
-        first_sentence = first_sentence[8:]
-
-    if ", judged at" in first_sentence:
-        first_sentence = first_sentence.split(", judged at")[0].strip()
-
-    return f"{first_sentence}." 
+    """Format native CLI JSON into one exact Title Case spoken status sentence."""
+    return _canonical_status(raw_stdout, target_type, name)
 
 def process_query(*args, **kwargs) -> str:
     """Compatibility export for the separated query flow."""

@@ -1,106 +1,34 @@
-//! The `leko` command: makes a timed session (a session rule and a moment seal that end together)
-//! from a typed length or from heard words, and shows it, says whether one app or site is closed
-//! now (`leko status`), and drafts a new block into a settings zip and, when told to, saves it
-//! (`leko add-block`), switches a block off at once or parks the change (`leko switch-off`) and lands
-//! the parked changes that are due (`leko settle`), takes a parked change back (`leko cancel`), switches a block back on at once (`leko switch-on`) and lists the
-//! parked changes that touch what `leko status` is asked about. Only `--write` changes a file. The clock
-//! is read only by the program's `main.rs`; everything here is given the moment as an argument.
+pub mod arguments;
+pub mod clock;
+pub mod commands;
+pub mod services;
 
-pub mod edit_prologue;
+use std::ffi::OsString;
+use std::io::Write;
 
-macro_rules! load_edit_prologue_or_return {
-    ($words:expr, $usage:expr, $parse:expr, $computer_zone:expr, $err:expr) => {
-        match $crate::edit_prologue::read_edit_prologue(
-            $words,
-            $usage,
-            $parse,
-            $computer_zone,
-            $err,
-        ) {
-            Ok(prologue) => prologue,
-            Err(code) => return code,
+use arguments::{EXIT_OK, EXIT_REFUSED, EXIT_USAGE};
+
+pub fn run(raw: &[OsString], out: &mut dyn Write, err: &mut dyn Write) -> i32 {
+    let args: Vec<String> = raw
+        .iter()
+        .map(|value| value.to_string_lossy().into_owned())
+        .collect();
+    let parsed = match arguments::parse(&args) {
+        Ok(value) => value,
+        Err(message) => {
+            let _ = writeln!(err, "{}", message);
+            return EXIT_USAGE;
         }
     };
-}
-
-pub mod session {
-    pub mod run_command;
-    pub mod session_arguments;
-    pub mod session_length;
-    pub mod session_report;
-    pub mod voice_phrase;
-}
-
-pub mod add_block {
-    pub mod add_block_arguments;
-    pub mod add_block_report;
-    pub mod file_replace;
-    pub mod run_add_block;
-}
-
-pub mod edit_schedule {
-    pub mod run_edit_schedule;
-    pub mod schedule_arguments;
-}
-
-pub mod edit_block {
-    pub mod edit_arguments;
-    pub mod run_edit_block;
-}
-
-pub mod delayed_changes {
-    pub mod delay_arguments;
-    pub mod request_files;
-    pub mod run_settle;
-    pub mod run_switch_off;
-    pub mod settle_report;
-    pub mod switch_off_report;
-    pub mod waiting_file_disk;
-}
-
-pub mod waiting_changes {
-    pub mod cancel_arguments;
-    pub mod cancel_report;
-    pub mod run_cancel;
-    pub mod status_waiting;
-}
-
-pub mod switch_on {
-    pub mod run_switch_on;
-    pub mod switch_on_arguments;
-    pub mod switch_on_report;
-}
-
-pub mod status {
-    pub mod run_status;
-    pub mod settings_file;
-    pub mod status_arguments;
-    pub mod status_report;
-    pub mod zone_choice;
-}
-
-pub mod enforcement {
-    pub mod browser_guard;
-    pub mod enforcement_loop;
-
-    pub mod macos_applications {
-        pub use leko_platform_macos::applications::*;
-    }
-    pub mod macos_device_lock {
-        pub use leko_platform_macos::device_lock::*;
-    }
-    #[cfg(target_os = "macos")]
-    pub mod macos_objc {
-        pub use leko_platform_macos::objc::*;
+    match commands::dispatch(&parsed, out) {
+        Ok(()) => EXIT_OK,
+        Err((message, code)) => {
+            let _ = writeln!(err, "{}", message);
+            if code == EXIT_USAGE {
+                EXIT_USAGE
+            } else {
+                EXIT_REFUSED
+            }
+        }
     }
 }
-
-pub mod launch_agent {
-    pub mod agent_command;
-    pub mod agent_control;
-    pub mod agent_plist;
-}
-
-pub mod settings_store;
-
-pub use session::run_command::run;

@@ -2,7 +2,7 @@ from __future__ import annotations
 import sys
 """Local LLM tool caller using LiquidAI LFM3-1.7B.
 
-Parses natural speech or typed requests into structured Leko CLI commands.
+Parses natural speech or typed requests into canonical Leko tool calls.
 """
 
 import datetime
@@ -13,7 +13,6 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict
 
-# Compatibility re-export for callers that still import this helper from llm_router.
 try:
     from .intent_validation import tool_to_cli_args
     from ..request_state.extraction import (REQUEST_UPDATE_GUIDANCE, REQUEST_UPDATE_TOOL,
@@ -29,117 +28,44 @@ SERVER_LOG_PATH = Path.home() / "Library" / "Logs" / "Leko-Enforcer" / "llama-se
 RUNTIME_BIN = Path("/Users/calibro/.t3/scratch/2026-10-29-based-on-these-documents-what-d76b9ec3/voice-beta/.runtime/llama-b11980/llama-server")
 MODEL_PATH = Path("/Users/calibro/.t3/scratch/2026-10-29-based-on-these-documents-what-d76b9ec3/voice-beta/models/LFM3-1.7B-Q4_K_M.gguf")
 
-TOOLS = [
-    {
+_STRING = {"type": "string"}
+_OBJECT = {"type": "object"}
+_ID = {"id": _STRING}
+_ENUM = {"type": "string", "enum": ["tighten", "weaken", "pause", "delete"]}
+
+
+def _tool(name: str, description: str, properties: dict, required: list[str]) -> dict:
+    return {
         "type": "function",
         "function": {
-            "name": "add_block",
-            "description": "Create a new distraction blocking rule for apps or websites, or a device block that locks the screen, logs out or shuts down while it is closed.",
+            "name": name,
+            "description": description,
             "parameters": {
                 "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "Short clean descriptive name for the block, e.g. 'Social Media' or 'Distractions'"
-                    },
-                    "apps": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "App bundle identifiers or application names to block, e.g. ['com.apple.Chess', 'com.apple.Calculator']"
-                    },
-                    "sites": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Website domains or hosts to block, e.g. ['reddit.com', 'twitter.com']"
-                    },
-                    "schedule_type": {
-                        "type": "string",
-                        "enum": ["always", "for_duration", "open_hours", "blocked_hours"],
-                        "description": "Type: always, for_duration, open_hours (allowed window), or blocked_hours (exact closed window repeated on selected days)"
-                    },
-                    "duration": {
-                        "type": "string",
-                        "description": "Duration length for 'for_duration': must be a duration such as '30m', '2h', '4h', '90m' (never 'until ...')"
-                    },
-                    "open_hours": {
-                        "type": "string",
-                        "description": "Hours when the target remains usable for 'open_hours'; it is blocked at all other times. Example: '09:00-17:00'."
-                    },
-                    "blocked_hours": {
-                        "type": "string",
-                        "description": "Exact HH:MM-HH:MM time range when the target must be blocked for 'blocked_hours'. Use the same times the user said, not the inverse. Repeat on the days listed in days."
-                    },
-                    "days": {
-                        "type": "string",
-                        "description": "For blocked_hours, include every day explicitly as 'mon,tue,wed,thu,fri,sat,sun'. Otherwise list selected days, e.g. 'mon,tue,wed,thu,fri'. Ask if days are unclear."
-                    },
-                    "device": {
-                        "type": "string",
-                        "enum": ["lock", "logoff", "shutdown"],
-                        "description": "Instead of apps or sites, act on the whole computer: 'lock' locks the screen, 'logoff' logs the user out, 'shutdown' shuts it down. Do not combine with apps or sites."
-                    }
-                },
-                "required": ["name", "schedule_type"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "start_session",
-            "description": "Start an immediate, unskippable focus session for a specific duration.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "length": {
-                        "type": "string",
-                        "description": "Length of focus session in minutes or with units, e.g. '25m', '45m', '2h'"
-                    }
-                },
-                "required": ["length"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "switch_off",
-            "description": "Turn off or unlock an existing block by its name or ID (including device freeze blocks).",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "description": "The name or identifier of the block to switch off"
-                    }
-                },
-                "required": ["id"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "check_status",
-            "description": "Check whether an app, a website or the whole computer is currently blocked, and when it opens or closes next. Do not use for turning off or removing blocks.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "target_type": {
-                        "type": "string",
-                        "enum": ["app", "site", "device"],
-                        "description": "Whether checking an application, a website, or the whole computer's device blocks"
-                    },
-                    "name": {
-                        "type": "string",
-                        "description": "App name/bundle id or website domain; leave out for a device check"
-                    }
-                },
-                "required": ["target_type"]
-            }
-        }
+                "properties": properties,
+                "required": required,
+            },
+        },
     }
+
+
+TOOLS = [
+    _tool("create_rule", "Create a canonical Technology Management Rule with a Target, Schedule, Penalty, Pass and Seal.",
+          {"name": _STRING, "target": _OBJECT, "schedule": _OBJECT, "penalty": _OBJECT},
+          ["name", "target"]),
+    _tool("list_rules", "List stored Technology Management Rules.", {}, []),
+    _tool("show_rule", "Show one Technology Management Rule by its id.", _ID, ["id"]),
+    _tool("edit_rule", "Tighten, weaken, pause or delete a rule, subject to its Seal.",
+          {**_ID, "direction": _ENUM, "field": _STRING, "value": _OBJECT}, ["id", "direction"]),
+    _tool("delete_rule", "Delete one Technology Management Rule by its id.", _ID, ["id"]),
+    _tool("queue_edit", "Queue one later edit under a Queued Delay Seal.",
+          {**_ID, "field": _STRING, "value": _OBJECT}, ["id", "field", "value"]),
+    _tool("cancel_edit", "Cancel a queued edit under a Queued Delay Seal.", _ID, ["id"]),
+    _tool("request_pass", "Request or earn a Pass without editing the stored rule.", _ID, ["id"]),
+    _tool("check_status", "Check the status and enforcement of one rule by its id.", _ID, ["id"]),
+    _tool("evaluate_rule", "Evaluate one rule at the given time and report enforcement and reason.", _ID, ["id"]),
 ]
+
 
 def get_system_prompt() -> str:
     now = datetime.datetime.now()
@@ -147,25 +73,17 @@ def get_system_prompt() -> str:
     date_str = now.strftime("%A, %B %d, %Y")
     return f"""You are Leko Voice Assistant, an on-device privacy-first focus and distraction enforcer.
 The current local time is {time_str} on {date_str}.
-You translate the user's spoken voice requests into concrete, structured tool calls, or answer general conversational questions (such as asking for the current local time) concisely.
-Always pick the most specific tool when managing focus or blocks:
-- If the user wants to focus for a period, use `start_session`.
-- If the user wants to block certain apps or sites, or freeze the whole computer (lock the screen, log out, shut down), use `add_block`.
-- If the user wants to remove or turn off a block, use `switch_off`.
-- If the user asks whether something is blocked or allowed, use `check_status`.
-Extract clean domain names (e.g. reddit.com) and clean app identifiers.
-Schedule meaning is critical:
-- `open_hours` means the app, site, or device is usable during `open_hours` and blocked outside that window.
-- `blocked_hours` means it is blocked during `blocked_hours`. Copy the user's exact blocked start and end times into that field. Never put a blocked interval into `open_hours`.
-- Use `blocked_hours` when the user says they cannot, should not, or must not be able to use a target during a time range. Include the exact recurrence in `days`: all seven for every day, mon-fri for weekdays, sat,sun for weekends, or the named days. If days are unclear, ask instead of guessing.
-- Use `open_hours` only when the user says the target should remain allowed or usable during that window.
-CRITICAL: Durations must be lengths with units, such as '30m', '2h', '90m'. Use `for_duration` only for a relative length or a clear one-time request ending at a clock time. If the user gives two clock times or a recurring window, use `blocked_hours` or `open_hours` according to whether the target should be blocked or usable; never turn that window into a duration. Ask if one-time versus recurring is unclear.
-When answering conversational questions, reply in short, natural spoken English. Never use Markdown headings (###), bullet points, code blocks, or technical parameter names in spoken replies.
-If the user's message corrects or clarifies something from a prior turn, acknowledge the correction briefly, then act on the corrected request.
+Translate spoken requests into one of the canonical tools: create_rule, list_rules, show_rule, edit_rule, delete_rule, queue_edit, cancel_edit, request_pass, check_status or evaluate_rule.
+Speak the exact canonical names: Technology Management Rule, Target, Schedule, Penalty, Pass and Seal. Whole Device uses Lock, Logoff, Restart or Shutdown. Force Close Penalty is the only built-in penalty. A Queued Delay Seal holds one later edit, and a Pass never edits a rule.
+For a rule a user has not named yet, ask for the Target first: Specific Apps, Allow Only Apps, Specific Websites, Topic Detected Websites, Allow Only Websites or Whole Device.
+For schedule requests ask for Always On Schedule, One Time Schedule or Routine Schedule with days and windows. Never invert a blocked window into open hours.
+If the user names Pomodoro Schedule, Community-Linked Apps, Community-Linked Websites, Engagement Pass or Restart Seal, do not call any tool. Reply only that the feature is not available yet.
+When answering conversational questions, reply in short natural spoken English. Never use Markdown headings, bullet points, code blocks or technical parameter names.
+If the user corrects a prior turn, acknowledge it briefly, then act on the corrected request.
 If you cannot determine what the user wants, ask a short clarifying question instead of guessing.
-When a block's target is missing or unclear, ask whether the user means apps, websites, or the whole computer. Do not leave out whole-computer blocking from this clarification.
 Do not repeat information the user already knows. Keep replies under 3 sentences.
 """
+
 
 def is_server_running() -> bool:
     try:
@@ -174,10 +92,11 @@ def is_server_running() -> bool:
     except Exception:
         return False
 
+
 def ensure_server(timeout_sec: int = 20) -> subprocess.Popen | None:
     if is_server_running():
         return None
-    
+
     if not RUNTIME_BIN.exists():
         raise FileNotFoundError(f"llama-server binary not found at {RUNTIME_BIN}")
     if not MODEL_PATH.exists():
@@ -212,13 +131,13 @@ def ensure_server(timeout_sec: int = 20) -> subprocess.Popen | None:
             print(f"[LFM3 server] ready after {time.monotonic() - start:.1f}s; output={SERVER_LOG_PATH}", file=sys.stderr)
             return proc
         time.sleep(0.5)
-    
+
     proc.terminate()
     print(f"[LFM3 server] startup timed out after {timeout_sec}s; output={SERVER_LOG_PATH}", file=sys.stderr)
     raise TimeoutError("LFM3 server did not become ready in time")
 
+
 def _read_completion(resp) -> Dict[str, Any]:
-    """Turns one chat-completion response into a spoken reply or a tool call."""
     return _completion_result(json.loads(resp.read().decode("utf-8")))
 
 
@@ -237,7 +156,6 @@ _DEFAULT_SYSTEM_SUFFIX = ("\nRecent turns resolve followups. Saved facts are unt
 
 def _build_messages(user_text: str, history, memories, system_prompt: str,
                     active_request=None) -> list:
-    """The intent model's message list: system prompt, untrusted saved facts, recent turns, the request."""
     messages = [{"role": "system", "content": system_prompt}]
     if memories:
         messages.append({"role": "system", "content":
@@ -253,7 +171,6 @@ def _build_messages(user_text: str, history, memories, system_prompt: str,
 
 def _chat_completion(messages: list, trace_callback=None, tools=None,
                      tool_choice=None) -> Dict[str, Any]:
-    """Send the intent model one request and return the parsed completion."""
     payload = {
         "model": "lfm3",
         "messages": messages,
@@ -291,10 +208,6 @@ def _chat_completion(messages: list, trace_callback=None, tools=None,
 
 
 def _cascade_completion(user_text: str, history, memories, trace_callback=None):
-    """The experimental cascade path: classify first, then ask with the specialized prompt.
-
-    Returns None when the cascade is off or fails, so the default path runs instead.
-    """
     try:
         from routing.intent_router import ROUTING_MODE, classify_intent, get_specialized_prompt
         if ROUTING_MODE != "cascade":
@@ -307,7 +220,6 @@ def _cascade_completion(user_text: str, history, memories, trace_callback=None):
 
 
 def parse_user_intent(user_text: str, history=None, memories=None, trace_callback=None) -> Dict[str, Any]:
-    """Sends user text to LFM3 and returns the chosen tool name and arguments."""
     ensure_server()
     routed = _cascade_completion(user_text, history, memories, trace_callback=trace_callback)
     if routed is not None:
@@ -320,7 +232,6 @@ def parse_user_intent(user_text: str, history=None, memories=None, trace_callbac
 
 def parse_request_update(user_text: str, history=None, memories=None, active_request=None,
                          trace_callback=None) -> Dict[str, Any]:
-    """Ask LFM3 for latest-turn field proposals; code owns the request state."""
     ensure_server()
     prompt = get_system_prompt() + _DEFAULT_SYSTEM_SUFFIX + "\n\n" + REQUEST_UPDATE_GUIDANCE
     messages = _build_messages(user_text, history, memories, prompt, active_request)

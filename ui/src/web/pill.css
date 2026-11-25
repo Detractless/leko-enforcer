@@ -1,0 +1,97 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 160px;
+  height: 56px;
+  background: transparent;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  user-select: none;
+}
+
+.leko-pill {
+  width: 54px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid var(--pill-border);
+  border-radius: 999px;
+  background: var(--pill-fill);
+  box-shadow: var(--pill-shadow);
+  color: var(--pill-ink);
+  padding: 0;
+  margin: 0;
+  outline: none;
+  cursor: default;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+              height 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+              background 0.24s ease;
+}
+
+.leko-pill:hover { background: var(--pill-hover); }
+
+.state-idle { width: 54px; height: 16px; }
+.state-idle:hover { width: 62px; height: 18px; }
+.state-timer { width: 68px; height: 24px; }
+.state-blocked { width: 92px; height: 28px; }
+.state-listening, .state-held, .state-speaking, .state-thinking { width: 112px; height: 30px; }
+
+.dash {
+  display: none;
+  width: 12px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--pill-ink);
+  opacity: 0.35;
+}
+.state-idle .dash { display: block; }
+
+.label {
+  display: none;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.state-blocked .label, .state-timer .label, .state-speaking .label, .state-thinking .label { display: block; }
+.state-timer .label {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.state-speaking .label, .state-thinking .label {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  color: var(--pill-muted);
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+
+.bars { display: none; align-items: center; gap: 3px; }
+.state-listening .bars, .state-held .bars, .state-speaking .bars, .state-thinking .bars { display: flex; }
+.state-speaking .bars, .state-thinking .bars { margin-left: 2px; }
+
+.bar {
+  width: 2px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--pill-ink);
+  animation: pulse-fast 0.75s ease-in-out infinite;
+}
+.state-speaking .bar, .state-thinking .bar {
+  animation: pulse-slow 1.15s ease-in-out infinite;
+  opacity: 0.7;
+}
+
+@keyframes pulse-fast {
+  0%, 100% { height: 4px; opacity: 0.45; }
+  50% { height: 13px; opacity: 1; }
+}
+@keyframes pulse-slow {
+  0%, 100% { height: 4px; opacity: 0.7; }
+  50% { height: 10px; opacity: 0.7; }
+}

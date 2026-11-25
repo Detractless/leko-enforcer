@@ -1,0 +1,30 @@
+:root {
+  --color-dark-fill: #181818;
+  --color-dark-hover: #222222;
+  --color-dark-border: #303030;
+  --color-dark-ink: #F2F2F2;
+  --color-dark-muted: #8E8E8E;
+  --color-dark-shadow: rgba(0,0,0,0.5);
+  --color-light-fill: #FAFAFA;
+  --color-light-hover: #FFFFFF;
+  --color-light-border: #CCCCCC;
+  --color-light-ink: #141414;
+  --color-light-muted: #6E6E6E;
+  --color-light-shadow: rgba(0,0,0,0.14);
+
+  --pill-fill: var(--color-dark-fill);
+  --pill-hover: var(--color-dark-hover);
+  --pill-border: var(--color-dark-border);
+  --pill-ink: var(--color-dark-ink);
+  --pill-muted: var(--color-dark-muted);
+  --pill-shadow: var(--color-dark-shadow);
+}
+
+body[data-theme="light"] {
+  --pill-fill: var(--color-light-fill);
+  --pill-hover: var(--color-light-hover);
+  --pill-border: var(--color-light-border);
+  --pill-ink: var(--color-light-ink);
+  --pill-muted: var(--color-light-muted);
+  --pill-shadow: var(--color-light-shadow);
+}

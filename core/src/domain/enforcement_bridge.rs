@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExtensionStatus {
     Healthy,
     Missing,
@@ -9,14 +11,14 @@ pub enum ExtensionStatus {
     Unknown,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct BrowserId {
     pub pid: i32,
     pub bundle_id: String,
     pub profile: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Heartbeat {
     pub seen_at_ms: i64,
     pub block_id: String,

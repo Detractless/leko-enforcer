@@ -19,6 +19,7 @@ leko-enforcers-browser = { path = "../enforcers/browser" }
 leko-platform-macos = { path = "../platform/macos" }
 chrono = { version = "0.4", features = ["clock"] }
 chrono-tz = "0.10"
+ctrlc = "3"
 serde_json = { version = "1", features = ["preserve_order"] }
 
 [dev-dependencies]

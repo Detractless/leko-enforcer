@@ -2,6 +2,12 @@ use std::ffi::OsString;
 use std::fs;
 use std::path::PathBuf;
 
+use leko_cli::arguments::parse;
+use leko_cli::services::enforcement_loop::enforce_with;
+use leko_cli::services::os_executor::{MockExecutor, ObservedApp};
+use leko_core::models::{Penalty, Schedule, Seal, Target};
+use leko_core::TechnologyManagementRule;
+
 fn call(args: &[&str]) -> (i32, String, String) {
     let raw: Vec<OsString> = args.iter().map(OsString::from).collect();
     let mut out = Vec::new();
@@ -92,4 +98,79 @@ fn repeated_and_empty_input_commands_are_safe_and_idempotent() {
     assert!(out.contains("No rules"));
 
     fs::remove_dir_all(dir).unwrap();
+}
+
+fn enforce_rule(target: Target) -> TechnologyManagementRule {
+    TechnologyManagementRule {
+        id: "r1".to_string(),
+        name: "Study".to_string(),
+        enabled: true,
+        target,
+        schedule: Schedule::default(),
+        penalty: Some(Penalty::ForceClosePenalty),
+        pass: Default::default(),
+        seal: Seal::default(),
+        created_at: "2026-01-01T00:00:00Z".to_string(),
+        updated_at: "2026-01-01T00:00:00Z".to_string(),
+    }
+}
+
+#[test]
+fn once_and_dry_run_flags_keep_tests_safe() {
+    let dir = temp_dir("loop-flags");
+    let store = dir.join("store.json");
+    let rule = enforce_rule(Target::SpecificApps { apps: vec!["com.example.Bad".to_string()] });
+    leko_core::store::save(&store, &leko_core::store::NativeStore { version: 1, rules: vec![rule] }).unwrap();
+    let path = store.to_str().unwrap();
+    let argv = ["enforce", path, "--once", "--dry-run", "--at", "2026-01-01T12:00:00Z"]
+        .iter().map(|value| value.to_string()).collect::<Vec<String>>();
+    let parsed = parse(&argv).unwrap();
+    let mut mock = MockExecutor::default();
+    mock.apps.push(ObservedApp { pid: 20, bundle: Some("com.example.Bad".to_string()) });
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    assert!(enforce_with(&parsed, &mut out, &mut err, &mut mock).is_ok());
+    assert!(mock.terminated.is_empty(), "a dry run called the OS executor");
+    assert!(String::from_utf8(err).unwrap().contains("Dry run"));
+}
+
+#[test]
+fn usage_and_streams_follow_the_cli_contract() {
+    let (code, out, err) = call(&["enforce"]);
+    assert_eq!(code, 2);
+    assert!(out.is_empty());
+    assert!(err.contains("Usage:"));
+
+    let dir = temp_dir("loop-usage");
+    let store = dir.join("store.json");
+    leko_core::store::save(&store, &leko_core::store::NativeStore { version: 1, rules: vec![] }).unwrap();
+    let (code, out, err) = call(&["enforce", store.to_str().unwrap(), "--once",
+                                  "--interval-ms", "not-a-number"]);
+    assert_eq!(code, 2);
+    assert!(out.is_empty());
+    assert!(err.contains("whole number"));
+}
+
+#[test]
+fn repeated_and_empty_enforce_requests_are_safe() {
+    let dir = temp_dir("loop-repeat");
+    let store = dir.join("store.json");
+    leko_core::store::save(&store, &leko_core::store::NativeStore { version: 1, rules: vec![] }).unwrap();
+    let path = store.to_str().unwrap();
+    let run_once = || {
+        let argv = ["enforce", path, "--once", "--at", "2026-01-01T12:00:00Z"]
+            .iter().map(|value| value.to_string()).collect::<Vec<String>>();
+        let parsed = parse(&argv).unwrap();
+        let mut mock = MockExecutor::default();
+        let mut out = Vec::new();
+        let mut err = Vec::new();
+        let result = enforce_with(&parsed, &mut out, &mut err, &mut mock);
+        (result.is_ok(), String::from_utf8(out).unwrap(), String::from_utf8(err).unwrap())
+    };
+    let first = run_once();
+    let second = run_once();
+    assert!(first.0);
+    assert!(second.0);
+    assert_eq!(first.1, second.1);
+    assert!(first.1.contains("Enforcement ticks: 1"));
 }

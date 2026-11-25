@@ -56,7 +56,7 @@ pub fn emit_text(text: &str, out: &mut dyn Write) -> CommandResult {
     writeln!(out, "{}", text).map_err(|error| refused(error.to_string(), 1))
 }
 
-pub fn dispatch(args: &CliArgs, out: &mut dyn Write) -> CommandResult {
+pub fn dispatch(args: &CliArgs, out: &mut dyn Write, err: &mut dyn Write) -> CommandResult {
     match args.command.as_str() {
         "create-rule" => create_rule::run(args, out),
         "list-rules" => list_rules::run(args, out),
@@ -65,7 +65,7 @@ pub fn dispatch(args: &CliArgs, out: &mut dyn Write) -> CommandResult {
         "request-pass" => request_pass::run(args, out),
         "check-status" => check_status::run(args, out),
         "evaluate-rule" => evaluate_rule::run(args, out),
-        "settings" | "agent" | "enforce" => infrastructure::run(args, out),
+        "settings" | "agent" | "enforce" => infrastructure::run(args, out, err),
         "pin-addon" | "list-addons" | "verify-addon" => crate::services::addon::run(args, out),
         _ => Err(refused("That command is not available.", 2)),
     }

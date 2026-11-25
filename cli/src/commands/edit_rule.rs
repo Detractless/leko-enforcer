@@ -10,7 +10,8 @@ use crate::commands::{emit_json, emit_text, load, refused, save, CommandResult};
 use crate::services::output_json;
 
 fn direction_of(args: &CliArgs) -> Result<ChangeDirection, (String, i32)> {
-    match args.flags.get("direction").map(String::as_str).unwrap_or("weaken") {
+    let default = if args.command == "delete-rule" { "delete" } else { "weaken" };
+    match args.flags.get("direction").map(String::as_str).unwrap_or(default) {
         "tighten" => Ok(ChangeDirection::Tighten),
         "weaken" => Ok(ChangeDirection::Weaken),
         "pause" => Ok(ChangeDirection::Pause),

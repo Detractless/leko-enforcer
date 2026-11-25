@@ -627,6 +627,22 @@
           "sha256": "338c992282ae9470cb89ca5f62ab08f0d3c3f8a0e014257d7e2b18b21588e31a"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/native-leko-live-passes.md",
+      "sha256": "1a8a8022911ce878838fafae6ff7a8a3a7f9f0aa659f3efca3994aa15be7cac5",
+      "state": "locked",
+      "reason": "contract \"native-leko-live-passes\" opened by the user: open native-leko-live-passes",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-25T07:27:22.760Z",
+      "history": [
+        {
+          "at": "2026-11-25T07:27:22.760Z",
+          "event": "lock",
+          "sha256": "1a8a8022911ce878838fafae6ff7a8a3a7f9f0aa659f3efca3994aa15be7cac5"
+        }
+      ]
     }
   ]
 }

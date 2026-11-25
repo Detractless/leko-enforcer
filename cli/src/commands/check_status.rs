@@ -1,10 +1,11 @@
 use std::io::Write;
 
-use leko_core::domain::{decide, PassState, UsageState};
+use leko_core::domain::{decide, UsageState};
 
 use crate::arguments::CliArgs;
 use crate::clock::CliClock;
-use crate::commands::{find_rule, load, refused, CommandResult};
+use crate::commands::{find_rule, load, refused, store_path, CommandResult};
+use crate::services::enforcement_loop::pass_state_for;
 use crate::services::{output_human, output_json};
 
 fn parse_u32(args: &CliArgs, name: &str) -> Result<u32, (String, i32)> {
@@ -29,24 +30,30 @@ pub fn run(args: &CliArgs, out: &mut dyn Write) -> CommandResult {
         used_minutes: parse_u32(args, "used-minutes")?,
         sessions: parse_u32(args, "sessions")?,
     };
-    let pass = PassState {
-        earned_at: args.flags.get("earned-at").cloned(),
-        used_in_window: parse_u32(args, "pass-used")?,
-        window_key: args.flags.get("pass-window-key").cloned().unwrap_or_default(),
-    };
+    let pass = pass_state_for(args, &store_path(args), id);
     let answer = decide(rule, &clock.moment, &usage, &pass);
+    let pass_active = pass.earned_at.is_some()
+        && leko_core::domain::pass_active(&rule.pass, &pass, &clock.moment);
     if args.flags.contains_key("json") {
-        emit_pair(output_json::decision(&answer), rule.name.as_str(), out)
+        emit_pair(output_json::decision(&answer), rule.name.as_str(), pass_active, out)
     } else {
         writeln!(out, "Rule: {}", rule.name).map_err(|error| refused(error.to_string(), 1))?;
+        writeln!(out, "Pass Active: {}", pass_active)
+            .map_err(|error| refused(error.to_string(), 1))?;
         output_human::decision(&answer, out).map_err(|message| refused(message, 1))
     }
 }
 
-fn emit_pair(value: serde_json::Value, name: &str, out: &mut dyn Write) -> CommandResult {
+fn emit_pair(
+    value: serde_json::Value,
+    name: &str,
+    pass_active: bool,
+    out: &mut dyn Write,
+) -> CommandResult {
     let mut object = value;
     if let Some(map) = object.as_object_mut() {
         map.insert("rule".to_string(), serde_json::Value::String(name.to_string()));
+        map.insert("pass".to_string(), serde_json::json!({"active": pass_active}));
     }
     writeln!(out, "{}", object).map_err(|error| refused(error.to_string(), 1))
 }

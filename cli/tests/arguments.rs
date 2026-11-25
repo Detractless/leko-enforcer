@@ -174,3 +174,22 @@ fn repeated_and_empty_enforce_requests_are_safe() {
     assert_eq!(first.1, second.1);
     assert!(first.1.contains("Enforcement ticks: 1"));
 }
+
+#[test]
+fn pass_and_delete_usage_and_streams() {
+    let (code, out, err) = call(&["request-pass"]);
+    assert_eq!(code, 2);
+    assert!(out.is_empty());
+    assert!(err.contains("--id"));
+
+    let (code, out, err) = call(&["delete-rule"]);
+    assert_eq!(code, 2);
+    assert!(out.is_empty());
+    assert!(err.contains("--id"));
+
+    let raw: Vec<OsString> = ["list-addons"].iter().map(OsString::from).collect();
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    assert_eq!(leko_cli::run(&raw, &mut out, &mut err), 0);
+    assert!(String::from_utf8(err).unwrap().is_empty());
+}

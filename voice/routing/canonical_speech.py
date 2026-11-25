@@ -75,13 +75,18 @@ def status_sentence(data):
     rule = data.get("rule", "")
     enforced = data.get("enforced")
     reason = canonical_name(data.get("reason", ""))
+    passed = data.get("pass", {})
+    pass_active = passed.get("active") if isinstance(passed, dict) else False
+    prefix = rule + ": " if rule else ""
     if enforced is True:
-        return "{}{} Enforced. Reason: {}.".format(
-            rule + ": " if rule else "", "", reason)
-    if enforced is False:
-        return "{}{} Not Enforced. Reason: {}.".format(
-            rule + ": " if rule else "", "", reason)
-    return "No status is available."
+        sentence = "{}{} Enforced. Reason: {}.".format(prefix, "", reason)
+    elif enforced is False:
+        sentence = "{}{} Not Enforced. Reason: {}.".format(prefix, "", reason)
+    else:
+        return "No status is available."
+    if pass_active:
+        sentence += " An Earn Pass is active; the rule was not edited."
+    return sentence
 
 
 def format_status_summary(raw_stdout, target_type="", name=""):

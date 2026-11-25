@@ -36,7 +36,8 @@ test('swift_pill_builds_without_new_rust_dependencies', () => {
   assert.ok(existsSync(PILL), 'swiftc ui/pill/*.swift must build leko-pill');
   const workspace = readFileSync(resolve(ROOT, 'Cargo.toml'), 'utf8');
   assert.doesNotMatch(workspace, /"ui"/);
-  const sources = ['main.swift', 'PillState.swift', 'EventBridge.swift', 'PillPanel.swift'];
+  const sources = ['main.swift', 'PillState.swift', 'EventBridge.swift', 'PillPanel.swift',
+                   'PillTheme.swift', 'PillController.swift'];
   for (const source of sources) {
     assert.ok(existsSync(resolve(ROOT, 'ui/pill', source)));
     assert.ok(readFileSync(resolve(ROOT, 'ui/pill', source), 'utf8').split('\n').length < 350);

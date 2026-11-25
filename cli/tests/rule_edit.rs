@@ -127,3 +127,41 @@ fn a_queued_edit_can_be_cancelled_before_it_applies() {
 
     fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn delete_rule_implies_delete_direction() {
+    let dir = std::env::temp_dir().join(format!("leko-m6-delete-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let store = dir.join("store.json");
+    let rule = sample(Seal::NoSeal);
+    leko_core::store::save(&store, &NativeStore { version: 1, rules: vec![rule] }).unwrap();
+    let flag = store.to_str().unwrap();
+    let (code, out, err) = call(&["delete-rule", "--store", flag, "--id", "r1"]);
+    assert_eq!(code, 0, "{} {}", out, err);
+    assert!(load(&store).unwrap().rules.is_empty());
+
+    leko_core::store::save(&store, &NativeStore {
+        version: 1,
+        rules: vec![sample(Seal::NoSeal)],
+    }).unwrap();
+    let (code, out, err) = call(&["delete-rule", "--store", flag, "--id", "r1",
+                                  "--direction", "delete"]);
+    assert_eq!(code, 0, "{} {}", out, err);
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn a_sealed_delete_still_requires_the_seal() {
+    let dir = std::env::temp_dir().join(format!("leko-m6-sealed-delete-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let store = dir.join("store.json");
+    let sealed = Seal::CountdownSeal { wait_seconds: 3600, unseal_requested_at: None };
+    leko_core::store::save(&store, &NativeStore { version: 1, rules: vec![sample(sealed)] }).unwrap();
+    let (code, _, err) = call(&["delete-rule", "--store", store.to_str().unwrap(), "--id", "r1"]);
+    assert_eq!(code, 1);
+    assert!(err.contains("seal"));
+    assert_eq!(load(&store).unwrap().rules.len(), 1);
+    fs::remove_dir_all(dir).unwrap();
+}

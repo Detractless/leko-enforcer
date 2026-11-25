@@ -7,6 +7,8 @@ use leko_core::models::{
 };
 use leko_cli::arguments::parse;
 use leko_cli::services::enforcement_loop::enforce_with;
+use leko_core::services::{save_pass_state, PassStateFile, StoredPass};
+use std::collections::HashMap;
 use leko_cli::services::os_executor::{MockExecutor, ObservedApp};
 use leko_core::store::NativeStore;
 use leko_core::TechnologyManagementRule;
@@ -184,4 +186,84 @@ fn injected_clock_keeps_the_loop_deterministic() {
     assert_eq!(a.0, b.0);
     assert_eq!(a.1, b.1);
     assert_eq!(a.2, b.2);
+}
+
+fn pass_rule() -> TechnologyManagementRule {
+    let earned = Pass::EarnPass {
+        requirement: PassRequirement::PhysicalPass,
+        length: PassLength::TimedPass { minutes: 1 },
+        cap: PassCap::UnlimitedPasses,
+    };
+    rule(Target::SpecificApps { apps: vec!["com.example.Bad".to_string()] }, earned)
+}
+
+fn pass_file(path: &std::path::Path, earned_at: &str) {
+    save_pass_state(path, &PassStateFile {
+        version: 1,
+        passes: HashMap::from([("r1".to_string(), StoredPass {
+            rule_id: "r1".to_string(),
+            requirement: "PhysicalPass".to_string(),
+            earned_at: earned_at.to_string(),
+            window_key: "2026-01-01".to_string(),
+            used_in_window: 1,
+        })]),
+    }).unwrap();
+}
+
+#[test]
+fn the_live_loop_reads_persisted_pass_state() {
+    let dir = std::env::temp_dir().join(format!("leko-loop-pass-{}-live", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let store = dir.join("store.json");
+    let state = dir.join("pass-state.json");
+    leko_core::store::save(&store, &NativeStore { version: 1, rules: vec![pass_rule()] }).unwrap();
+    pass_file(&state, "2026-01-01T12:00:00Z");
+
+    let argv = ["enforce", store.to_str().unwrap(), "--once", "--pass-state",
+                state.to_str().unwrap(), "--at", "2026-01-01T12:00:30Z"]
+        .iter().map(|value| value.to_string()).collect::<Vec<String>>();
+    let parsed = parse(&argv).unwrap();
+    let mut mock = MockExecutor::default();
+    mock.apps.push(ObservedApp { pid: 20, bundle: Some("com.example.Bad".to_string()) });
+    let mut out = Vec::new();
+    assert!(enforce_with(&parsed, &mut out, &mut Vec::new(), &mut mock).is_ok());
+    assert!(mock.terminated.is_empty(), "a live pass did not suspend enforcement");
+}
+
+#[test]
+fn an_expired_pass_resumes_enforcement_on_the_next_tick() {
+    let dir = std::env::temp_dir().join(format!("leko-loop-pass-{}-expired", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let store = dir.join("store.json");
+    let state = dir.join("pass-state.json");
+    leko_core::store::save(&store, &NativeStore { version: 1, rules: vec![pass_rule()] }).unwrap();
+    pass_file(&state, "2026-01-01T11:00:00Z");
+
+    let argv = ["enforce", store.to_str().unwrap(), "--once", "--pass-state",
+                state.to_str().unwrap(), "--at", "2026-01-01T12:00:30Z"]
+        .iter().map(|value| value.to_string()).collect::<Vec<String>>();
+    let parsed = parse(&argv).unwrap();
+    let mut mock = MockExecutor::default();
+    mock.apps.push(ObservedApp { pid: 20, bundle: Some("com.example.Bad".to_string()) });
+    assert!(enforce_with(&parsed, &mut Vec::new(), &mut Vec::new(), &mut mock).is_ok());
+    assert_eq!(mock.terminated, vec!["com.example.Bad".to_string()]);
+}
+
+#[test]
+fn status_and_json_reflect_persisted_passes() {
+    let dir = std::env::temp_dir().join(format!("leko-status-pass-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let store = dir.join("store.json");
+    let state = dir.join("pass-state.json");
+    leko_core::store::save(&store, &NativeStore { version: 1, rules: vec![pass_rule()] }).unwrap();
+    pass_file(&state, "2026-01-01T12:00:00Z");
+    let flag = store.to_str().unwrap();
+    let values = call(&["check-status", "--store", flag, "--id", "r1", "--pass-state",
+                        state.to_str().unwrap(), "--json", "--at", "2026-01-01T12:00:30Z"]);
+    assert_eq!(values.0, 0, "{}", values.2);
+    let value: serde_json::Value = serde_json::from_str(values.1.trim()).unwrap();
+    assert_eq!(value["pass"]["active"], true);
 }

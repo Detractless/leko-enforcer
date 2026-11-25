@@ -1,6 +1,8 @@
 use leko_core::models::{Penalty, Schedule, Seal, Target};
 use leko_core::store::{commit_temp, load, save, write_temp, NativeStore};
+use leko_core::services::{load_pass_state, save_pass_state, PassStateFile, StoredPass};
 use leko_core::TechnologyManagementRule;
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
@@ -58,5 +60,41 @@ fn a_crash_half_way_through_a_save_leaves_the_old_store_readable() {
     assert!(load(&corrupt).is_err());
     assert_eq!(fs::read(&corrupt).unwrap(), before, "a corrupt store must never be overwritten");
 
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn a_partial_pass_state_write_keeps_the_old_state() {
+    let dir = std::env::temp_dir().join(format!("leko-pass-state-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("rules.pass-state.json");
+    let original = PassStateFile {
+        version: 1,
+        passes: HashMap::from([("r1".to_string(), StoredPass {
+            rule_id: "r1".to_string(),
+            requirement: "PhysicalPass".to_string(),
+            earned_at: "2026-01-01T00:00:00Z".to_string(),
+            window_key: "2026-01-01".to_string(),
+            used_in_window: 0,
+        })]),
+    };
+    save_pass_state(&path, &original).unwrap();
+    let before = fs::read(&path).unwrap();
+
+    let changed = PassStateFile { passes: HashMap::new(), ..original.clone() };
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o555)).unwrap();
+    }
+    assert!(save_pass_state(&path, &changed).is_err());
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    assert_eq!(fs::read(&path).unwrap(), before);
+    assert_eq!(load_pass_state(&path).unwrap(), original);
     fs::remove_dir_all(dir).unwrap();
 }

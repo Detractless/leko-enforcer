@@ -7,7 +7,7 @@ use crate::models::verifier_spec::CustomVerifierSpec;
 pub enum PassRequirement {
     PhysicalPass,
     MentalPass,
-    CountdownPass,
+    CountdownPass { wait_seconds: u64 },
     TypingPass,
     CustomVerifier(CustomVerifierSpec),
 }

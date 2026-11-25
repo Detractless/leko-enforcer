@@ -64,6 +64,21 @@ class VoiceCanonicalSpeechTests(unittest.TestCase):
             self.assertTrue(kind)
             self.assertTrue(description)
 
+    def test_spoken_status_uses_persisted_pass_state(self):
+        status = canonical_speech.status_sentence({
+            "rule": "Study",
+            "enforced": False,
+            "reason": "PassActive",
+            "pass": {"active": True},
+        })
+        self.assertIn("Not Enforced", status)
+        self.assertIn("Pass Active", status)
+        self.assertIn("not edited", status)
+        plain = canonical_speech.status_sentence({
+            "rule": "Study", "enforced": True, "reason": "Enforced", "pass": {"active": False},
+        })
+        self.assertNotIn("Earn Pass is active", plain)
+
 
 if __name__ == "__main__":
     unittest.main()

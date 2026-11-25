@@ -51,7 +51,7 @@ pub fn pass_active(pass: &Pass, state: &PassState, moment: &Moment) -> bool {
             } else {
                 0
             };
-            used < *max_per_window
+            used <= *max_per_window
         }
     }
 }

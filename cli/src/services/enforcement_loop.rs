@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use leko_core::domain::{decide, PassState, UsageState};
 use leko_core::enforcement::{
@@ -56,15 +56,22 @@ fn usage_state(args: &CliArgs) -> UsageState {
     }
 }
 
-fn pass_state(args: &CliArgs) -> PassState {
+pub fn pass_state_for(args: &CliArgs, store: &Path, rule_id: &str) -> PassState {
     let number = |name: &str| -> u32 {
         args.flags.get(name).and_then(|value| value.parse().ok()).unwrap_or(0)
     };
-    PassState {
-        earned_at: args.flags.get("earned-at").cloned(),
-        used_in_window: number("pass-used"),
-        window_key: args.flags.get("pass-window-key").cloned().unwrap_or_default(),
+    if let Some(earned) = args.flags.get("earned-at") {
+        return PassState {
+            earned_at: Some(earned.clone()),
+            used_in_window: number("pass-used"),
+            window_key: args.flags.get("pass-window-key").cloned().unwrap_or_default(),
+        };
     }
+    let path = args.flags.get("pass-state")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| leko_core::services::pass_state_path(store));
+    let saved = leko_core::services::load_pass_state(&path).unwrap_or_default();
+    leko_core::services::domain_state(&saved, rule_id)
 }
 
 fn is_protected(app: &ObservedApp) -> bool {
@@ -158,10 +165,10 @@ pub fn enforce_with<E: OsExecutor>(
 
         let clock = CliClock::from_args(args).map_err(|error| refused(error, 1))?;
         let usage = usage_state(args);
-        let pass = pass_state(args);
         let mut website_locked = false;
 
         for rule in &store.rules {
+            let pass = pass_state_for(args, &path, &rule.id);
             let answer = decide(rule, &clock.moment, &usage, &pass);
             if !answer.enforced {
                 continue;

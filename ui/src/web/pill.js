@@ -12,6 +12,7 @@
   let state = 'idle';
   let timerText = '';
   let localTimer = null;
+  let hovered = false;
 
   for (let i = 0; i < 5; i += 1) {
     const bar = document.createElement('span');
@@ -24,7 +25,7 @@
   });
 
   function render() {
-    pill.className = 'leko-pill state-' + state;
+    pill.className = 'leko-pill state-' + state + (hovered ? ' is-hovered' : '');
     const count = BAR_COUNTS[state] || 0;
     Array.from(bars.children).forEach((bar, index) => {
       bar.style.display = index < count ? 'block' : 'none';
@@ -95,6 +96,11 @@
       return;
     }
     const next = event.state || event.type;
+    if (next === 'hover_on' || next === 'hover_off') {
+      hovered = next === 'hover_on';
+      render();
+      return;
+    }
     if (next === 'blocked') {
       setState('blocked');
       localTimer = setTimeout(function () {

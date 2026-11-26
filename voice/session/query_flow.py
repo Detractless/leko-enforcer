@@ -1,4 +1,5 @@
 """Conversation routing and deterministic, single-use action confirmations."""
+import inspect
 import json
 import sys
 import time
@@ -163,6 +164,16 @@ def _stage_pending(tool, args, settings_zip, intent, name, kind, description, st
     return action_id
 
 
+def _supports_audio_level(speak):
+    try:
+        params = inspect.signature(speak).parameters
+        return "on_audio_level" in params or any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+        )
+    except (TypeError, ValueError):
+        return False
+
+
 def _respond(query, state, bridge, speak, cancelled, text, confirmed=False):
     if cancelled():
         return ""
@@ -170,8 +181,12 @@ def _respond(query, state, bridge, speak, cancelled, text, confirmed=False):
     _log(state, "assistant_reply", text=text, confirmed=confirmed)
     if bridge:
         bridge.emit_speaking(text)
-        speak(voice.verbalize_for_speech(text), cancelled,
-              on_audio_level=lambda rms: bridge.emit_rms_level(rms, ceiling=0.14))
+        spoken = voice.verbalize_for_speech(text)
+        if _supports_audio_level(speak):
+            speak(spoken, cancelled,
+                  on_audio_level=lambda rms: bridge.emit_rms_level(rms, ceiling=0.14))
+        else:
+            speak(spoken, cancelled)
     else:
         speak(voice.verbalize_for_speech(text), cancelled)
     if bridge and not cancelled():
@@ -297,8 +312,10 @@ def _process_query(query, settings_zip, auto_confirm=False, bridge=None,
     state = conversation if conversation is not None else DEFAULT_CONVERSATION
     epoch = state.epoch
     cancelled = lambda: state.epoch != epoch or bool(is_cancelled and is_cancelled())
-    speak = speak_fn or (lambda text, cancel=None: voice.speak(
-        text, is_cancelled=cancel, playback_event_sink=state.session_log.playback_sink(state.current_turn_id) if state.session_log else None))
+    speak = speak_fn or (lambda text, cancel=None, on_audio_level=None: voice.speak(
+        text, is_cancelled=cancel,
+        playback_event_sink=state.session_log.playback_sink(state.current_turn_id) if state.session_log else None,
+        on_audio_level=on_audio_level))
     with state.turn_lock:
         if cancelled():
             return ""

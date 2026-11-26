@@ -1,6 +1,7 @@
 """Resolve, validate, and prepare the user's settings before the assistant listens."""
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -21,6 +22,37 @@ def _run(cli_binary, arguments, runner=None):
         detail = (result.stderr or result.stdout or "The settings command failed.").strip()
         raise SettingsSetupError(detail)
     return result.stdout.strip()
+
+
+def _is_native_settings_output(output: str) -> bool:
+    if output.startswith("Settings saved at "):
+        return True
+    if output.startswith("{"):
+        try:
+            return isinstance(json.loads(output), dict)
+        except ValueError:
+            return False
+    return False
+
+
+def _native_store_path(support_dir: Optional[Path] = None) -> Path:
+    base = support_dir or (Path.home() / "Library" / "Application Support" / "Leko")
+    settings_file = base / "leko-settings.json"
+    if settings_file.is_file():
+        try:
+            cfg = json.loads(settings_file.read_text(encoding="utf-8"))
+            configured = cfg.get("store_path") if isinstance(cfg, dict) else None
+            if isinstance(configured, str) and configured.strip():
+                candidate = Path(configured).expanduser()
+                if candidate.is_absolute():
+                    return candidate
+        except (OSError, ValueError):
+            pass
+    rules_path = base / "rules.json"
+    legacy_native = base / "leko-rules.json"
+    if not rules_path.exists() and legacy_native.exists():
+        return legacy_native
+    return rules_path
 
 
 def _choose_first_run(runner=None):
@@ -46,14 +78,24 @@ return POSIX path of selectedFile
 
 
 def prepare_settings(cli_binary, repo_root, explicit_path=None, runner=None,
-                     chooser: Optional[Callable[[], str]] = None):
-    """Return the validated archive path; import or initialize on first run only."""
+                     chooser: Optional[Callable[[], str]] = None,
+                     support_dir: Optional[Path] = None):
+    """Return the validated store or archive path; import or initialize on first run only."""
     if explicit_path:
         selected = Path(explicit_path).expanduser()
-        _run(cli_binary, ["settings", "validate", selected], runner)
+        output = _run(cli_binary, ["settings", "validate", selected], runner)
+        if _is_native_settings_output(output):
+            _run(cli_binary, ["list-rules", "--store", selected, "--json"], runner)
         return str(selected)
 
-    default_path = Path(_run(cli_binary, ["settings", "path"], runner)).expanduser()
+    raw_path = _run(cli_binary, ["settings", "path"], runner)
+    if _is_native_settings_output(raw_path):
+        store = _native_store_path(support_dir)
+        store.parent.mkdir(parents=True, exist_ok=True)
+        _run(cli_binary, ["list-rules", "--store", store, "--json"], runner)
+        return str(store)
+
+    default_path = Path(raw_path).expanduser()
     if not default_path.is_absolute():
         raise SettingsSetupError("The managed settings location is not an absolute path.")
     if default_path.exists():

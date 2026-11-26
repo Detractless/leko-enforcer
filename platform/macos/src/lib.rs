@@ -7,5 +7,5 @@ pub mod objc;
 
 pub use leko_core::models::specs::DeviceAction;
 
-pub use applications::{running, terminate, Application};
+pub use applications::{frontmost, running, terminate, Application};
 pub use device_lock::perform as perform_device_action;

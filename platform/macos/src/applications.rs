@@ -77,6 +77,28 @@ mod platform {
             result
         }
     }
+
+    pub fn frontmost() -> Result<Option<Application>, String> {
+        unsafe {
+            let pool = objc_autoreleasePoolPush();
+            let workspace = id(class(b"NSWorkspace\0"), b"sharedWorkspace\0");
+            if workspace.is_null() {
+                objc_autoreleasePoolPop(pool);
+                return Err("Could not read workspace from macOS.".into());
+            }
+            let app = id(workspace, b"frontmostApplication\0");
+            let found = if app.is_null() {
+                None
+            } else {
+                Some(Application {
+                    pid: integer(app, b"processIdentifier\0") as i32,
+                    bundle: bundle(app),
+                })
+            };
+            objc_autoreleasePoolPop(pool);
+            Ok(found)
+        }
+    }
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -84,6 +106,7 @@ mod platform {
     use super::Application;
     pub fn running() -> Result<Vec<Application>, String> { Err("App enforcement requires macOS.".into()) }
     pub fn terminate(_: &Application) -> Result<(), String> { Err("App enforcement requires macOS.".into()) }
+    pub fn frontmost() -> Result<Option<Application>, String> { Ok(None) }
 }
 
-pub use platform::{running, terminate};
+pub use platform::{frontmost, running, terminate};

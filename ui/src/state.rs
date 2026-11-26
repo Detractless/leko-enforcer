@@ -56,7 +56,7 @@ impl Machine {
             "idle" => self.state = self.rest(),
             "timer_start" => {
                 self.timer = clock(duration);
-                if self.quiet_timer {
+                if self.quiet_timer && matches!(self.state, PillState::Idle | PillState::Timer) {
                     self.state = PillState::Timer;
                 }
             }

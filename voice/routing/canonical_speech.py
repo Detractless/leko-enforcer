@@ -8,7 +8,6 @@ PLANNED_NAMES = (
     "Pomodoro Schedule",
     "Community-Linked Apps",
     "Community-Linked Websites",
-    "Engagement Pass",
     "Restart Seal",
 )
 
@@ -23,9 +22,12 @@ TITLE = {
     "always_on_schedule": "Always On Schedule",
     "one_time_schedule": "One Time Schedule",
     "routine_schedule": "Routine Schedule",
+    "time_limit": "Time Limit",
+    "session_limit": "Session Limit",
     "force_close_penalty": "Force Close Penalty",
     "no_pass": "No Pass",
     "earn_pass": "Earn Pass",
+    "engagement_pass": "Engagement Pass",
     "timed_pass": "Timed Pass",
     "rest_of_day_pass": "Rest Of Day Pass",
     "no_seal": "No Seal",

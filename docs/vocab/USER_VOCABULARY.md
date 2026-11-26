@@ -59,7 +59,7 @@ Invariant: a `WholeDevice` rule has no `penalty` and enforces on every unlock, s
 - `NoPass` (the default)
 - `EarnPass { requirement, length, cap }`
 
-`PassRequirement` is `PhysicalPass`, `MentalPass`, `CountdownPass`, `TypingPass` or `CustomVerifier(spec)`.
+`PassRequirement` is `PhysicalPass`, `MentalPass`, `CountdownPass`, `TypingPass`, `CustomVerifier(spec)` or `EngagementPass { targets, required_seconds }`.
 
 `PassLength` is `TimedPass { minutes }` or `RestOfDayPass`.
 
@@ -89,4 +89,4 @@ A sealed add-on cannot be disabled, edited or deleted to bypass a rule. The hash
 
 ## Planned, not built
 
-`PomodoroSchedule`, `CommunityLinkedApps`, `CommunityLinkedWebsites`, `EngagementPass` and `RestartSeal` are `[PLANNED]`. They are not represented in code until implemented.
+`PomodoroSchedule`, `CommunityLinkedApps`, `CommunityLinkedWebsites` and `RestartSeal` are `[PLANNED]`. They are not represented in code until implemented.

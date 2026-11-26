@@ -10,6 +10,7 @@ pub enum PassRequirement {
     CountdownPass { wait_seconds: u64 },
     TypingPass,
     CustomVerifier(CustomVerifierSpec),
+    EngagementPass { targets: Vec<String>, required_seconds: u64 },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

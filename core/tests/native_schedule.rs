@@ -68,3 +68,48 @@ fn a_zero_budget_enforces_at_once_and_limits_reset_on_the_period() {
     assert!(!usage_allows(Some(&sessions), &used_sessions, &moment));
     assert!(usage_allows(Some(&sessions), &stale, &moment));
 }
+
+#[test]
+fn usage_budgets_roll_over_and_debounce_flickers() {
+    use leko_core::models::{Pass, Penalty, Schedule, Seal, Target, TechnologyManagementRule};
+    use leko_core::services::{advance_rule_usage, domain_usage, UsageStateFile};
+    let rule = TechnologyManagementRule {
+        id: "r1".into(),
+        name: "Focus".into(),
+        enabled: true,
+        target: Target::SpecificApps { apps: vec!["com.example.App".into()] },
+        schedule: Schedule {
+            time_based: TimeBasedSchedule::AlwaysOnSchedule,
+            usage_based: Some(UsageLimit::SessionLimit { max_sessions: 2, period: Period::Daily }),
+        },
+        penalty: Some(Penalty::ForceClosePenalty),
+        pass: Pass::NoPass,
+        seal: Seal::NoSeal,
+        created_at: "2026-01-01T00:00:00Z".into(),
+        updated_at: "2026-01-01T00:00:00Z".into(),
+    };
+    let mut state = UsageStateFile::default();
+    let t0 = Moment::parse("2026-01-01T12:00:00Z", UTC).unwrap();
+    let t1 = Moment::parse("2026-01-01T12:00:02Z", UTC).unwrap();
+    let t2 = Moment::parse("2026-01-01T12:00:04Z", UTC).unwrap();
+    let t3 = Moment::parse("2026-01-01T12:00:10Z", UTC).unwrap();
+    let t4 = Moment::parse("2026-01-01T12:00:11Z", UTC).unwrap();
+    let next_day = Moment::parse("2026-01-02T08:00:00Z", UTC).unwrap();
+
+    advance_rule_usage(&mut state, &rule, &t0, true, false, false, 5, 300);
+    advance_rule_usage(&mut state, &rule, &t1, false, false, false, 5, 300);
+    advance_rule_usage(&mut state, &rule, &t2, true, false, false, 5, 300);
+    assert_eq!(domain_usage(&state, "r1").0.sessions, 1, "2s Cmd-Tab flicker burned extra session");
+
+    advance_rule_usage(&mut state, &rule, &t1, false, false, false, 5, 300);
+    advance_rule_usage(&mut state, &rule, &t3, false, false, false, 5, 300);
+    advance_rule_usage(&mut state, &rule, &t4, true, false, false, 5, 300);
+    assert_eq!(domain_usage(&state, "r1").0.sessions, 2, "6s gap did not start a second session");
+
+    advance_rule_usage(&mut state, &rule, &next_day, true, false, false, 5, 300);
+    let (usage, seconds, open) = domain_usage(&state, "r1");
+    assert_eq!(usage.period_key, "2026-01-02");
+    assert_eq!(usage.sessions, 1);
+    assert_eq!(seconds, 0);
+    assert!(open);
+}

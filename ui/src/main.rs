@@ -1,5 +1,6 @@
 mod native_input;
 mod state;
+mod timer_poll;
 
 use native_input::{
     set_ignores_mouse, CursorPoint, InputEvent, NativeInput, SystemCursor, TestCursor,
@@ -21,6 +22,7 @@ use tao::event::{Event, WindowEvent};
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
 #[cfg(not(target_os = "macos"))]
 use tao::window::WindowBuilder;
+use timer_poll::{now_epoch_seconds, poll_step, read_config, TimerUpdate};
 use wry::WebViewBuilder;
 
 #[cfg(target_os = "macos")]
@@ -34,67 +36,13 @@ const TOKENS: &str = include_str!("web/tokens.css");
 enum Message {
     Event(String),
     Timer(String),
+    TimerStop,
     PollTick,
 }
 
 fn app_support() -> PathBuf {
     let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
     PathBuf::from(home).join("Library/Application Support/Leko")
-}
-
-fn read_config() -> (String, String, bool) {
-    let path = app_support().join("pill-config.json");
-    let text = fs::read_to_string(path).unwrap_or_default();
-    let value: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
-    let theme = value.get("theme").and_then(|v| v.as_str()).unwrap_or("dark").to_string();
-    let anchor = value.get("anchor").and_then(|v| v.as_str())
-        .unwrap_or("bottom-center").to_string();
-    let quiet = value.get("quietTimer").and_then(|v| v.as_bool()).unwrap_or(false);
-    (theme, anchor, quiet)
-}
-
-fn epoch_from_rfc3339(text: &str) -> Option<f64> {
-    let digits: Vec<i64> = text.split(|c: char| !c.is_ascii_digit())
-        .filter(|part| !part.is_empty())
-        .filter_map(|part| part.parse::<i64>().ok())
-        .collect();
-    if digits.len() < 6 {
-        return None;
-    }
-    let year = digits[0];
-    let month = digits[1] as u64;
-    let day = digits[2] as u64;
-    let adjusted = if month <= 2 { year - 1 } else { year };
-    let era = if adjusted >= 0 { adjusted } else { adjusted - 399 } / 400;
-    let yoe = adjusted - era * 400;
-    let mp = if month > 2 { month - 3 } else { month + 9 } as i64;
-    let doy = (153 * mp + 2) / 5 + day as i64 - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    let days = era * 146097 + doe - 719468;
-    let seconds = digits[3] * 3600 + digits[4] * 60 + digits[5];
-    Some((days * 86400 + seconds) as f64)
-}
-
-fn pass_seconds() -> f64 {
-    let path = app_support().join("rules.pass-state.json");
-    let text = fs::read_to_string(path).unwrap_or_default();
-    let value: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
-    let Some(passes) = value.get("passes").and_then(|v| v.as_object()) else {
-        return 0.0;
-    };
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs_f64();
-    let mut best: f64 = 0.0;
-    for pass in passes.values() {
-        if let Some(earned) = pass.get("earned_at").and_then(|v| v.as_str()) {
-            if let Some(started) = epoch_from_rfc3339(earned) {
-                best = best.max(60.0 - (now - started));
-            }
-        }
-    }
-    best
 }
 
 fn write_action(action: &str) {
@@ -104,13 +52,14 @@ fn write_action(action: &str) {
     let body = format!("{{\"action\":\"{}\"}}", action);
     let temp = dir.join(".pill-actions.tmp");
     let _ = fs::write(&temp, &body);
-    let _ = fs::rename(&temp, &path);
+    let _ = fs::rename(temp, &path);
     println!("{}", body);
     let _ = io::stdout().flush();
 }
 
 fn headless() {
-    let mut machine = Machine::new(false);
+    let quiet = std::env::args().any(|arg| arg == "--quiet-timer");
+    let mut machine = Machine::new(quiet);
     for line in io::stdin().lock().lines() {
         let Ok(line) = line else { continue };
         let value: serde_json::Value = serde_json::from_str(&line).unwrap_or_default();
@@ -123,6 +72,28 @@ fn headless() {
             "height": snap.height, "timer": snap.timer, "bars": snap.bars,
             "dash": snap.dash,
         });
+        println!("{}", out);
+    }
+}
+
+fn timer_probe() {
+    let mut was_active = false;
+    for line in io::stdin().lock().lines() {
+        let Ok(line) = line else { continue };
+        let value: serde_json::Value = serde_json::from_str(&line).unwrap_or_default();
+        let Some(dir) = value.get("dir").and_then(|v| v.as_str()) else { continue };
+        let dir_path = PathBuf::from(dir);
+        if let Some(events) = value.get("events") {
+            let _ = fs::write(dir_path.join("pill-events.json"), events.to_string());
+        }
+        let now = value.get("now_epoch").and_then(|v| v.as_f64()).unwrap_or_else(now_epoch_seconds);
+        let (_, _, quiet) = read_config(&dir_path);
+        let (update, timer) = match poll_step(quiet, &mut was_active, &dir_path, now) {
+            Some(TimerUpdate::Start(text)) => ("timer_start", text),
+            Some(TimerUpdate::Stop) => ("timer_stop", String::new()),
+            None => ("none", String::new()),
+        };
+        let out = serde_json::json!({"quiet": quiet, "update": update, "timer": timer});
         println!("{}", out);
     }
 }
@@ -179,8 +150,12 @@ fn main() {
         input_probe();
         return;
     }
+    if std::env::args().any(|arg| arg == "--timer-probe") {
+        timer_probe();
+        return;
+    }
 
-    let (theme, anchor, quiet) = read_config();
+    let (theme, anchor, quiet) = read_config(&app_support());
     #[allow(unused_mut)]
     let mut event_loop = EventLoopBuilder::<Message>::with_user_event().build();
     #[cfg(target_os = "macos")]
@@ -278,22 +253,31 @@ fn main() {
     });
 
     let poll_proxy = proxy.clone();
-    thread::spawn(move || loop {
-        let path = app_support().join("pill-events.json");
-        if let Ok(text) = fs::read_to_string(&path) {
-            let value: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
-            if value.get("event").and_then(|v| v.as_str()) == Some("blocked") {
-                let _ = poll_proxy.send_event(Message::Event(
-                    "{\"state\":\"blocked\"}".to_string()
-                ));
+    thread::spawn(move || {
+        let mut timer_active = false;
+        loop {
+            let dir = app_support();
+            let path = dir.join("pill-events.json");
+            if let Ok(text) = fs::read_to_string(&path) {
+                let value: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
+                if value.get("event").and_then(|v| v.as_str()) == Some("blocked") {
+                    let _ = poll_proxy.send_event(Message::Event(
+                        "{\"state\":\"blocked\"}".to_string()
+                    ));
+                }
             }
+            let (_, _, quiet_now) = read_config(&dir);
+            match poll_step(quiet_now, &mut timer_active, &dir, now_epoch_seconds()) {
+                Some(TimerUpdate::Start(text)) => {
+                    let _ = poll_proxy.send_event(Message::Timer(text));
+                }
+                Some(TimerUpdate::Stop) => {
+                    let _ = poll_proxy.send_event(Message::TimerStop);
+                }
+                None => {}
+            }
+            thread::sleep(Duration::from_millis(250));
         }
-        let seconds = pass_seconds();
-        if seconds > 0.0 {
-            let text = format!("{:02}:{:02}", (seconds as u64) / 60, (seconds as u64) % 60);
-            let _ = poll_proxy.send_event(Message::Timer(text));
-        }
-        thread::sleep(Duration::from_millis(250));
     });
 
     unsafe { set_ignores_mouse(native_window as *mut std::ffi::c_void, true); }
@@ -322,6 +306,9 @@ fn main() {
                 let _ = webview.evaluate_script(&format!(
                     "window.__leko_on_event({{state:'timer_start',timer:'{}'}});", text
                 ));
+            }
+            Event::UserEvent(Message::TimerStop) => {
+                let _ = webview.evaluate_script("window.__leko_on_event({state:'timer_stop'});");
             }
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
                 *control_flow = ControlFlow::Exit;

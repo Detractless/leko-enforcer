@@ -267,3 +267,74 @@ fn status_and_json_reflect_persisted_passes() {
     let value: serde_json::Value = serde_json::from_str(values.1.trim()).unwrap();
     assert_eq!(value["pass"]["active"], true);
 }
+
+fn usage_rule(limit: leko_core::models::UsageLimit) -> TechnologyManagementRule {
+    let mut r = pass_rule();
+    r.pass = Pass::NoPass;
+    r.schedule.usage_based = Some(limit);
+    r
+}
+
+fn run_tick(store: &std::path::Path, usage: &std::path::Path, at: &str, mock: &mut MockExecutor) {
+    let argv = [
+        "enforce", store.to_str().unwrap(), "--once", "--usage-state",
+        usage.to_str().unwrap(), "--at", at,
+    ].iter().map(|v| v.to_string()).collect::<Vec<String>>();
+    assert!(enforce_with(&parse(&argv).unwrap(), &mut Vec::new(), &mut Vec::new(), mock).is_ok());
+}
+
+#[test]
+fn foreground_observer_is_injected_and_deterministic() {
+    let dir = std::env::temp_dir().join(format!("leko-obs-inj-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let store = dir.join("store.json");
+    let usage = dir.join("usage.json");
+    let limit = leko_core::models::UsageLimit::TimeLimit { minutes: 5, period: leko_core::models::Period::Daily };
+    leko_core::store::save(&store, &NativeStore { version: 1, rules: vec![usage_rule(limit)] }).unwrap();
+    let mut mock = MockExecutor::default();
+    mock.foreground = Some(leko_cli::services::os_executor::ForegroundActivity {
+        bundle_id: Some("com.example.Bad".into()), site: None,
+    });
+    run_tick(&store, &usage, "2026-01-01T12:00:00Z", &mut mock);
+    run_tick(&store, &usage, "2026-01-01T12:01:00Z", &mut mock);
+    let saved = leko_core::services::load_usage_state(&usage).unwrap();
+    assert_eq!(saved.rules["r1"].active_seconds, 60);
+    assert_eq!(saved.rules["r1"].sessions, 1);
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn time_and_session_limits_enforce_when_exhausted() {
+    let dir = std::env::temp_dir().join(format!("leko-usage-enf-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let store = dir.join("store.json");
+    let usage = dir.join("usage.json");
+    let t_rule = usage_rule(leko_core::models::UsageLimit::TimeLimit { minutes: 1, period: leko_core::models::Period::Daily });
+    leko_core::store::save(&store, &NativeStore { version: 1, rules: vec![t_rule] }).unwrap();
+    let mut mock = MockExecutor::default();
+    mock.apps.push(ObservedApp { pid: 21, bundle: Some("com.example.Bad".into()) });
+    mock.foreground = Some(leko_cli::services::os_executor::ForegroundActivity {
+        bundle_id: Some("com.example.Bad".into()), site: None,
+    });
+    run_tick(&store, &usage, "2026-01-01T12:00:00Z", &mut mock);
+    assert!(mock.terminated.is_empty(), "blocked before time budget expired");
+    run_tick(&store, &usage, "2026-01-01T12:01:00Z", &mut mock);
+    assert_eq!(mock.terminated, vec!["com.example.Bad".to_string()]);
+
+    let s_rule = usage_rule(leko_core::models::UsageLimit::SessionLimit { max_sessions: 1, period: leko_core::models::Period::Daily });
+    let u2 = dir.join("usage2.json");
+    leko_core::store::save(&store, &NativeStore { version: 1, rules: vec![s_rule] }).unwrap();
+    mock.terminated.clear();
+    run_tick(&store, &u2, "2026-01-01T12:00:00Z", &mut mock);
+    assert!(mock.terminated.is_empty(), "first open session should stay allowed");
+    mock.foreground = None;
+    run_tick(&store, &u2, "2026-01-01T12:00:10Z", &mut mock);
+    mock.foreground = Some(leko_cli::services::os_executor::ForegroundActivity {
+        bundle_id: Some("com.example.Bad".into()), site: None,
+    });
+    run_tick(&store, &u2, "2026-01-01T12:00:20Z", &mut mock);
+    assert_eq!(mock.terminated, vec!["com.example.Bad".to_string()]);
+    fs::remove_dir_all(dir).unwrap();
+}

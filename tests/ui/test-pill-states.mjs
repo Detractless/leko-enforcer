@@ -1,16 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const PILL = resolve(ROOT, 'target/release/leko-pill');
 
-function headless(events) {
+function headless(events, extraArgs = []) {
   const input = events.map((event) => JSON.stringify(event)).join('\n') + '\n';
-  const result = spawnSync(PILL, ['--headless'], { input, encoding: 'utf8' });
+  const result = spawnSync(PILL, ['--headless', ...extraArgs], { input, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  return result.stdout.trim().split('\n').filter(Boolean).map((line) => JSON.parse(line));
+}
+
+function timerProbe(queries) {
+  const input = queries.map((q) => JSON.stringify(q)).join('\n') + '\n';
+  const result = spawnSync(PILL, ['--timer-probe'], { input, encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
   return result.stdout.trim().split('\n').filter(Boolean).map((line) => JSON.parse(line));
 }
@@ -130,4 +138,59 @@ test('hold_and_click_actions_are_written_with_stdout_flush', () => {
   assert.match(js, /window\.ipc\.postMessage/);
   const main = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
   assert.match(main, /stdout\(\)\.flush/);
+});
+
+test('quiet_timer_tracks_active_time_limit_and_returns_idle', () => {
+  const [offStart] = headless([{ event: 'timer_start', now_ms: 0, duration_ms: 185000 }]);
+  assert.equal(offStart.state, 'idle');
+  assert.equal(offStart.dash, true);
+
+  const [onStart, onStop] = headless(
+    [
+      { event: 'timer_start', now_ms: 0, duration_ms: 185000 },
+      { event: 'timer_stop', now_ms: 1000, duration_ms: 0 },
+    ],
+    ['--quiet-timer'],
+  );
+  assert.equal(onStart.state, 'timer');
+  assert.equal(onStart.text, '03:05');
+  assert.equal(onStart.width, 68);
+  assert.equal(onStart.height, 24);
+  assert.equal(onStop.state, 'idle');
+  assert.equal(onStop.timer, '');
+  assert.equal(onStop.dash, true);
+
+  const dir = mkdtempSync(join(tmpdir(), 'leko-pill-timer-'));
+  try {
+    writeFileSync(join(dir, 'pill-events.json'), JSON.stringify({
+      version: 1, event: 'tick', usage_timer_seconds: 185, at: '2026-01-01T12:00:00Z',
+    }));
+    const [defaultOff] = timerProbe([{ dir, now_epoch: 1767268802 }]);
+    assert.equal(defaultOff.quiet, false);
+    assert.equal(defaultOff.update, 'none');
+
+    writeFileSync(join(dir, 'pill-config.json'), JSON.stringify({ quietTimer: true }));
+    const [started, stopped] = timerProbe([
+      {
+        dir,
+        now_epoch: 1767268802,
+        events: { version: 1, event: 'tick', usage_timer_seconds: 185, at: '2026-01-01T12:00:00Z' },
+      },
+      {
+        dir,
+        now_epoch: 1767268805,
+        events: { version: 1, event: 'tick', usage_timer_seconds: null, at: '2026-01-01T12:00:04Z' },
+      },
+    ]);
+    assert.equal(started.quiet, true);
+    assert.equal(started.update, 'timer_start');
+    assert.equal(started.timer, '03:05');
+    assert.equal(stopped.update, 'timer_stop');
+    assert.equal(stopped.timer, '');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+
+  const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
+  assert.match(js, /window\.__leko_config\.quietTimer/);
 });

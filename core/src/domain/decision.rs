@@ -1,7 +1,7 @@
 use crate::clock::Moment;
 use crate::domain::pass_eval::pass_active;
 use crate::domain::schedule_eval::is_time_active;
-use crate::domain::usage_eval::usage_allows;
+use crate::domain::usage_eval::usage_allows_tracked;
 use crate::domain::{PassState, UsageState};
 use crate::models::TechnologyManagementRule;
 
@@ -25,6 +25,16 @@ pub fn decide(
     rule: &TechnologyManagementRule,
     moment: &Moment,
     usage: &UsageState,
+    pass: &PassState,
+) -> Decision {
+    decide_tracked(rule, moment, usage, false, pass)
+}
+
+pub fn decide_tracked(
+    rule: &TechnologyManagementRule,
+    moment: &Moment,
+    usage: &UsageState,
+    session_open: bool,
     pass: &PassState,
 ) -> Decision {
     if !rule.enabled {
@@ -57,7 +67,7 @@ pub fn decide(
             reason: DecisionReason::PassActive,
         };
     }
-    if usage_allows(rule.schedule.usage_based.as_ref(), usage, moment) {
+    if usage_allows_tracked(rule.schedule.usage_based.as_ref(), usage, session_open, moment) {
         return Decision {
             enforced: false,
             reason: DecisionReason::UsageWithinBudget,

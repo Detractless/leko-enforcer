@@ -79,6 +79,17 @@ fn every_pillar_type_and_json_key_uses_the_canonical_names() {
     let bytes = serde_json::to_vec(&original).unwrap();
     let back: TechnologyManagementRule = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(back, original);
+    let engagement = leko_core::models::Pass::EarnPass {
+        requirement: leko_core::models::PassRequirement::EngagementPass {
+            targets: vec!["kindle".into()],
+            required_seconds: 120,
+        },
+        length: leko_core::models::PassLength::TimedPass { minutes: 10 },
+        cap: leko_core::models::PassCap::UnlimitedPasses,
+    };
+    let pass_json = serde_json::to_value(&engagement).unwrap();
+    assert_eq!(pass_json["kind"], "earn_pass");
+    assert!(pass_json["requirement"]["engagement_pass"].is_object());
 }
 
 #[test]
@@ -118,7 +129,6 @@ fn no_planned_stubs_and_no_overridable_flags() {
                     "PomodoroSchedule",
                     "CommunityLinkedApps",
                     "CommunityLinkedWebsites",
-                    "EngagementPass",
                     "RestartSeal",
                     "shadow_mode",
                     "nsfw",

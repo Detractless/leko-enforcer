@@ -675,6 +675,22 @@
           "sha256": "029bf66d422c5754748c4c894caa6f9486526ddee45d74b2e9db658aaeb90129"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/native-leko-usage-tracker.md",
+      "sha256": "61b4d67ec73c0c982dfcd3bb8d74c47c1270250356c929d53ed92ee42aeb7ffb",
+      "state": "locked",
+      "reason": "contract \"native-leko-usage-tracker\" opened by the user: /contract open native-leko-usage-tracker",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-26T20:46:00.000Z",
+      "history": [
+        {
+          "at": "2026-11-26T20:46:00.000Z",
+          "event": "lock",
+          "sha256": "61b4d67ec73c0c982dfcd3bb8d74c47c1270250356c929d53ed92ee42aeb7ffb"
+        }
+      ]
     }
   ]
 }

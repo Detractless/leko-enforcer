@@ -98,3 +98,50 @@ fn a_partial_pass_state_write_keeps_the_old_state() {
     assert_eq!(load_pass_state(&path).unwrap(), original);
     fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn a_partial_usage_state_write_keeps_the_old_state() {
+    use leko_core::services::{
+        load_usage_state, save_usage_state, usage_state_path, RuleUsage, UsageStateFile,
+    };
+    let dir = std::env::temp_dir().join(format!("leko-usage-state-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let store_path = dir.join("rules.json");
+    let path = usage_state_path(&store_path);
+    assert_eq!(path, dir.join("rules.usage-state.json"));
+
+    let original = UsageStateFile {
+        version: 1,
+        rules: HashMap::from([("r1".to_string(), RuleUsage {
+            rule_id: "r1".to_string(),
+            period_key: "2026-01-01".to_string(),
+            active_seconds: 120,
+            sessions: 1,
+            session_open: true,
+            last_active_at: Some("2026-01-01T12:00:00Z".to_string()),
+            away_since: None,
+            engagement_seconds: 30,
+            engagement_window_key: "2026-01-01".to_string(),
+            last_engagement_at: None,
+        })]),
+    };
+    save_usage_state(&path, &original).unwrap();
+    let before = fs::read(&path).unwrap();
+
+    let changed = UsageStateFile { rules: HashMap::new(), ..original.clone() };
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o555)).unwrap();
+    }
+    assert!(save_usage_state(&path, &changed).is_err());
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    assert_eq!(fs::read(&path).unwrap(), before);
+    assert_eq!(load_usage_state(&path).unwrap(), original);
+    fs::remove_dir_all(dir).unwrap();
+}

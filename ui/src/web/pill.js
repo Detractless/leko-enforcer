@@ -103,6 +103,9 @@
 
   pill.addEventListener('pointerup', function (event) {
     const heldFor = performance.now() - pressedAt;
+    if (state !== 'held') {
+      return;
+    }
     if (heldFor <= 200) {
       post('ptt_cancel');
     } else {
@@ -134,8 +137,8 @@
       render();
       return;
     }
-    if (next === 'blocked') {
-      setState('blocked');
+    if (next === 'blocked' || next === 'error') {
+      setState(next);
       localTimer = setTimeout(function () {
         setState((window.__leko_config && window.__leko_config.quietTimer && timerText) ? 'timer' : 'idle');
       }, 2200);

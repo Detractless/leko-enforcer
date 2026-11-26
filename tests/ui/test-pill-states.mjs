@@ -122,6 +122,8 @@ test('hold_and_click_actions_are_written_with_stdout_flush', () => {
   const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
   assert.match(js, /pointerdown/);
   assert.match(js, /pointerup/);
+  assert.match(js, /state !== 'held'/);
+  assert.match(js, /next === 'blocked' \|\| next === 'error'/);
   assert.match(js, /heldFor <= 200/);
   assert.match(js, /window\.ipc\.postMessage/);
   const main = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');

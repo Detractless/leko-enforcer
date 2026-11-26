@@ -225,5 +225,62 @@ class EmptyRuntimeTurnTests(unittest.TestCase):
         self.assertIn("ptt_end", runtime_text)
 
 
+class StreamRecoveryTests(unittest.TestCase):
+    def test_succeeds_without_refresh_when_first_open_works(self):
+        from voice.core.stream_recovery import open_input_stream
+        calls = []
+        sd = SimpleNamespace(
+            _terminate=lambda: calls.append("terminate"),
+            _initialize=lambda: calls.append("initialize"),
+            RawInputStream=lambda **kw: (calls.append(("open", kw)), "stream")[1],
+        )
+        stream = open_input_stream(sd, sleep_fn=lambda _s: calls.append("sleep"), samplerate=16000, blocksize=1280)
+        self.assertEqual(stream, "stream")
+        self.assertEqual(calls, [("open", {"samplerate": 16000, "blocksize": 1280})])
+
+    def test_refreshes_portaudio_and_falls_back_to_auto_blocksize(self):
+        from voice.core.stream_recovery import open_input_stream
+        events = []
+
+        def open_stream(**kw):
+            events.append(("open", kw.get("blocksize")))
+            if len([e for e in events if e[0] == "open"]) < 3:
+                raise RuntimeError("Error opening RawInputStream: PaErrorCode -9986")
+            return "recovered-stream"
+
+        sd = SimpleNamespace(
+            _terminate=lambda: events.append("terminate"),
+            _initialize=lambda: events.append("initialize"),
+            RawInputStream=open_stream,
+        )
+        stream = open_input_stream(sd, sleep_fn=lambda s: events.append(("sleep", round(s, 2))),
+                                   samplerate=16000, blocksize=1280)
+        self.assertEqual(stream, "recovered-stream")
+        self.assertEqual(events, [
+            ("open", 1280), "terminate", "initialize", ("sleep", 0.15),
+            ("open", 1280), "terminate", "initialize", ("sleep", 0.30),
+            ("open", 0),
+        ])
+
+    def test_skips_portaudio_refresh_while_playback_stream_is_active(self):
+        from voice.core.stream_recovery import open_input_stream
+        events = []
+
+        def open_stream(**kw):
+            events.append("open")
+            if events.count("open") == 1:
+                raise RuntimeError("transient -9986")
+            return "stream"
+
+        sd = SimpleNamespace(
+            _terminate=lambda: events.append("terminate"),
+            _initialize=lambda: events.append("initialize"),
+            RawInputStream=open_stream,
+        )
+        stream = open_input_stream(sd, can_refresh=lambda: False, sleep_fn=lambda _s: None, blocksize=1280)
+        self.assertEqual(stream, "stream")
+        self.assertEqual(events, ["open", "open"])
+
+
 if __name__ == "__main__":
     unittest.main()

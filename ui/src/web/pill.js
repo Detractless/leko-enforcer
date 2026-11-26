@@ -94,14 +94,7 @@
   }
 
   let pressedAt = 0;
-  pill.addEventListener('pointerdown', function (event) {
-    pill.setPointerCapture(event.pointerId);
-    pressedAt = performance.now();
-    setState('held');
-    post('ptt_start');
-  });
-
-  pill.addEventListener('pointerup', function (event) {
+  function releaseHold() {
     const heldFor = performance.now() - pressedAt;
     if (state !== 'held') {
       return;
@@ -112,7 +105,19 @@
       post('ptt_end');
     }
     localFeedback(heldFor);
+  }
+
+  pill.addEventListener('pointerdown', function (event) {
+    try {
+      pill.setPointerCapture(event.pointerId);
+    } catch (_) {}
+    pressedAt = performance.now();
+    setState('held');
+    post('ptt_start');
   });
+
+  pill.addEventListener('pointerup', releaseHold);
+  pill.addEventListener('pointercancel', releaseHold);
 
   pill.addEventListener('contextmenu', function (event) {
     event.preventDefault();
@@ -152,6 +157,9 @@
     if (next === 'timer_stop') {
       timerText = '';
       setState('idle');
+      return;
+    }
+    if (state === 'held' && next === 'idle') {
       return;
     }
     if (next === 'idle' && window.__leko_config && window.__leko_config.quietTimer && timerText) {

@@ -224,6 +224,20 @@ class EmptyRuntimeTurnTests(unittest.TestCase):
         self.assertIn("ptt_start", runtime_text)
         self.assertIn("ptt_end", runtime_text)
 
+    def test_warm_stt_does_not_emit_idle_while_holding(self):
+        from voice.session.runtime import RuntimeController
+        controller = object.__new__(RuntimeController)
+        controller.args = SimpleNamespace(ui=True)
+        controller.shutdown = threading.Event()
+        controller.turn_manager = SimpleNamespace(busy=False, capture_mode="held")
+        emitted = []
+        controller.bridge = SimpleNamespace(emit_state=lambda state, label=None: emitted.append(state))
+        controller._warm_stt(1)
+        self.assertEqual(emitted, [])
+        controller.turn_manager.capture_mode = "idle"
+        controller._warm_stt(2)
+        self.assertEqual(emitted, ["idle"])
+
 
 class StreamRecoveryTests(unittest.TestCase):
     def test_succeeds_without_refresh_when_first_open_works(self):

@@ -344,3 +344,6 @@ def main():
         parser.exit(1, f"Settings setup failed: {exc}\n")
     voice.acquire_single_instance_lock()
     RuntimeController(args, selected_detector).run()
+
+if __name__ == "__main__":
+    main()

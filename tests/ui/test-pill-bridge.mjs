@@ -37,7 +37,7 @@ test('swift_pill_builds_without_new_rust_dependencies', () => {
   const workspace = readFileSync(resolve(ROOT, 'Cargo.toml'), 'utf8');
   assert.match(workspace, /"ui"/);
   assert.equal(existsSync(resolve(ROOT, 'ui/pill')), false);
-  const sources = ['src/main.rs', 'src/state.rs', 'src/web/pill.html',
+  const sources = ['src/main.rs', 'src/state.rs', 'src/timer_poll.rs', 'src/web/pill.html',
                    'src/web/pill.css', 'src/web/pill.js', 'src/web/tokens.css'];
   for (const source of sources) {
     const path = resolve(ROOT, 'ui', source);

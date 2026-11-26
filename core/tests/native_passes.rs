@@ -83,3 +83,33 @@ fn countdown_wait_is_enforced_with_an_injected_sleeper() {
     wait_for_requirement(&PassRequirement::TypingPass, &mut immediate).unwrap();
     assert!(immediate.waited.is_empty());
 }
+
+#[test]
+fn engagement_pass_grants_after_required_focus_duration() {
+    use leko_core::services::{
+        advance_rule_usage, record_pass, reset_engagement, PassStateFile, UsageStateFile,
+    };
+    let rule = with_pass(Pass::EarnPass {
+        requirement: PassRequirement::EngagementPass {
+            targets: vec!["com.example.Reader".into()],
+            required_seconds: 60,
+        },
+        length: PassLength::TimedPass { minutes: 10 },
+        cap: PassCap::LimitedPasses { max_per_window: 1 },
+    });
+    let mut usage = UsageStateFile::default();
+    let mut passes = PassStateFile::default();
+    let t0 = Moment::parse("2026-01-01T12:00:00Z", UTC).unwrap();
+    let t1 = Moment::parse("2026-01-01T12:00:40Z", UTC).unwrap();
+    let t2 = Moment::parse("2026-01-01T12:01:05Z", UTC).unwrap();
+
+    assert!(!advance_rule_usage(&mut usage, &rule, &t0, false, true, false, 5, 300).grant_engagement_pass);
+    assert!(!advance_rule_usage(&mut usage, &rule, &t1, false, true, false, 5, 300).grant_engagement_pass);
+    assert!(advance_rule_usage(&mut usage, &rule, &t2, false, true, false, 5, 300).grant_engagement_pass);
+
+    record_pass(&mut passes, &rule, &t2, "2026-01-01".into()).unwrap();
+    reset_engagement(&mut usage, &rule.id);
+    let domain_pass = leko_core::services::domain_state(&passes, &rule.id);
+    assert!(pass_active(&rule.pass, &domain_pass, &t2));
+    assert!(record_pass(&mut passes, &rule, &t2, "2026-01-01".into()).is_err());
+}

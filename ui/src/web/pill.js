@@ -151,7 +151,9 @@
     }
     if (next === 'timer_start') {
       timerText = event.timer || '';
-      setState('timer');
+      if (window.__leko_config && window.__leko_config.quietTimer && (state === 'idle' || state === 'timer')) {
+        setState('timer');
+      }
       return;
     }
     if (next === 'timer_stop') {

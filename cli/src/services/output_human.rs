@@ -2,7 +2,7 @@ use std::io::Write;
 
 use leko_core::domain::Decision;
 use leko_core::models::{
-    Pass, Penalty, Schedule, Seal, Target, TimeBasedSchedule, UsageLimit,
+    Pass, PassRequirement, Penalty, Schedule, Seal, Target, TimeBasedSchedule, UsageLimit,
 };
 use leko_core::TechnologyManagementRule;
 
@@ -44,6 +44,17 @@ pub fn pass_name(pass: &Pass) -> &'static str {
     match pass {
         Pass::NoPass => "No Pass",
         Pass::EarnPass { .. } => "Earn Pass",
+    }
+}
+
+pub fn requirement_name(req: &PassRequirement) -> &'static str {
+    match req {
+        PassRequirement::PhysicalPass => "Physical Pass",
+        PassRequirement::MentalPass => "Mental Pass",
+        PassRequirement::CountdownPass { .. } => "Countdown Pass",
+        PassRequirement::TypingPass => "Typing Pass",
+        PassRequirement::CustomVerifier(_) => "Custom Verifier",
+        PassRequirement::EngagementPass { .. } => "Engagement Pass",
     }
 }
 

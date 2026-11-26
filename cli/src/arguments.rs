@@ -25,6 +25,7 @@ pub const LEGACY_FLAGS: &[&str] = &[
 const BOOLEAN_FLAGS: &[&str] = &[
     "--json", "--write", "--queue", "--cancel", "--loop", "--once", "--dry-run",
     "--proof-typing", "--proof-task", "--proof-password", "--proof-verifier",
+    "--engagement-pass", "--rest-of-day",
 ];
 
 #[derive(Clone, Debug)]

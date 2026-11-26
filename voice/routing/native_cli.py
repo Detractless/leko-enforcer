@@ -21,7 +21,6 @@ PLANNED_TOOLS = {
     "pomodoro_schedule",
     "community_linked_apps",
     "community_linked_websites",
-    "engagement_pass",
     "restart_seal",
 }
 
@@ -49,6 +48,20 @@ def _target_json(args, store):
     return {"kind": "specific_apps", "apps": []}
 
 
+def _append_engagement_flags(argv, args):
+    if args.get("engagement_pass"):
+        argv.append("--engagement-pass")
+    targets = args.get("engagement_targets")
+    if isinstance(targets, (list, tuple)):
+        targets = ",".join(str(item) for item in targets)
+    if targets:
+        argv.extend(["--engagement-targets", str(targets)])
+    if args.get("engagement_seconds") is not None:
+        argv.extend(["--engagement-seconds", str(args["engagement_seconds"])])
+    if args.get("elapsed_seconds") is not None:
+        argv.extend(["--elapsed-seconds", str(args["elapsed_seconds"])])
+
+
 def build_argv(store, tool, args, at=None, json_output=True):
     """Build one canonical argv list. No legacy command or flag is produced."""
     command = tool_to_command(tool)
@@ -66,10 +79,15 @@ def build_argv(store, tool, args, at=None, json_output=True):
                      "--target", json.dumps(_target_json(args, store))])
         if args.get("penalty") is not None:
             argv.extend(["--penalty", json.dumps(args["penalty"])])
+        if args.get("pass") is not None:
+            argv.extend(["--pass", json.dumps(args["pass"])])
+        _append_engagement_flags(argv, args)
     elif tool in ("show_rule", "edit_rule", "delete_rule", "queue_edit",
                   "cancel_edit", "request_pass", "check_status", "evaluate_rule"):
         if args.get("id"):
             argv.extend(["--id", str(args["id"])])
+        if tool == "request_pass":
+            _append_engagement_flags(argv, args)
         if tool == "edit_rule":
             argv.extend(["--direction", str(args.get("direction", "weaken"))])
         if tool in ("edit_rule", "queue_edit"):

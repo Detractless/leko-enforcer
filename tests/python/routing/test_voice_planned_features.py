@@ -8,7 +8,8 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
-from voice.routing.canonical_speech import PLANNED_NAMES, PLANNED_REPLY, planned_reply
+from voice.routing.canonical_speech import PLANNED_NAMES, PLANNED_REPLY, canonical_name, planned_reply
+from voice.routing.native_cli import PLANNED_TOOLS, build_argv
 import voice.session.query_flow as query_flow
 from voice.session.conversation import Conversation
 
@@ -31,6 +32,49 @@ class VoicePlannedFeatureTests(unittest.TestCase):
                     speak_fn=lambda text, cancel=None: None,
                 )
         self.assertEqual(answer, PLANNED_REPLY)
+
+    def engagement_pass_is_live_while_other_planned_features_refuse(self):
+        self.assertNotIn("Engagement Pass", PLANNED_NAMES)
+        self.assertNotIn("engagement_pass", PLANNED_TOOLS)
+        self.assertIsNone(planned_reply("Earn an Engagement Pass on Notes"))
+        self.assertEqual(canonical_name("engagement_pass"), "Engagement Pass")
+        argv = build_argv(
+            "store.json",
+            "create_rule",
+            {
+                "name": "Earn",
+                "apps": ["com.example.Bad"],
+                "engagement_pass": True,
+                "engagement_targets": ["com.apple.Notes"],
+                "engagement_seconds": 120,
+            },
+        )
+        self.assertIn("--engagement-pass", argv)
+        self.assertIn("--engagement-targets", argv)
+        self.assertIn("com.apple.Notes", argv)
+
+        remaining = (
+            "Pomodoro Schedule",
+            "Community-Linked Apps",
+            "Community-Linked Websites",
+            "Restart Seal",
+        )
+        self.assertEqual(set(PLANNED_NAMES), set(remaining))
+        for name in remaining:
+            with patch.object(query_flow, "_llm_intent",
+                              side_effect=AssertionError("planned request reached the model")):
+                with patch.object(query_flow.subprocess, "run",
+                                  side_effect=AssertionError("planned request reached the CLI")):
+                    answer = query_flow.process_query(
+                        f"Can I use {name}?",
+                        "store.json",
+                        conversation=Conversation(),
+                        speak_fn=lambda text, cancel=None: None,
+                    )
+            self.assertEqual(answer, PLANNED_REPLY)
+
+    def test_engagement_pass_is_live_while_other_planned_features_refuse(self):
+        self.engagement_pass_is_live_while_other_planned_features_refuse()
 
 
 if __name__ == "__main__":

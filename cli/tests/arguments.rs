@@ -193,3 +193,43 @@ fn pass_and_delete_usage_and_streams() {
     assert_eq!(leko_cli::run(&raw, &mut out, &mut err), 0);
     assert!(String::from_utf8(err).unwrap().is_empty());
 }
+
+#[test]
+fn usage_tracker_and_engagement_flags_validate_streams() {
+    let dir = temp_dir("m9-streams");
+    let store = dir.join("store.json");
+    let flag = store.to_str().unwrap();
+
+    for bad in [
+        &["create-rule", "--store", flag, "--id", "r1", "--name", "N", "--engagement-pass"][..],
+        &["create-rule", "--store", flag, "--id", "r1", "--name", "N", "--engagement-pass", "--engagement-targets", "notes", "--engagement-seconds", "0"][..],
+        &["enforce", flag, "--once", "--session-debounce-seconds", "bad"][..],
+    ] {
+        let (code, out, err) = call(bad);
+        assert_eq!(code, 2, "expected exit 2 for {:?}", bad);
+        assert!(out.is_empty(), "expected empty stdout for {:?}", bad);
+        assert!(!err.is_empty(), "expected stderr message for {:?}", bad);
+    }
+
+    let ok_create = call(&[
+        "create-rule", "--store", flag, "--id", "r1", "--name", "N",
+        "--target", r#"{"kind":"specific_apps","apps":["notes"]}"#,
+        "--penalty", r#""force_close_penalty""#,
+        "--at", "2026-01-01T00:00:00Z",
+    ]);
+    assert_eq!(ok_create.0, 0, "{}", ok_create.2);
+    for bad in [
+        &["request-pass", "--store", flag, "--id", "r1", "--elapsed-seconds", "bad"][..],
+        &["check-status", "--store", flag, "--id", "r1", "--used-minutes", "bad"][..],
+    ] {
+        let (code, out, err) = call(bad);
+        assert_eq!(code, 2, "expected exit 2 for {:?}", bad);
+        assert!(out.is_empty(), "expected empty stdout for {:?}", bad);
+        assert!(!err.is_empty(), "expected stderr message for {:?}", bad);
+    }
+    let (code, out, err) = call(&["check-status", "--store", flag, "--id", "r1", "--at", "2026-01-01T00:00:00Z", "--json"]);
+    assert_eq!(code, 0, "{}", err);
+    assert!(err.is_empty());
+    assert!(serde_json::from_str::<serde_json::Value>(out.trim()).is_ok());
+    fs::remove_dir_all(dir).unwrap();
+}

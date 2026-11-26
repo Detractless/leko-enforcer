@@ -163,3 +163,55 @@ fn repeated_and_empty_pass_requests_are_safe() {
     let (_, code, _, _) = request_with("no-pass", &no_pass, &mut sleeper);
     assert_eq!(code, 1);
 }
+
+#[test]
+fn engagement_pass_records_after_focus_requirement() {
+    let dir = std::env::temp_dir().join(format!("leko-cli-eng-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let store = dir.join("store.json");
+    let flag = store.to_str().unwrap();
+
+    let created = call(&[
+        "create-rule", "--store", flag, "--id", "eng", "--name", "Earn",
+        "--target", r#"{"kind":"specific_apps","apps":["com.example.Bad"]}"#,
+        "--penalty", r#""force_close_penalty""#,
+        "--engagement-pass", "--engagement-targets", "com.apple.Notes",
+        "--engagement-seconds", "120", "--pass-minutes", "15", "--pass-cap", "1",
+        "--at", "2026-01-01T00:00:00Z",
+    ]);
+    assert_eq!(created.0, 0, "{} {}", created.1, created.2);
+    let before = fs::read(&store).unwrap();
+
+    let too_soon = call(&[
+        "request-pass", "--store", flag, "--id", "eng", "--elapsed-seconds", "60",
+        "--at", "2026-01-01T12:00:00Z",
+    ]);
+    assert_eq!(too_soon.0, 1);
+
+    let pass_state = dir.join("store.pass-state.json");
+    let usage_state = dir.join("store.usage-state.json");
+    let mut mock = leko_cli::services::os_executor::MockExecutor::default();
+    mock.foreground = Some(leko_cli::services::os_executor::ForegroundActivity {
+        bundle_id: Some("com.apple.Notes".into()), site: None,
+    });
+    for at in ["2026-01-01T12:00:00Z", "2026-01-01T12:01:00Z", "2026-01-01T12:02:00Z"] {
+        let argv = [
+            "enforce", flag, "--once", "--pass-state", pass_state.to_str().unwrap(),
+            "--usage-state", usage_state.to_str().unwrap(), "--at", at,
+        ].iter().map(|s| s.to_string()).collect::<Vec<String>>();
+        assert!(leko_cli::services::enforcement_loop::enforce_with(
+            &parse(&argv).unwrap(), &mut Vec::new(), &mut Vec::new(), &mut mock
+        ).is_ok());
+    }
+    assert!(load_pass_state(&pass_state).unwrap().passes.contains_key("eng"));
+    assert_eq!(fs::read(&store).unwrap(), before);
+
+    let capped = call(&[
+        "request-pass", "--store", flag, "--id", "eng", "--elapsed-seconds", "120",
+        "--at", "2026-01-01T13:00:00Z",
+    ]);
+    assert_eq!(capped.0, 1);
+    assert!(capped.2.contains("cap"), "got: {}", capped.2);
+    fs::remove_dir_all(dir).unwrap();
+}

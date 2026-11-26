@@ -122,3 +122,37 @@ fn native_store_version_is_preserved() {
     assert!(saved.get("outsideHours").is_none());
     fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn corrupt_usage_state_and_empty_ticks_are_safe() {
+    let dir = loop_dir("usage-corrupt");
+    let store = dir.join("store.json");
+    let usage = dir.join("store.usage-state.json");
+    let other = dir.join("other-usage.json");
+    leko_core::store::save(&store, &NativeStore { version: 1, rules: vec![sample()] }).unwrap();
+    fs::write(&usage, b"{corrupt json").unwrap();
+    fs::write(&other, b"{\"version\":1,\"rules\":{}}").unwrap();
+    let before_store = fs::read(&store).unwrap();
+    let before_other = fs::read(&other).unwrap();
+
+    let argv = ["enforce", store.to_str().unwrap(), "--once", "--at", "2026-01-01T12:00:00Z"]
+        .iter().map(|v| v.to_string()).collect::<Vec<String>>();
+    let mut mock = MockExecutor::default();
+    let mut err = Vec::new();
+    assert!(enforce_with(&parse(&argv).unwrap(), &mut Vec::new(), &mut err, &mut mock).is_ok());
+    assert!(String::from_utf8(err).unwrap().contains("Usage state unreadable"));
+    assert_eq!(fs::read(&usage).unwrap(), b"{corrupt json");
+    assert_eq!(fs::read(&store).unwrap(), before_store);
+    assert_eq!(fs::read(&other).unwrap(), before_other);
+
+    let empty_store = dir.join("empty.json");
+    leko_core::store::save(&empty_store, &NativeStore { version: 1, rules: vec![] }).unwrap();
+    let empty_argv = ["enforce", empty_store.to_str().unwrap(), "--once", "--at", "2026-01-01T12:00:00Z"]
+        .iter().map(|v| v.to_string()).collect::<Vec<String>>();
+    for _ in 0..2 {
+        let mut out = Vec::new();
+        assert!(enforce_with(&parse(&empty_argv).unwrap(), &mut out, &mut Vec::new(), &mut mock).is_ok());
+        assert!(String::from_utf8(out).unwrap().contains("Enforcement ticks: 1"));
+    }
+    fs::remove_dir_all(dir).unwrap();
+}

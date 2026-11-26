@@ -4,3 +4,4 @@ pub mod infrastructure;
 pub mod os_executor;
 pub mod output_human;
 pub mod output_json;
+pub mod usage_tracker;

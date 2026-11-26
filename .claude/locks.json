@@ -659,6 +659,22 @@
           "sha256": "cab525e0ec0151bcf5db0ac264d94ba6405c8e94ffbfc2cd2ae0f5b295c52005"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/native-leko-pill-input.md",
+      "sha256": "029bf66d422c5754748c4c894caa6f9486526ddee45d74b2e9db658aaeb90129",
+      "state": "locked",
+      "reason": "contract \"native-leko-pill-input\" opened by the user: open native-leko-pill-input",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-26T00:45:47.072Z",
+      "history": [
+        {
+          "at": "2026-11-26T00:45:47.072Z",
+          "event": "lock",
+          "sha256": "029bf66d422c5754748c4c894caa6f9486526ddee45d74b2e9db658aaeb90129"
+        }
+      ]
     }
   ]
 }

@@ -1,5 +1,7 @@
+mod native_input;
 mod state;
 
+use native_input::{set_ignores_mouse, CursorPoint, InputEvent, NativeInput, SystemCursor, TestCursor};
 use state::Machine;
 use std::fs;
 use std::io::{self, BufRead, Write};
@@ -12,7 +14,7 @@ use tao::window::WindowBuilder;
 use wry::WebViewBuilder;
 
 #[cfg(target_os = "macos")]
-use tao::platform::macos::WindowBuilderExtMacOS;
+use tao::platform::macos::{WindowBuilderExtMacOS, WindowExtMacOS};
 
 const HTML: &str = include_str!("web/pill.html");
 const CSS: &str = include_str!("web/pill.css");
@@ -22,6 +24,7 @@ const TOKENS: &str = include_str!("web/tokens.css");
 enum Message {
     Event(String),
     Timer(String),
+    Cursor(InputEvent),
 }
 
 fn app_support() -> PathBuf {
@@ -114,6 +117,30 @@ fn headless() {
     }
 }
 
+fn input_probe() {
+    let mut input = NativeInput::new((100.0, 100.0, 160.0, 56.0), TestCursor::default());
+    for line in io::stdin().lock().lines() {
+        let Ok(line) = line else { continue };
+        let value: serde_json::Value = serde_json::from_str(&line).unwrap_or_default();
+        input.provider.point = value.get("x").and_then(|v| v.as_f64())
+            .zip(value.get("y").and_then(|v| v.as_f64()))
+            .map(|(x, y)| CursorPoint { x, y });
+        let event = input.poll();
+        let name = match event {
+            InputEvent::Enter => "enter",
+            InputEvent::Leave => "leave",
+            InputEvent::None => "none",
+        };
+        let out = serde_json::json!({
+            "event": name,
+            "inside": input.inside,
+            "ignore_mouse": input.ignores_mouse,
+            "cadence_ms": input.cadence_ms(),
+        });
+        println!("{}", out);
+    }
+}
+
 fn anchor_position(anchor: &str, monitor: &tao::monitor::MonitorHandle) -> tao::dpi::LogicalPosition<i32> {
     let size = monitor.size();
     let scale = monitor.scale_factor();
@@ -136,6 +163,10 @@ fn anchor_position(anchor: &str, monitor: &tao::monitor::MonitorHandle) -> tao::
 fn main() {
     if std::env::args().any(|arg| arg == "--headless") {
         headless();
+        return;
+    }
+    if std::env::args().any(|arg| arg == "--input-probe") {
+        input_probe();
         return;
     }
 
@@ -188,6 +219,33 @@ fn main() {
         .build(&window)
         .expect("build webview");
 
+    let rect = position
+        .map(|point| (point.x as f64, point.y as f64, 160.0, 56.0))
+        .unwrap_or((0.0, 0.0, 160.0, 56.0));
+    #[cfg(target_os = "macos")]
+    let native_window = window.ns_window() as usize;
+    #[cfg(not(target_os = "macos"))]
+    let native_window = 0usize;
+    let screen_height = monitor
+        .as_ref()
+        .map(|item| item.size().height as f64 / item.scale_factor())
+        .unwrap_or(900.0);
+    let cursor_proxy = proxy.clone();
+    thread::spawn(move || {
+        let pointer = native_window as *mut std::ffi::c_void;
+        let mut input = NativeInput::new(rect, SystemCursor::new(screen_height));
+        unsafe { set_ignores_mouse(pointer, true); }
+        loop {
+            let delay = input.cadence_ms();
+            let event = input.poll();
+            unsafe { set_ignores_mouse(pointer, input.ignores_mouse); }
+            if event != InputEvent::None {
+                let _ = cursor_proxy.send_event(Message::Cursor(event));
+            }
+            thread::sleep(Duration::from_millis(delay));
+        }
+    });
+
     let input_proxy = proxy.clone();
     thread::spawn(move || {
         for line in io::stdin().lock().lines() {
@@ -226,6 +284,16 @@ fn main() {
                 let _ = webview.evaluate_script(&format!(
                     "window.__leko_on_event({{state:'timer_start',timer:'{}'}});", text
                 ));
+            }
+            Event::UserEvent(Message::Cursor(event)) => {
+                let script = match event {
+                    InputEvent::Enter => "window.__leko_on_event({state:'hover_on'});",
+                    InputEvent::Leave => "window.__leko_on_event({state:'hover_off'});",
+                    InputEvent::None => "",
+                };
+                if !script.is_empty() {
+                    let _ = webview.evaluate_script(script);
+                }
             }
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
                 *control_flow = ControlFlow::Exit;

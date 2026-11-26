@@ -170,7 +170,10 @@ def _respond(query, state, bridge, speak, cancelled, text, confirmed=False):
     _log(state, "assistant_reply", text=text, confirmed=confirmed)
     if bridge:
         bridge.emit_speaking(text)
-    speak(voice.verbalize_for_speech(text), cancelled)
+        speak(voice.verbalize_for_speech(text), cancelled,
+              on_audio_level=lambda rms: bridge.emit_rms_level(rms, ceiling=0.14))
+    else:
+        speak(voice.verbalize_for_speech(text), cancelled)
     if bridge and not cancelled():
         if confirmed:
             bridge.emit_confirmed("Rule Saved" if "Rule" in text or "Pass" in text else "Action Completed")

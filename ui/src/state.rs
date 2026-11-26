@@ -49,7 +49,7 @@ impl Machine {
                 self.blocked_until = now + 2.2;
             }
             "ptt_start" => self.state = PillState::Held,
-            "ptt_end" => self.state = PillState::Listening,
+            "ptt_end" | "grace" => self.state = PillState::Listening,
             "speaking" => self.state = PillState::Speaking,
             "thinking" => self.state = PillState::Thinking,
             "error" => self.state = PillState::Error,
@@ -87,10 +87,10 @@ impl Machine {
             PillState::Blocked => ("Blocked", 92, 28, 0, false, "blocked"),
             PillState::Error => ("Error", 92, 28, 0, false, "error"),
             PillState::Timer => (self.timer.as_str(), 68, 24, 0, false, "timer"),
-            PillState::Listening | PillState::Held => ("", 112, 30, 5, false,
+            PillState::Listening | PillState::Held => ("", 112, 30, 7, false,
                 if self.state == PillState::Held { "held" } else { "listening" }),
-            PillState::Thinking | PillState::Speaking => ("MAEVE", 112, 30, 3, false,
-                if self.state == PillState::Speaking { "speaking" } else { "thinking" }),
+            PillState::Thinking => ("", 82, 28, 0, false, "thinking"),
+            PillState::Speaking => ("", 112, 30, 7, false, "speaking"),
             PillState::Idle => ("", if self.hovering { 72 } else { 54 },
                 if self.hovering { 24 } else { 16 }, 0, true, "idle"),
         };

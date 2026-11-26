@@ -74,6 +74,28 @@ class UIPipelineBridge:
             "label": "Maeve Speaking..."
         })
 
+    def emit_audio_level(self, level: float) -> None:
+        clamped = max(0.0, min(1.0, float(level)))
+        self.emit({"type": "audio_level", "level": round(clamped, 3)})
+
+    def emit_rms_level(self, rms: float, ceiling: float = 0.10, min_interval: float = 0.035) -> None:
+        import time
+        level = 0.0 if rms <= 0.004 else min(1.0, max(0.0, (rms - 0.004) / ceiling) ** 0.6)
+        last_val = getattr(self, "_last_level_val", 0.0)
+        if level == 0.0:
+            if last_val == 0.0:
+                return
+            self._last_level_val = 0.0
+            self.emit_audio_level(0.0)
+            return
+        now = time.monotonic()
+        last = getattr(self, "_last_level_emit", 0.0)
+        if last_val > 0.0 and now - last < min_interval:
+            return
+        self._last_level_emit = now
+        self._last_level_val = level
+        self.emit_audio_level(level)
+
     def emit_confirmed(self, label: str = "Locked & Saved") -> None:
         self.emit_state("confirmed", label)
 
@@ -141,3 +163,40 @@ class UIPipelineBridge:
             except Exception:
                 pass
             self._proc = None
+
+
+def start_playback_sampler(pcm, sample_rate: int, on_audio_level: Optional[Callable[[float], None]]) -> Callable[[], None]:
+    if not on_audio_level or not sample_rate:
+        return lambda: None
+    import time
+    import numpy as np
+    arr = np.asarray(pcm, dtype=np.float32).reshape(-1)
+    if not len(arr):
+        return lambda: None
+    stop_event = threading.Event()
+    win = max(1, int(sample_rate * 0.04))
+    started = time.monotonic()
+
+    def _run():
+        while not stop_event.wait(0.04):
+            idx = min(len(arr), int((time.monotonic() - started) * sample_rate))
+            start = max(0, idx - win)
+            if idx > start:
+                sl = arr[start:idx]
+                try:
+                    on_audio_level(float(np.sqrt(np.mean(sl * sl))))
+                except Exception:
+                    pass
+            if idx >= len(arr):
+                break
+
+    threading.Thread(target=_run, daemon=True, name="tts-level-meter").start()
+
+    def _stop():
+        stop_event.set()
+        try:
+            on_audio_level(0.0)
+        except Exception:
+            pass
+
+    return _stop

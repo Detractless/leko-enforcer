@@ -77,17 +77,14 @@ class RuntimeController:
         self._capture_turn_id = None
         if args.ui:
             self.turn_manager = voice.PushToTalkTurnManager(
-                on_turn_complete=self.on_handsfree_speech,
-                on_capture_error=self.on_capture_error,
-            )
+                on_turn_complete=self.on_handsfree_speech, on_capture_error=self.on_capture_error,
+                on_audio_level=self.bridge.emit_rms_level)
             selected = "push-to-talk"
         else:
             self.turn_manager = voice.HandsfreeTurnManager(
-                on_turn_complete=self.on_handsfree_speech,
-                on_speech_onset=self.on_speech_onset,
-                speech_detector=selected_detector,
-                on_armed=self.on_mic_armed,
-            )
+                on_turn_complete=self.on_handsfree_speech, on_speech_onset=self.on_speech_onset,
+                speech_detector=selected_detector, on_armed=self.on_mic_armed,
+                on_audio_level=self.bridge.emit_rms_level)
             selected = args.speech_detector if self.turn_manager.detector.speech_detector is not None else "loudness"
         print(f"Speech-start detector: {selected}", flush=True)
         print(f"Echo cancellation: {'available' if voice._echo_audio.available else 'unavailable'}", flush=True)

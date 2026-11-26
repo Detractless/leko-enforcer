@@ -49,14 +49,19 @@ test('dictation_states_flow_from_hold_to_idle', () => {
   const states = headless([
     { event: 'ptt_start', now_ms: 0, duration_ms: 0 },
     { event: 'ptt_end', now_ms: 100, duration_ms: 0 },
+    { event: 'thinking', now_ms: 150, duration_ms: 0 },
     { event: 'speaking', now_ms: 200, duration_ms: 0 },
     { event: 'idle', now_ms: 300, duration_ms: 0 },
   ]);
-  assert.deepEqual(states.map((state) => state.state), ['held', 'listening', 'speaking', 'idle']);
-  assert.deepEqual(states.slice(0, 2).map((state) => state.bars), [5, 5]);
+  assert.deepEqual(states.map((state) => state.state), ['held', 'listening', 'thinking', 'speaking', 'idle']);
+  assert.deepEqual(states.slice(0, 2).map((state) => state.bars), [7, 7]);
   assert.deepEqual(states.slice(0, 2).map((state) => state.width), [112, 112]);
-  assert.equal(states[2].text, 'MAEVE');
-  assert.equal(states[2].bars, 3);
+  assert.equal(states[2].text, '');
+  assert.equal(states[2].width, 82);
+  assert.equal(states[2].height, 28);
+  assert.equal(states[2].bars, 0);
+  assert.equal(states[3].text, '');
+  assert.equal(states[3].bars, 7);
 });
 
 test('quiet_timer_only_appears_for_an_active_timed_pass', () => {
@@ -79,15 +84,16 @@ test('panel_configuration_is_non_activating_and_always_on_top', () => {
   assert.ok(existsSync(resolve(ROOT, 'ui/src/web/pill.css')));
 });
 
-test('both_themes_are_monochrome_without_dots_or_chevrons', () => {
+test('semantic_state_colors_and_thinking_dots_are_configured', () => {
   const tokens = readFileSync(resolve(ROOT, 'ui/src/web/tokens.css'), 'utf8');
   for (const color of ['#181818', '#222222', '#585858', '#F2F2F2', '#8E8E8E',
+                       '#3ECF8E', '#F5B747', '#3B82F6',
                        '#FAFAFA', '#FFFFFF', '#CCCCCC', '#141414', '#6E6E6E']) {
     assert.ok(tokens.includes(color), color);
   }
-  assert.doesNotMatch(tokens, /--color-(accent|blue|red|green|pink|orange)/);
   const css = readFileSync(resolve(ROOT, 'ui/src/web/pill.css'), 'utf8');
-  assert.doesNotMatch(css, /chevron|dot|NSMenu/);
+  assert.doesNotMatch(css, /chevron|NSMenu/);
+  assert.match(css, /\.dots/);
   assert.match(css, /cubic-bezier\(0\.22, 1, 0\.36, 1\)/);
 });
 
@@ -98,11 +104,14 @@ test('headless_tests_never_grab_the_microphone_or_open_windows', () => {
   assert.doesNotMatch(main, /AVAudio|microphone/);
 });
 
-test('hover_events_drive_idle_expansion', () => {
+test('hover_events_and_audio_levels_drive_pill_visuals', () => {
   const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
   assert.match(js, /next === 'hover_on'/);
   assert.match(js, /next === 'hover_off'/);
   assert.match(js, /is-hovered/);
+  assert.match(js, /event\.type === 'audio_level'/);
+  assert.match(js, /WEIGHTS_7/);
+  assert.doesNotMatch(js, /MAEVE/);
   const css = readFileSync(resolve(ROOT, 'ui/src/web/pill.css'), 'utf8');
   assert.match(css, /\.leko-pill\.is-hovered \{ background: var\(--pill-hover\); \}/);
   assert.match(css, /\.state-idle\.is-hovered \{ width: 72px; height: 24px; \}/);

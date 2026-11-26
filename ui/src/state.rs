@@ -91,8 +91,8 @@ impl Machine {
                 if self.state == PillState::Held { "held" } else { "listening" }),
             PillState::Thinking | PillState::Speaking => ("MAEVE", 112, 30, 3, false,
                 if self.state == PillState::Speaking { "speaking" } else { "thinking" }),
-            PillState::Idle => ("", if self.hovering { 62 } else { 54 },
-                if self.hovering { 18 } else { 16 }, 0, true, "idle"),
+            PillState::Idle => ("", if self.hovering { 72 } else { 54 },
+                if self.hovering { 24 } else { 16 }, 0, true, "idle"),
         };
         Snapshot {
             state: state.to_string(),

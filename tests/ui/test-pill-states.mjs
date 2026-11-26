@@ -81,7 +81,7 @@ test('panel_configuration_is_non_activating_and_always_on_top', () => {
 
 test('both_themes_are_monochrome_without_dots_or_chevrons', () => {
   const tokens = readFileSync(resolve(ROOT, 'ui/src/web/tokens.css'), 'utf8');
-  for (const color of ['#181818', '#222222', '#303030', '#F2F2F2', '#8E8E8E',
+  for (const color of ['#181818', '#222222', '#585858', '#F2F2F2', '#8E8E8E',
                        '#FAFAFA', '#FFFFFF', '#CCCCCC', '#141414', '#6E6E6E']) {
     assert.ok(tokens.includes(color), color);
   }
@@ -105,7 +105,7 @@ test('hover_events_drive_idle_expansion', () => {
   assert.match(js, /is-hovered/);
   const css = readFileSync(resolve(ROOT, 'ui/src/web/pill.css'), 'utf8');
   assert.match(css, /\.leko-pill\.is-hovered \{ background: var\(--pill-hover\); \}/);
-  assert.match(css, /\.state-idle\.is-hovered \{ width: 62px; height: 18px; \}/);
+  assert.match(css, /\.state-idle\.is-hovered \{ width: 72px; height: 24px; \}/);
   assert.doesNotMatch(css, /:hover/);
 });
 

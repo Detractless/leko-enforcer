@@ -72,6 +72,26 @@ pub unsafe fn set_ignores_mouse(window: *mut std::ffi::c_void, ignore: bool) {
 #[cfg(not(target_os = "macos"))]
 pub unsafe fn set_ignores_mouse(_window: *mut std::ffi::c_void, _ignore: bool) {}
 
+#[cfg(target_os = "macos")]
+pub unsafe fn accept_first_mouse() {
+    use objc2::runtime::{AnyObject, Imp, Sel};
+    use objc2::ClassType;
+    use objc2_app_kit::NSWindow;
+
+    unsafe extern "C" fn always_accept(_window: *mut AnyObject, _selector: Sel) -> bool {
+        true
+    }
+
+    let selector = Sel::register("acceptsFirstMouse:");
+    if let Some(method) = NSWindow::class().instance_method(selector) {
+        let implementation: Imp = std::mem::transmute(always_accept as *const ());
+        method.set_implementation(implementation);
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub unsafe fn accept_first_mouse() {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InputEvent {
     Enter,

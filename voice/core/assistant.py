@@ -185,7 +185,8 @@ def stop_playback():
     set_playback_state(False, post_mute_s=0.0 if _echo_audio.available else 0.25)
 
 def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None,
-          playback_event_sink: Optional[Callable[[dict], None]] = None):
+          playback_event_sink: Optional[Callable[[dict], None]] = None,
+          on_audio_level: Optional[Callable[[float], None]] = None):
     """Speaks text using Maeve via sounddevice with interrupt support and room echo protection."""
     def emit(event, **details):
         if playback_event_sink:
@@ -215,7 +216,7 @@ def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None,
         emit("started", text=spoken_text, voice=VOICE_NAME, sample_rate=tts.sample_rate,
              expected_duration_seconds=duration_s)
         play_started = time.monotonic()
-        if _output_player.play(pcm, tts.sample_rate, is_cancelled):
+        if _output_player.play(pcm, tts.sample_rate, is_cancelled, on_audio_level=on_audio_level):
             emit("completed", elapsed_seconds=round(time.monotonic() - play_started, 3))
             return
         set_echo_cancellation_enabled(False)
@@ -224,6 +225,8 @@ def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None,
         if is_cancelled and is_cancelled():
             return
         sd.play(pcm, samplerate=tts.sample_rate)
+        pcm_arr = np.asarray(pcm, dtype=np.float32).reshape(-1)
+        win = max(1, int(tts.sample_rate * 0.04))
         while True:
             if is_cancelled and is_cancelled():
                 was_interrupted = True
@@ -232,7 +235,21 @@ def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None,
             stream = sd.get_stream()
             if stream is None or not stream.active:
                 break
+            if on_audio_level and len(pcm_arr):
+                idx = min(len(pcm_arr), int((time.monotonic() - play_start_t) * tts.sample_rate))
+                start = max(0, idx - win)
+                if idx > start:
+                    sl = pcm_arr[start:idx]
+                    try:
+                        on_audio_level(float(np.sqrt(np.mean(sl * sl))))
+                    except Exception:
+                        pass
             time.sleep(0.04)
+        if on_audio_level:
+            try:
+                on_audio_level(0.0)
+            except Exception:
+                pass
         elapsed_s = time.monotonic() - play_start_t
         if was_interrupted:
             print(f"[Maeve playback interrupted]: stopped at {elapsed_s:.2f}s / {duration_s:.2f}s", flush=True)
@@ -281,10 +298,11 @@ from ..audio_io.push_to_talk.push_to_talk import PushToTalkTurnManager as _PushT
 
 class HandsfreeTurnManager(CaptureGate):
     def __init__(self, on_turn_complete, on_speech_onset=None, sample_rate=16000,
-                 chunk_size=2560, speech_detector=None, continuation_s=4.0, on_armed=None):
+                 chunk_size=2560, speech_detector=None, continuation_s=4.0, on_armed=None,
+                 on_audio_level=None):
         detector = TurnDetector(on_speech_onset=on_speech_onset, speech_detector=speech_detector, continuation_s=continuation_s)
         super().__init__(sd.RawInputStream, detector, _echo_audio, on_turn_complete,
-                         sample_rate, chunk_size, on_armed=on_armed)
+                         sample_rate, chunk_size, on_armed=on_armed, on_audio_level=on_audio_level)
 
     def start(self):
         global _active_turn_detector
@@ -300,11 +318,12 @@ class HandsfreeTurnManager(CaptureGate):
 
 class PushToTalkTurnManager(_PushToTalkTurnManager):
     def __init__(self, on_turn_complete, on_speech_onset=None, on_capture_error=None,
-                 sample_rate=16000, chunk_size=1280, grace_s=2.0):
+                 sample_rate=16000, chunk_size=1280, grace_s=2.0, on_audio_level=None):
         super().__init__(sd.RawInputStream, _echo_audio, on_turn_complete,
                          sample_rate=sample_rate, chunk_size=chunk_size,
                          on_speech_onset=on_speech_onset,
-                         on_capture_error=on_capture_error, grace_s=grace_s)
+                         on_capture_error=on_capture_error, grace_s=grace_s,
+                         on_audio_level=on_audio_level)
 
     def start(self):
         global _active_turn_detector

@@ -150,12 +150,13 @@ class PushToTalkDetector:
 class PushToTalkTurnManager(CaptureGate):
     def __init__(self, stream_factory, echo_audio, on_turn_complete,
                  sample_rate=16000, chunk_size=1280, on_speech_onset=None,
-                 on_armed=None, on_capture_error=None, grace_s=2.0):
+                 on_armed=None, on_capture_error=None, grace_s=2.0, on_audio_level=None):
         detector = PushToTalkDetector(grace_s=grace_s)
         super().__init__(stream_factory, detector, echo_audio, on_turn_complete,
                          sample_rate=sample_rate, chunk_size=chunk_size,
                          on_armed=on_armed or on_speech_onset,
-                         on_capture_error=on_capture_error)
+                         on_capture_error=on_capture_error,
+                         on_audio_level=on_audio_level)
         detector.on_expired = self._on_expired
 
     def _on_expired(self, audio):

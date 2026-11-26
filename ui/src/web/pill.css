@@ -31,7 +31,8 @@ html, body {
   justify-content: center;
   transition: width 0.24s cubic-bezier(0.22, 1, 0.36, 1),
               height 0.24s cubic-bezier(0.22, 1, 0.36, 1),
-              background 0.24s ease;
+              background 0.24s ease,
+              border-color 0.22s ease;
 }
 
 .leko-pill.is-hovered { background: var(--pill-hover); }
@@ -39,8 +40,10 @@ html, body {
 .state-idle { width: 54px; height: 16px; }
 .state-idle.is-hovered { width: 72px; height: 24px; }
 .state-timer { width: 68px; height: 24px; }
-.state-blocked { width: 92px; height: 28px; }
-.state-listening, .state-held, .state-speaking, .state-thinking { width: 112px; height: 30px; }
+.state-blocked, .state-error { width: 92px; height: 28px; }
+.state-thinking { width: 82px; height: 28px; border-color: var(--pill-think-border); }
+.state-listening, .state-held { width: 112px; height: 30px; border-color: var(--pill-listen-border); }
+.state-speaking { width: 112px; height: 30px; border-color: var(--pill-speak-border); }
 
 .dash {
   display: none;
@@ -58,40 +61,39 @@ html, body {
   font-weight: 500;
   white-space: nowrap;
 }
-.state-blocked .label, .state-timer .label, .state-speaking .label, .state-thinking .label { display: block; }
+.state-blocked .label, .state-error .label, .state-timer .label { display: block; }
 .state-timer .label {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-variant-numeric: tabular-nums;
 }
-.state-speaking .label, .state-thinking .label {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10px;
-  color: var(--pill-muted);
-  text-transform: uppercase;
-  margin-right: 4px;
-}
 
-.bars { display: none; align-items: center; gap: 3px; }
-.state-listening .bars, .state-held .bars, .state-speaking .bars, .state-thinking .bars { display: flex; }
-.state-speaking .bars, .state-thinking .bars { margin-left: 2px; }
+.bars { display: none; align-items: center; justify-content: center; gap: 3.5px; height: 18px; }
+.state-listening .bars, .state-held .bars, .state-speaking .bars { display: flex; }
 
 .bar {
-  width: 2px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--pill-ink);
-  animation: pulse-fast 0.75s ease-in-out infinite;
+  width: 2.5px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--pill-listen);
+  transition: height 65ms ease-out, opacity 90ms ease-out, background 0.2s ease;
 }
-.state-speaking .bar, .state-thinking .bar {
-  animation: pulse-slow 1.15s ease-in-out infinite;
-  opacity: 0.7;
+.state-speaking .bar {
+  background: var(--pill-speak);
 }
 
-@keyframes pulse-fast {
-  0%, 100% { height: 4px; opacity: 0.45; }
-  50% { height: 13px; opacity: 1; }
+.dots { display: none; align-items: center; gap: 5px; }
+.state-thinking .dots { display: flex; }
+.dots span {
+  width: 4.5px;
+  height: 4.5px;
+  border-radius: 50%;
+  background: var(--pill-think);
+  animation: dot-pulse 1.2s ease-in-out infinite;
 }
-@keyframes pulse-slow {
-  0%, 100% { height: 4px; opacity: 0.7; }
-  50% { height: 10px; opacity: 0.7; }
+.dots span:nth-child(2) { animation-delay: 0.18s; }
+.dots span:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes dot-pulse {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.35; }
+  40% { transform: scale(1.25); opacity: 1; }
 }

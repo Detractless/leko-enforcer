@@ -5,41 +5,66 @@
 
   const WIDTHS = {
     idle: 54, timer: 68, blocked: 92, listening: 112, held: 112,
-    thinking: 112, speaking: 112, error: 92
+    thinking: 82, speaking: 112, error: 92
   };
-  const BAR_COUNTS = { listening: 5, held: 5, thinking: 3, speaking: 3 };
+  const BAR_COUNTS = { listening: 7, held: 7, speaking: 7 };
+  const WEIGHTS_7 = [0.35, 0.62, 0.88, 1.0, 0.88, 0.62, 0.35];
 
   let state = 'idle';
   let timerText = '';
   let localTimer = null;
   let hovered = false;
+  let targetLevel = 0;
+  let smoothLevel = 0;
+  let lastLevelAt = 0;
 
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < 7; i += 1) {
     const bar = document.createElement('span');
     bar.className = 'bar';
-    bar.style.animationDelay = (i * -0.12) + 's';
     bars.appendChild(bar);
   }
-  Array.from(bars.children).forEach((bar, index) => {
+  const barEls = Array.from(bars.children);
+  barEls.forEach((bar, index) => {
     bar.style.setProperty('--bar-index', index);
   });
 
   function render() {
     pill.className = 'leko-pill state-' + state + (hovered ? ' is-hovered' : '');
     const count = BAR_COUNTS[state] || 0;
-    Array.from(bars.children).forEach((bar, index) => {
+    barEls.forEach((bar, index) => {
       bar.style.display = index < count ? 'block' : 'none';
     });
     if (state === 'timer') {
       label.textContent = timerText;
     } else if (state === 'blocked' || state === 'error') {
       label.textContent = state === 'blocked' ? 'Blocked' : 'Error';
-    } else if (state === 'speaking' || state === 'thinking') {
-      label.textContent = 'MAEVE';
     } else {
       label.textContent = '';
     }
   }
+
+  function animateBars(now) {
+    if (BAR_COUNTS[state]) {
+      if (now - lastLevelAt > 240) {
+        targetLevel = 0;
+      }
+      smoothLevel += (targetLevel - smoothLevel) * 0.32;
+      const t = now / 1000;
+      const breath = 0.05 + 0.03 * Math.sin(t * 2.2);
+      const amp = Math.max(breath, smoothLevel);
+      for (let i = 0; i < barEls.length; i += 1) {
+        const jitter = smoothLevel > 0.04 ? (0.78 + 0.22 * Math.sin(t * 11 + i * 1.9)) : 1.0;
+        const height = 3 + amp * 13 * WEIGHTS_7[i] * jitter;
+        barEls[i].style.height = Math.max(3, Math.min(16, height)).toFixed(1) + 'px';
+        barEls[i].style.opacity = (0.48 + 0.52 * Math.min(1, amp * 1.1)).toFixed(2);
+      }
+    } else {
+      targetLevel = 0;
+      smoothLevel = 0;
+    }
+    requestAnimationFrame(animateBars);
+  }
+  requestAnimationFrame(animateBars);
 
   function setState(next, text) {
     if (localTimer) {
@@ -60,10 +85,10 @@
   }
 
   function localFeedback() {
-    setState('speaking');
+    setState('listening');
     localTimer = setTimeout(function () {
-      setState('idle');
-    }, 350);
+      setState((window.__leko_config && window.__leko_config.quietTimer && timerText) ? 'timer' : 'idle');
+    }, 280);
   }
 
   let pressedAt = 0;
@@ -95,7 +120,13 @@
     } catch (error) {
       return;
     }
-    const next = event.state || event.type;
+    if (event.type === 'audio_level' && typeof event.level === 'number') {
+      targetLevel = Math.max(0, Math.min(1, event.level));
+      lastLevelAt = performance.now();
+      return;
+    }
+    const rawState = event.state || event.type;
+    const next = rawState === 'grace' ? 'listening' : rawState;
     if (next === 'hover_on' || next === 'hover_off') {
       hovered = next === 'hover_on';
       render();

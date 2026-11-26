@@ -124,7 +124,7 @@ class VoiceOutputPlayer:
         self._render_failed = False
         self._stop_generation = 0
 
-    def _make_callback(self, audio, render_reference, sample_rate, sd, position_ref=None):
+    def _make_callback(self, audio, render_reference, sample_rate, sd):
         """The playback callback: write frames and feed the AEC render reference."""
         position = 0
 
@@ -141,8 +141,6 @@ class VoiceOutputPlayer:
                     self._render_failed = True
                     raise sd.CallbackAbort
             position = end
-            if position_ref is not None:
-                position_ref[0] = position
             if position >= len(audio):
                 raise sd.CallbackStop
 
@@ -159,32 +157,13 @@ class VoiceOutputPlayer:
             kwargs = {}
         return sd.OutputStream(samplerate=sample_rate, channels=1, dtype="float32", callback=callback, **kwargs)
 
-    def _wait_playing(self, stream, is_cancelled, audio=None, sample_rate=0, position_ref=None, on_audio_level=None) -> bool:
+    def _wait_playing(self, stream, is_cancelled) -> bool:
         """Sleep until the stream ends, or until the caller cancels; True when it was interrupted."""
-        last_emit = 0.0
-        window = max(1, int(sample_rate * 0.04)) if sample_rate else 0
         while stream.active:
             if is_cancelled and is_cancelled():
                 self.stop()
                 return True
-            if on_audio_level and audio is not None and position_ref is not None and window:
-                now = time.monotonic()
-                if now - last_emit >= 0.04:
-                    last_emit = now
-                    end = min(position_ref[0], len(audio))
-                    start = max(0, end - window)
-                    if end > start:
-                        sl = audio[start:end]
-                        try:
-                            on_audio_level(float(np.sqrt(np.mean(sl * sl))))
-                        except Exception:
-                            pass
             time.sleep(0.02)
-        if on_audio_level:
-            try:
-                on_audio_level(0.0)
-            except Exception:
-                pass
         return False
 
     def _report_playback(self, play_start_t, total_duration_s, interrupted, generation):
@@ -194,7 +173,7 @@ class VoiceOutputPlayer:
         else:
             print(f"[Maeve playback completed]: finished full {elapsed_s:.2f}s / {total_duration_s:.2f}s", flush=True)
 
-    def play(self, pcm, sample_rate: int, is_cancelled=None, on_audio_level=None) -> bool:
+    def play(self, pcm, sample_rate: int, is_cancelled=None) -> bool:
         if not self.processor.available:
             return False
         with self._lock:
@@ -210,8 +189,7 @@ class VoiceOutputPlayer:
         render_reference = resample_poly(audio, SAMPLE_RATE // divisor, int(sample_rate) // divisor).astype(np.float32)
         self.processor.reset_buffers()
         self._render_failed = False
-        position_ref = [0]
-        callback = self._make_callback(audio, render_reference, sample_rate, sd, position_ref=position_ref)
+        callback = self._make_callback(audio, render_reference, sample_rate, sd)
 
         stream = None
         try:
@@ -222,9 +200,7 @@ class VoiceOutputPlayer:
                     return True
                 self.stream = stream
                 stream.start()
-            interrupted = self._wait_playing(
-                stream, is_cancelled, audio=audio, sample_rate=sample_rate,
-                position_ref=position_ref, on_audio_level=on_audio_level)
+            interrupted = self._wait_playing(stream, is_cancelled)
             with self._lock:
                 stream.stop()
                 stream.close()

@@ -50,11 +50,13 @@ def _present_audio_stats(stats):
 
 class CaptureGate:
     def __init__(self, stream_factory, detector, echo_audio, on_turn_complete,
-                 sample_rate=16000, chunk_size=2560, on_armed=None, on_capture_error=None,
-                 on_audio_level=None):
-        self.stream_factory, self.detector, self.echo_audio = stream_factory, detector, echo_audio
-        self.on_turn_complete, self.on_armed = on_turn_complete, on_armed
-        self.on_capture_error, self.on_audio_level = on_capture_error, on_audio_level
+                 sample_rate=16000, chunk_size=2560, on_armed=None, on_capture_error=None):
+        self.stream_factory = stream_factory
+        self.detector = detector
+        self.echo_audio = echo_audio
+        self.on_turn_complete = on_turn_complete
+        self.on_armed = on_armed
+        self.on_capture_error = on_capture_error
         self._armed = False
         self.sample_rate, self.chunk_size = sample_rate, chunk_size
         self._cv = threading.Condition(threading.RLock())
@@ -271,9 +273,6 @@ class CaptureGate:
             samples, failed = self._clean_samples(raw_samples)
             if failed:
                 return
-            if self.on_audio_level and len(samples):
-                norm = samples.astype(np.float32) / 32768.0
-                self.on_audio_level(float(np.sqrt(np.mean(norm * norm))))
             self._track_raw_buffer(raw_samples, samples)
             size = self.chunk_size * 2
             while len(self._raw_buf) >= size and len(self._pending_raw_buf) >= size:

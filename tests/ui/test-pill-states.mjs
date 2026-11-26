@@ -104,7 +104,9 @@ test('hover_events_drive_idle_expansion', () => {
   assert.match(js, /next === 'hover_off'/);
   assert.match(js, /is-hovered/);
   const css = readFileSync(resolve(ROOT, 'ui/src/web/pill.css'), 'utf8');
+  assert.match(css, /\.leko-pill\.is-hovered \{ background: var\(--pill-hover\); \}/);
   assert.match(css, /\.state-idle\.is-hovered \{ width: 62px; height: 18px; \}/);
+  assert.doesNotMatch(css, /:hover/);
 });
 
 test('hold_and_click_actions_are_written_with_stdout_flush', () => {

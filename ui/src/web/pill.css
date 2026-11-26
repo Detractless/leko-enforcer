@@ -37,7 +37,7 @@ html, body {
 .leko-pill:hover { background: var(--pill-hover); }
 
 .state-idle { width: 54px; height: 16px; }
-.state-idle:hover { width: 62px; height: 18px; }
+.state-idle:hover, .state-idle.is-hovered { width: 62px; height: 18px; }
 .state-timer { width: 68px; height: 24px; }
 .state-blocked { width: 92px; height: 28px; }
 .state-listening, .state-held, .state-speaking, .state-thinking { width: 112px; height: 30px; }

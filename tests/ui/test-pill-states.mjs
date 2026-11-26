@@ -98,6 +98,15 @@ test('headless_tests_never_grab_the_microphone_or_open_windows', () => {
   assert.doesNotMatch(main, /AVAudio|microphone/);
 });
 
+test('hover_events_drive_idle_expansion', () => {
+  const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
+  assert.match(js, /next === 'hover_on'/);
+  assert.match(js, /next === 'hover_off'/);
+  assert.match(js, /is-hovered/);
+  const css = readFileSync(resolve(ROOT, 'ui/src/web/pill.css'), 'utf8');
+  assert.match(css, /\.state-idle\.is-hovered \{ width: 62px; height: 18px; \}/);
+});
+
 test('hold_and_click_actions_are_written_with_stdout_flush', () => {
   const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
   assert.match(js, /pointerdown/);

@@ -73,24 +73,183 @@ pub unsafe fn set_ignores_mouse(window: *mut std::ffi::c_void, ignore: bool) {
 pub unsafe fn set_ignores_mouse(_window: *mut std::ffi::c_void, _ignore: bool) {}
 
 #[cfg(target_os = "macos")]
-pub unsafe fn accept_first_mouse() {
-    use objc2::runtime::{AnyObject, Imp, Sel};
-    use objc2::ClassType;
-    use objc2_app_kit::NSWindow;
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct NativePoint {
+    x: f64,
+    y: f64,
+}
 
-    unsafe extern "C" fn always_accept(_window: *mut AnyObject, _selector: Sel) -> bool {
-        true
-    }
+#[cfg(target_os = "macos")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct NativeSize {
+    width: f64,
+    height: f64,
+}
 
-    let selector = Sel::register("acceptsFirstMouse:");
-    if let Some(method) = NSWindow::class().instance_method(selector) {
-        let implementation: Imp = std::mem::transmute(always_accept as *const ());
-        method.set_implementation(implementation);
+#[cfg(target_os = "macos")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct NativeRect {
+    origin: NativePoint,
+    size: NativeSize,
+}
+
+#[cfg(target_os = "macos")]
+unsafe impl objc2::Encode for NativePoint {
+    const ENCODING: objc2::Encoding =
+        objc2::Encoding::Struct("CGPoint", &[f64::ENCODING, f64::ENCODING]);
+}
+
+#[cfg(target_os = "macos")]
+unsafe impl objc2::Encode for NativeSize {
+    const ENCODING: objc2::Encoding =
+        objc2::Encoding::Struct("CGSize", &[f64::ENCODING, f64::ENCODING]);
+}
+
+#[cfg(target_os = "macos")]
+unsafe impl objc2::Encode for NativeRect {
+    const ENCODING: objc2::Encoding =
+        objc2::Encoding::Struct("CGRect", &[NativePoint::ENCODING, NativeSize::ENCODING]);
+}
+
+#[cfg(target_os = "macos")]
+pub struct NonActivatingPanel {
+    pub window: *mut std::ffi::c_void,
+    pub content_view: *mut std::ffi::c_void,
+}
+
+#[cfg(target_os = "macos")]
+impl wry::raw_window_handle::HasWindowHandle for NonActivatingPanel {
+    fn window_handle(
+        &self,
+    ) -> Result<wry::raw_window_handle::WindowHandle<'_>, wry::raw_window_handle::HandleError> {
+        let ptr = std::ptr::NonNull::new(self.content_view)
+            .ok_or(wry::raw_window_handle::HandleError::Unavailable)?;
+        let raw = wry::raw_window_handle::RawWindowHandle::AppKit(
+            wry::raw_window_handle::AppKitWindowHandle::new(ptr),
+        );
+        Ok(unsafe { wry::raw_window_handle::WindowHandle::borrow_raw(raw) })
     }
 }
 
-#[cfg(not(target_os = "macos"))]
-pub unsafe fn accept_first_mouse() {}
+#[cfg(target_os = "macos")]
+fn panel_class() -> &'static objc2::runtime::AnyClass {
+    use objc2::declare::ClassBuilder;
+    use objc2::runtime::{AnyClass, AnyObject, Bool, Sel};
+    use objc2::sel;
+    use std::sync::OnceLock;
+
+    static PANEL_CLASS: OnceLock<&'static AnyClass> = OnceLock::new();
+    PANEL_CLASS.get_or_init(|| {
+        unsafe extern "C" fn ret_no(_this: *mut AnyObject, _cmd: Sel) -> Bool {
+            Bool::NO
+        }
+        let superclass = AnyClass::get("NSPanel").expect("NSPanel class");
+        let mut builder = ClassBuilder::new("LekoNonActivatingPanel", superclass)
+            .expect("register LekoNonActivatingPanel");
+        unsafe {
+            builder.add_method(
+                sel!(canBecomeKeyWindow),
+                ret_no as unsafe extern "C" fn(*mut AnyObject, Sel) -> Bool,
+            );
+            builder.add_method(
+                sel!(canBecomeMainWindow),
+                ret_no as unsafe extern "C" fn(*mut AnyObject, Sel) -> Bool,
+            );
+        }
+        builder.register()
+    })
+}
+
+#[cfg(target_os = "macos")]
+pub unsafe fn create_nonactivating_panel(
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+    screen_height: f64,
+) -> NonActivatingPanel {
+    use objc2::msg_send;
+    use objc2::runtime::{AnyClass, AnyObject, Bool};
+
+    let cocoa_y = screen_height - (y + height);
+    let rect = NativeRect {
+        origin: NativePoint { x, y: cocoa_y },
+        size: NativeSize { width, height },
+    };
+    let cls = panel_class();
+    let alloc: *mut AnyObject = msg_send![cls, alloc];
+    // NSWindowStyleMaskNonactivatingPanel (1 << 7) | borderless (0) = 128; NSBackingStoreBuffered = 2
+    let panel: *mut AnyObject = msg_send![
+        alloc,
+        initWithContentRect: rect,
+        styleMask: 128usize,
+        backing: 2usize,
+        defer: Bool::NO
+    ];
+    let clear: *mut AnyObject = msg_send![AnyClass::get("NSColor").unwrap(), clearColor];
+    let _: () = msg_send![panel, setLevel: 25isize];
+    let _: () = msg_send![panel, setOpaque: Bool::NO];
+    let _: () = msg_send![panel, setBackgroundColor: clear];
+    let _: () = msg_send![panel, setHasShadow: Bool::NO];
+    let _: () = msg_send![panel, setHidesOnDeactivate: Bool::NO];
+    let _: () = msg_send![panel, setAcceptsMouseMovedEvents: Bool::YES];
+    let _: () = msg_send![panel, setIgnoresMouseEvents: Bool::YES];
+    // CanJoinAllSpaces (1) | Stationary (16) | IgnoresCycle (64) | FullScreenAuxiliary (256)
+    let _: () = msg_send![panel, setCollectionBehavior: 337usize];
+    let content_view: *mut AnyObject = msg_send![panel, contentView];
+    NonActivatingPanel {
+        window: panel as *mut std::ffi::c_void,
+        content_view: content_view as *mut std::ffi::c_void,
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub unsafe fn order_front_regardless(window: *mut std::ffi::c_void) {
+    use objc2::msg_send;
+    use objc2::runtime::AnyObject;
+    let object = window as *mut AnyObject;
+    let _: () = msg_send![object, orderFrontRegardless];
+}
+
+#[cfg(target_os = "macos")]
+pub unsafe fn panel_rect(window: *mut std::ffi::c_void, screen_height: f64) -> (f64, f64, f64, f64) {
+    use objc2::msg_send;
+    use objc2::runtime::AnyObject;
+    let object = window as *mut AnyObject;
+    let frame: NativeRect = msg_send![object, frame];
+    let y = screen_height - (frame.origin.y + frame.size.height);
+    (frame.origin.x, y, frame.size.width, frame.size.height)
+}
+
+#[cfg(target_os = "macos")]
+pub unsafe fn frontmost_pid() -> i32 {
+    use objc2::msg_send;
+    use objc2::runtime::{AnyClass, AnyObject};
+    let ws_cls = AnyClass::get("NSWorkspace").unwrap();
+    let ws: *mut AnyObject = msg_send![ws_cls, sharedWorkspace];
+    let app: *mut AnyObject = msg_send![ws, frontmostApplication];
+    if app.is_null() {
+        return 0;
+    }
+    msg_send![app, processIdentifier]
+}
+
+#[cfg(target_os = "macos")]
+pub unsafe fn restore_previous_app(pid: i32) {
+    use objc2::msg_send;
+    use objc2::runtime::{AnyClass, AnyObject, Bool};
+    if pid <= 0 || pid == std::process::id() as i32 {
+        return;
+    }
+    let cls = AnyClass::get("NSRunningApplication").unwrap();
+    let app: *mut AnyObject = msg_send![cls, runningApplicationWithProcessIdentifier: pid];
+    if !app.is_null() {
+        let _: Bool = msg_send![app, activateWithOptions: 1usize];
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InputEvent {
@@ -103,12 +262,13 @@ pub struct NativeInput<P: CursorProvider> {
     pub rect: (f64, f64, f64, f64),
     pub provider: P,
     pub inside: bool,
+    pub near: bool,
     pub ignores_mouse: bool,
 }
 
 impl<P: CursorProvider> NativeInput<P> {
     pub fn new(rect: (f64, f64, f64, f64), provider: P) -> Self {
-        NativeInput { rect, provider, inside: false, ignores_mouse: true }
+        NativeInput { rect, provider, inside: false, near: false, ignores_mouse: true }
     }
 
     pub fn contains(&self, point: CursorPoint) -> bool {
@@ -116,10 +276,20 @@ impl<P: CursorProvider> NativeInput<P> {
         point.x >= x && point.x < x + width && point.y >= y && point.y < y + height
     }
 
+    pub fn is_near(&self, point: CursorPoint) -> bool {
+        let (x, y, width, height) = self.rect;
+        let pad = 64.0;
+        point.x >= x - pad
+            && point.x < x + width + pad
+            && point.y >= y - pad
+            && point.y < y + height + pad
+    }
+
     pub fn poll(&mut self) -> InputEvent {
         let Some(point) = self.provider.position() else {
             return InputEvent::None;
         };
+        self.near = self.is_near(point);
         let now_inside = self.contains(point);
         if now_inside == self.inside {
             return InputEvent::None;
@@ -134,9 +304,8 @@ impl<P: CursorProvider> NativeInput<P> {
     }
 
     pub fn cadence_ms(&self) -> u64 {
-        cadence(self.inside)
+        cadence(self.near)
     }
-
 }
 
 pub fn cadence(near: bool) -> u64 {

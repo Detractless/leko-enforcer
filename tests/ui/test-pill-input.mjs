@@ -59,19 +59,25 @@ test('window_calls_stay_on_main_thread', () => {
 
 test('first_mouse_down_is_accepted_without_activation', () => {
   const native = readFileSync(resolve(ROOT, 'ui/src/native_input.rs'), 'utf8');
-  assert.match(native, /accept_first_mouse/);
-  assert.match(native, /acceptsFirstMouse:/);
+  assert.match(native, /LekoNonActivatingPanel/);
+  assert.match(native, /canBecomeKeyWindow/);
+  assert.doesNotMatch(native, /NSWindow::class\(\)\.instance_method/);
   const main = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
-  assert.match(main, /with_focused\(false\)/);
+  assert.match(main, /with_accept_first_mouse\(true\)/);
   assert.match(main, /set_ignores_mouse/);
+  assert.doesNotMatch(main, /160\.0 \/ scale/);
   const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
   assert.match(js, /pointerdown/);
 });
 
 test('interaction_never_steals_keyboard_focus', () => {
+  const native = readFileSync(resolve(ROOT, 'ui/src/native_input.rs'), 'utf8');
+  assert.match(native, /styleMask: 128usize/);
+  assert.match(native, /canBecomeMainWindow/);
   const main = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
+  assert.match(main, /ActivationPolicy::Accessory/);
+  assert.match(main, /set_activate_ignoring_other_apps\(false\)/);
   assert.match(main, /focused\(false\)/);
-  assert.doesNotMatch(main, /activateIgnoringOtherApps/);
 });
 
 test('hold_and_click_still_emit_the_same_actions', () => {

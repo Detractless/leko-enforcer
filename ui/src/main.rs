@@ -2,8 +2,12 @@ mod native_input;
 mod state;
 
 use native_input::{
-    accept_first_mouse, set_ignores_mouse, CursorPoint, InputEvent, NativeInput, SystemCursor,
-    TestCursor,
+    set_ignores_mouse, CursorPoint, InputEvent, NativeInput, SystemCursor, TestCursor,
+};
+#[cfg(target_os = "macos")]
+use native_input::{
+    create_nonactivating_panel, frontmost_pid, order_front_regardless, panel_rect,
+    restore_previous_app,
 };
 use state::Machine;
 use std::fs;
@@ -15,11 +19,12 @@ use std::thread;
 use std::time::Duration;
 use tao::event::{Event, WindowEvent};
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
+#[cfg(not(target_os = "macos"))]
 use tao::window::WindowBuilder;
 use wry::WebViewBuilder;
 
 #[cfg(target_os = "macos")]
-use tao::platform::macos::{WindowBuilderExtMacOS, WindowExtMacOS};
+use tao::platform::macos::{ActivationPolicy, EventLoopExtMacOS};
 
 const HTML: &str = include_str!("web/pill.html");
 const CSS: &str = include_str!("web/pill.css");
@@ -149,8 +154,8 @@ fn input_probe() {
 fn anchor_position(anchor: &str, monitor: &tao::monitor::MonitorHandle) -> tao::dpi::LogicalPosition<i32> {
     let size = monitor.size();
     let scale = monitor.scale_factor();
-    let width = 160.0 / scale;
-    let height = 56.0 / scale;
+    let width = 160.0;
+    let height = 56.0;
     let left = monitor.position().x as f64 / scale;
     let top = monitor.position().y as f64 / scale;
     let max_x = left + size.width as f64 / scale - width;
@@ -176,35 +181,27 @@ fn main() {
     }
 
     let (theme, anchor, quiet) = read_config();
-    unsafe { accept_first_mouse(); }
-    let event_loop = EventLoopBuilder::<Message>::with_user_event().build();
+    #[allow(unused_mut)]
+    let mut event_loop = EventLoopBuilder::<Message>::with_user_event().build();
+    #[cfg(target_os = "macos")]
+    {
+        event_loop.set_activation_policy(ActivationPolicy::Accessory);
+        event_loop.set_activate_ignoring_other_apps(false);
+    }
     let proxy = event_loop.create_proxy();
     let monitor = event_loop.primary_monitor();
     let position = monitor.as_ref().map(|m| anchor_position(&anchor, m));
-
-    let mut builder = WindowBuilder::new()
-        .with_title("Leko Pill")
-        .with_decorations(false)
-        .with_transparent(true)
-        .with_always_on_top(true)
-        .with_resizable(false)
-        .with_focused(false)
-        .with_inner_size(tao::dpi::LogicalSize::new(160.0, 56.0));
-    #[cfg(target_os = "macos")]
-    {
-        builder = builder.with_has_shadow(false);
-    }
-    if let Some(pos) = position {
-        builder = builder.with_position(pos);
-    }
-    let window = builder.build(&event_loop).expect("build pill window");
+    let screen_height = monitor
+        .as_ref()
+        .map(|item| item.size().height as f64 / item.scale_factor())
+        .unwrap_or(900.0);
 
     let html = HTML
         .replace("<title>Leko Pill</title>",
             &format!("<title>Leko Pill</title><style>{}</style><style>{}</style>", TOKENS, CSS))
         .replace("</body>", &format!("<script>{}</script></body>", JS));
     let handler_proxy = proxy.clone();
-    let webview = WebViewBuilder::new()
+    let wv_builder = WebViewBuilder::new()
         .with_transparent(true)
         .with_html(&html)
         .with_initialization_script(&format!(
@@ -221,21 +218,47 @@ fn main() {
                 write_action(action);
                 let _ = handler_proxy.send_event(Message::Event(action.to_string()));
             }
-        })
-        .build(&window)
-        .expect("build webview");
+        });
 
-    let rect = position
-        .map(|point| (point.x as f64, point.y as f64, 160.0, 56.0))
-        .unwrap_or((0.0, 0.0, 160.0, 56.0));
     #[cfg(target_os = "macos")]
-    let native_window = window.ns_window() as usize;
+    let (native_window, webview, rect) = {
+        let prev_pid = unsafe { frontmost_pid() };
+        let (x, y) = position.map(|p| (p.x as f64, p.y as f64)).unwrap_or((0.0, 0.0));
+        let panel = unsafe { create_nonactivating_panel(x, y, 160.0, 56.0, screen_height) };
+        let webview = wv_builder
+            .with_accept_first_mouse(true)
+            .build(&panel)
+            .expect("build webview");
+        unsafe {
+            order_front_regardless(panel.window);
+            restore_previous_app(prev_pid);
+        }
+        let rect = unsafe { panel_rect(panel.window, screen_height) };
+        (panel.window as usize, webview, rect)
+    };
     #[cfg(not(target_os = "macos"))]
-    let native_window = 0usize;
-    let screen_height = monitor
-        .as_ref()
-        .map(|item| item.size().height as f64 / item.scale_factor())
-        .unwrap_or(900.0);
+    let (native_window, webview, rect) = {
+        let mut builder = WindowBuilder::new()
+            .with_title("Leko Pill")
+            .with_decorations(false)
+            .with_transparent(true)
+            .with_always_on_top(true)
+            .with_resizable(false)
+            .with_focused(false)
+            .with_inner_size(tao::dpi::LogicalSize::new(160.0, 56.0));
+        if let Some(pos) = position {
+            builder = builder.with_position(pos);
+        }
+        let window = builder.build(&event_loop).expect("build pill window");
+        let webview = wv_builder.build(&window).expect("build webview");
+        let rect = position
+            .map(|point| (point.x as f64, point.y as f64, 160.0, 56.0))
+            .unwrap_or((0.0, 0.0, 160.0, 56.0));
+        (0usize, webview, rect)
+    };
+    #[cfg(not(target_os = "macos"))]
+    let _window_keep = native_window;
+
     let mut input = NativeInput::new(rect, SystemCursor::new(screen_height));
     let delay = Arc::new(AtomicU64::new(input.cadence_ms()));
     let cursor_proxy = proxy.clone();

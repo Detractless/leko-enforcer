@@ -278,7 +278,7 @@ class RuntimeController:
             print("[STT] Model loaded and ready.", flush=True)
         except Exception as exc:
             print(f"[STT] Warm-up failed: {exc}", flush=True)
-        if self.args.ui and not self.turn_manager.busy and not self.shutdown.is_set():
+        if self.args.ui and not self.turn_manager.busy and getattr(self.turn_manager, "capture_mode", "idle") == "idle" and not self.shutdown.is_set():
             self.bridge.emit_state("idle")
 
     def _run_console(self):

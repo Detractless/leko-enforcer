@@ -8,7 +8,7 @@
     thinking: 82, speaking: 112, error: 92
   };
   const BAR_COUNTS = { listening: 7, held: 7, speaking: 7 };
-  const WEIGHTS_7 = [0.35, 0.62, 0.88, 1.0, 0.88, 0.62, 0.35];
+  const WEIGHTS_7 = [0.56, 0.81, 0.92, 1.0, 0.92, 0.81, 0.56];
 
   let state = 'idle';
   let timerText = '';
@@ -48,14 +48,15 @@
       if (now - lastLevelAt > 240) {
         targetLevel = 0;
       }
-      smoothLevel += (targetLevel - smoothLevel) * 0.32;
+      const rate = targetLevel > smoothLevel ? 0.42 : 0.34;
+      smoothLevel += (targetLevel - smoothLevel) * rate;
       const t = now / 1000;
       const breath = 0.05 + 0.03 * Math.sin(t * 2.2);
       const amp = Math.max(breath, smoothLevel);
       for (let i = 0; i < barEls.length; i += 1) {
-        const jitter = smoothLevel > 0.04 ? (0.78 + 0.22 * Math.sin(t * 11 + i * 1.9)) : 1.0;
-        const height = 3 + amp * 13 * WEIGHTS_7[i] * jitter;
-        barEls[i].style.height = Math.max(3, Math.min(16, height)).toFixed(1) + 'px';
+        const jitter = smoothLevel > 0.03 ? (0.66 + 0.34 * (0.5 + 0.5 * Math.sin(t * 13 + i * 1.9))) : 1.0;
+        const height = 2.5 + amp * 9.0 * WEIGHTS_7[i] * jitter;
+        barEls[i].style.height = Math.max(2.5, Math.min(11.5, height)).toFixed(1) + 'px';
         barEls[i].style.opacity = (0.48 + 0.52 * Math.min(1, amp * 1.1)).toFixed(2);
       }
     } else {

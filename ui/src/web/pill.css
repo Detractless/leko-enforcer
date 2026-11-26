@@ -72,10 +72,10 @@ html, body {
 
 .bar {
   width: 2.5px;
-  height: 3px;
+  height: 2.5px;
   border-radius: 999px;
   background: var(--pill-listen);
-  transition: height 65ms ease-out, opacity 90ms ease-out, background 0.2s ease;
+  transition: height 24ms ease-out, opacity 90ms ease-out, background 0.2s ease;
 }
 .state-speaking .bar {
   background: var(--pill-speak);

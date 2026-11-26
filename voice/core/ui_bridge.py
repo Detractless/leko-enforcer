@@ -78,9 +78,10 @@ class UIPipelineBridge:
         clamped = max(0.0, min(1.0, float(level)))
         self.emit({"type": "audio_level", "level": round(clamped, 3)})
 
-    def emit_rms_level(self, rms: float, ceiling: float = 0.10, min_interval: float = 0.035) -> None:
+    def emit_rms_level(self, rms: float, ceiling: float = 0.03, min_interval: float = 0.035,
+                       floor: float = 0.003, gamma: float = 0.48) -> None:
         import time
-        level = 0.0 if rms <= 0.004 else min(1.0, max(0.0, (rms - 0.004) / ceiling) ** 0.6)
+        level = 0.0 if rms <= floor else min(1.0, max(0.0, (rms - floor) / ceiling) ** gamma)
         last_val = getattr(self, "_last_level_val", 0.0)
         if level == 0.0:
             if last_val == 0.0:

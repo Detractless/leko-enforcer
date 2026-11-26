@@ -1378,7 +1378,7 @@ dependencies = [
 name = "leko-pill"
 version = "0.0.1"
 dependencies = [
- "objc2 0.6.5",
+ "objc2 0.5.3",
  "objc2-app-kit",
  "serde",
  "serde_json",

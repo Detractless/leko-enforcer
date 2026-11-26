@@ -1,7 +1,10 @@
 mod native_input;
 mod state;
 
-use native_input::{set_ignores_mouse, CursorPoint, InputEvent, NativeInput, SystemCursor, TestCursor};
+use native_input::{
+    accept_first_mouse, set_ignores_mouse, CursorPoint, InputEvent, NativeInput, SystemCursor,
+    TestCursor,
+};
 use state::Machine;
 use std::fs;
 use std::io::{self, BufRead, Write};
@@ -173,6 +176,7 @@ fn main() {
     }
 
     let (theme, anchor, quiet) = read_config();
+    unsafe { accept_first_mouse(); }
     let event_loop = EventLoopBuilder::<Message>::with_user_event().build();
     let proxy = event_loop.create_proxy();
     let monitor = event_loop.primary_monitor();

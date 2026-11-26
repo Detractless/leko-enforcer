@@ -58,6 +58,9 @@ test('window_calls_stay_on_main_thread', () => {
 });
 
 test('first_mouse_down_is_accepted_without_activation', () => {
+  const native = readFileSync(resolve(ROOT, 'ui/src/native_input.rs'), 'utf8');
+  assert.match(native, /accept_first_mouse/);
+  assert.match(native, /acceptsFirstMouse:/);
   const main = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
   assert.match(main, /with_focused\(false\)/);
   assert.match(main, /set_ignores_mouse/);

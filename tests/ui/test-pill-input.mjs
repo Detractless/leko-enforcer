@@ -48,6 +48,15 @@ test('click_through_flips_only_while_inside', () => {
   assert.match(source, /setIgnoresMouseEvents/);
 });
 
+test('window_calls_stay_on_main_thread', () => {
+  const main = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
+  const loopAt = main.indexOf('event_loop.run(');
+  assert.ok(loopAt > 0);
+  assert.match(main.slice(loopAt), /set_ignores_mouse/, 'NSWindow mutation must happen inside the event loop');
+  assert.match(main, /Message::PollTick/);
+  assert.doesNotMatch(main, /thread::spawn\(move \|\| \{[\s\S]{0,400}set_ignores_mouse/);
+});
+
 test('first_mouse_down_is_accepted_without_activation', () => {
   const main = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
   assert.match(main, /with_focused\(false\)/);

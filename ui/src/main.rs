@@ -6,6 +6,8 @@ use state::Machine;
 use std::fs;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use tao::event::{Event, WindowEvent};
@@ -24,7 +26,7 @@ const TOKENS: &str = include_str!("web/tokens.css");
 enum Message {
     Event(String),
     Timer(String),
-    Cursor(InputEvent),
+    PollTick,
 }
 
 fn app_support() -> PathBuf {
@@ -230,20 +232,13 @@ fn main() {
         .as_ref()
         .map(|item| item.size().height as f64 / item.scale_factor())
         .unwrap_or(900.0);
+    let mut input = NativeInput::new(rect, SystemCursor::new(screen_height));
+    let delay = Arc::new(AtomicU64::new(input.cadence_ms()));
     let cursor_proxy = proxy.clone();
-    thread::spawn(move || {
-        let pointer = native_window as *mut std::ffi::c_void;
-        let mut input = NativeInput::new(rect, SystemCursor::new(screen_height));
-        unsafe { set_ignores_mouse(pointer, true); }
-        loop {
-            let delay = input.cadence_ms();
-            let event = input.poll();
-            unsafe { set_ignores_mouse(pointer, input.ignores_mouse); }
-            if event != InputEvent::None {
-                let _ = cursor_proxy.send_event(Message::Cursor(event));
-            }
-            thread::sleep(Duration::from_millis(delay));
-        }
+    let cursor_delay = delay.clone();
+    thread::spawn(move || loop {
+        thread::sleep(Duration::from_millis(cursor_delay.load(Ordering::Relaxed)));
+        let _ = cursor_proxy.send_event(Message::PollTick);
     });
 
     let input_proxy = proxy.clone();
@@ -274,8 +269,24 @@ fn main() {
         thread::sleep(Duration::from_millis(250));
     });
 
+    unsafe { set_ignores_mouse(native_window as *mut std::ffi::c_void, true); }
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
+        if let Event::UserEvent(Message::PollTick) = &event {
+            let event_kind = input.poll();
+            let pointer = native_window as *mut std::ffi::c_void;
+            unsafe { set_ignores_mouse(pointer, input.ignores_mouse); }
+            delay.store(input.cadence_ms(), Ordering::Relaxed);
+            let script = match event_kind {
+                InputEvent::Enter => "window.__leko_on_event({state:'hover_on'});",
+                InputEvent::Leave => "window.__leko_on_event({state:'hover_off'});",
+                InputEvent::None => "",
+            };
+            if !script.is_empty() {
+                let _ = webview.evaluate_script(script);
+            }
+            return;
+        }
         match event {
             Event::UserEvent(Message::Event(raw)) => {
                 let _ = webview.evaluate_script(&format!("window.__leko_on_event({});", raw));
@@ -284,16 +295,6 @@ fn main() {
                 let _ = webview.evaluate_script(&format!(
                     "window.__leko_on_event({{state:'timer_start',timer:'{}'}});", text
                 ));
-            }
-            Event::UserEvent(Message::Cursor(event)) => {
-                let script = match event {
-                    InputEvent::Enter => "window.__leko_on_event({state:'hover_on'});",
-                    InputEvent::Leave => "window.__leko_on_event({state:'hover_off'});",
-                    InputEvent::None => "",
-                };
-                if !script.is_empty() {
-                    let _ = webview.evaluate_script(script);
-                }
             }
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
                 *control_flow = ControlFlow::Exit;

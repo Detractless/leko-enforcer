@@ -80,6 +80,26 @@ class SettingsSetupTests(unittest.TestCase):
             prepare_settings("leko", self.repo, runner=self.runner, chooser=lambda: "")
         self.assertFalse(self.target.exists())
 
+    def test_resolves_native_cli_store_from_leko_settings_json(self):
+        support = self.root / "Application Support" / "Leko"
+        support.mkdir(parents=True, exist_ok=True)
+        store = support / "rules.json"
+        (support / "leko-settings.json").write_text(f'{{"store_path": "{store}"}}', encoding="utf-8")
+        native_calls = []
+
+        def native_runner(command, **_kwargs):
+            words = command[1:]
+            native_calls.append(words)
+            if words[:1] == ["settings"]:
+                return SimpleNamespace(returncode=0, stdout="Settings saved at leko-settings.json.\n", stderr="")
+            if words == ["list-rules", "--store", str(store), "--json"]:
+                return SimpleNamespace(returncode=0, stdout='{"rules":[]}\n', stderr="")
+            raise AssertionError(f"Unexpected command: {command}")
+
+        result = prepare_settings("leko", self.repo, runner=native_runner, support_dir=support)
+        self.assertEqual(result, str(store))
+        self.assertEqual(native_calls, [["settings", "path"], ["list-rules", "--store", str(store), "--json"]])
+
 
 if __name__ == "__main__":
     unittest.main()

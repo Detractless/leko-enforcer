@@ -78,7 +78,7 @@ class RuntimeController:
         if args.ui:
             self.turn_manager = voice.PushToTalkTurnManager(
                 on_turn_complete=self.on_handsfree_speech, on_capture_error=self.on_capture_error,
-                on_audio_level=self.bridge.emit_rms_level)
+                grace_s=0.0, on_audio_level=self.bridge.emit_rms_level)
             selected = "push-to-talk"
         else:
             self.turn_manager = voice.HandsfreeTurnManager(
@@ -236,7 +236,7 @@ class RuntimeController:
                 self.interrupt_response_for_capture()
                 self.bridge.emit_state("held")
         elif act == "ptt_end" and self.args.ui:
-            if self.turn_manager.end_capture():
+            if self.turn_manager.end_capture() and getattr(getattr(self.turn_manager, "detector", None), "grace_s", 0) > 0:
                 self.bridge.emit_state("grace")
         elif act == "ptt_cancel" and self.args.ui:
             self.session_log.append("turn_outcome", self._capture_turn_id, outcome="cancelled_before_transcription")

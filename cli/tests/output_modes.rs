@@ -115,3 +115,90 @@ fn status_and_evaluate_report_remaining_usage_budgets() {
 
     fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn time_limit_counts_visible_window_and_pauses_when_hidden_while_session_ignores_visible() {
+    use leko_cli::arguments::parse;
+    use leko_cli::services::enforcement_loop::enforce_with;
+    use leko_cli::services::os_executor::{ForegroundActivity, MockExecutor, ObservedApp};
+    use leko_core::models::{Pass, Penalty, Period, Schedule, Seal, Target, TimeBasedSchedule, UsageLimit};
+    use leko_core::store::{save, NativeStore};
+    use leko_core::TechnologyManagementRule;
+
+    let dir = std::env::temp_dir().join(format!("leko-cli-visible-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let store = dir.join("store.json");
+    let usage = dir.join("usage.json");
+    let t_rule = TechnologyManagementRule {
+        id: "t1".into(), name: "VisibleLimit".into(), enabled: true,
+        target: Target::SpecificApps { apps: vec!["com.example.Bad".into()] },
+        schedule: Schedule {
+            time_based: TimeBasedSchedule::AlwaysOnSchedule,
+            usage_based: Some(UsageLimit::TimeLimit { minutes: 1, period: Period::Daily }),
+        },
+        penalty: Some(Penalty::ForceClosePenalty), pass: Pass::NoPass, seal: Seal::NoSeal,
+        created_at: "2026-01-01T00:00:00Z".into(), updated_at: "2026-01-01T00:00:00Z".into(),
+    };
+    save(&store, &NativeStore { version: 1, rules: vec![t_rule] }).unwrap();
+
+    let mut mock = MockExecutor::default();
+    mock.apps.push(ObservedApp { pid: 7, bundle: Some("com.example.Bad".into()) });
+    mock.foreground = Some(ForegroundActivity {
+        bundle_id: Some("com.apple.Notes".into()),
+        visible_apps: vec!["com.apple.Notes".into(), "com.example.Bad".into()],
+        ..Default::default()
+    });
+    for at in ["2026-01-01T12:00:00Z", "2026-01-01T12:00:30Z"] {
+        let argv = ["enforce", store.to_str().unwrap(), "--once", "--usage-state", usage.to_str().unwrap(), "--at", at]
+            .iter().map(|s| s.to_string()).collect::<Vec<String>>();
+        enforce_with(&parse(&argv).unwrap(), &mut Vec::new(), &mut Vec::new(), &mut mock).unwrap();
+    }
+    assert_eq!(leko_core::services::load_usage_state(&usage).unwrap().rules["t1"].active_seconds, 30);
+    assert!(mock.terminated.is_empty());
+
+    mock.foreground = Some(ForegroundActivity {
+        bundle_id: Some("com.apple.Notes".into()),
+        visible_apps: vec!["com.apple.Notes".into()],
+        ..Default::default()
+    });
+    for at in ["2026-01-01T12:00:40Z", "2026-01-01T12:01:20Z"] {
+        let argv = ["enforce", store.to_str().unwrap(), "--once", "--usage-state", usage.to_str().unwrap(), "--at", at]
+            .iter().map(|s| s.to_string()).collect::<Vec<String>>();
+        enforce_with(&parse(&argv).unwrap(), &mut Vec::new(), &mut Vec::new(), &mut mock).unwrap();
+    }
+    assert_eq!(leko_core::services::load_usage_state(&usage).unwrap().rules["t1"].active_seconds, 30);
+    assert!(mock.terminated.is_empty());
+
+    mock.foreground = Some(ForegroundActivity {
+        bundle_id: Some("com.apple.Notes".into()),
+        visible_apps: vec!["com.apple.Notes".into(), "com.example.Bad".into()],
+        ..Default::default()
+    });
+    for at in ["2026-01-01T12:02:00Z", "2026-01-01T12:02:35Z"] {
+        let argv = ["enforce", store.to_str().unwrap(), "--once", "--usage-state", usage.to_str().unwrap(), "--at", at]
+            .iter().map(|s| s.to_string()).collect::<Vec<String>>();
+        enforce_with(&parse(&argv).unwrap(), &mut Vec::new(), &mut Vec::new(), &mut mock).unwrap();
+    }
+    assert_eq!(leko_core::services::load_usage_state(&usage).unwrap().rules["t1"].active_seconds, 65);
+    assert_eq!(mock.terminated, vec!["com.example.Bad".to_string()]);
+
+    let s_rule = TechnologyManagementRule {
+        id: "s1".into(), name: "Session".into(), enabled: true,
+        target: Target::SpecificApps { apps: vec!["com.example.Bad".into()] },
+        schedule: Schedule {
+            time_based: TimeBasedSchedule::AlwaysOnSchedule,
+            usage_based: Some(UsageLimit::SessionLimit { max_sessions: 1, period: Period::Daily }),
+        },
+        penalty: Some(Penalty::ForceClosePenalty), pass: Pass::NoPass, seal: Seal::NoSeal,
+        created_at: "2026-01-01T00:00:00Z".into(), updated_at: "2026-01-01T00:00:00Z".into(),
+    };
+    let s_usage = dir.join("s_usage.json");
+    save(&store, &NativeStore { version: 1, rules: vec![s_rule] }).unwrap();
+    mock.terminated.clear();
+    let argv = ["enforce", store.to_str().unwrap(), "--once", "--usage-state", s_usage.to_str().unwrap(), "--at", "2026-01-01T12:03:00Z"]
+        .iter().map(|s| s.to_string()).collect::<Vec<String>>();
+    enforce_with(&parse(&argv).unwrap(), &mut Vec::new(), &mut Vec::new(), &mut mock).unwrap();
+    assert_eq!(leko_core::services::load_usage_state(&s_usage).unwrap().rules["s1"].sessions, 0);
+    fs::remove_dir_all(dir).unwrap();
+}

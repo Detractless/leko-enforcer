@@ -193,7 +193,7 @@ fn engagement_pass_records_after_focus_requirement() {
     let usage_state = dir.join("store.usage-state.json");
     let mut mock = leko_cli::services::os_executor::MockExecutor::default();
     mock.foreground = Some(leko_cli::services::os_executor::ForegroundActivity {
-        bundle_id: Some("com.apple.Notes".into()), site: None,
+        bundle_id: Some("com.apple.Notes".into()), ..Default::default()
     });
     for at in ["2026-01-01T12:00:00Z", "2026-01-01T12:01:00Z", "2026-01-01T12:02:00Z"] {
         let argv = [
@@ -213,5 +213,46 @@ fn engagement_pass_records_after_focus_requirement() {
     ]);
     assert_eq!(capped.0, 1);
     assert!(capped.2.contains("cap"), "got: {}", capped.2);
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn engagement_pass_ignores_visible_background_apps() {
+    let dir = std::env::temp_dir().join(format!("leko-cli-eng-bg-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let store = dir.join("store.json");
+    let flag = store.to_str().unwrap();
+
+    let created = call(&[
+        "create-rule", "--store", flag, "--id", "eng", "--name", "Earn",
+        "--target", r#"{"kind":"specific_apps","apps":["com.example.Bad"]}"#,
+        "--penalty", r#""force_close_penalty""#,
+        "--engagement-pass", "--engagement-targets", "com.apple.Notes",
+        "--engagement-seconds", "60", "--pass-minutes", "15", "--pass-cap", "1",
+        "--at", "2026-01-01T00:00:00Z",
+    ]);
+    assert_eq!(created.0, 0, "{} {}", created.1, created.2);
+
+    let pass_state = dir.join("store.pass-state.json");
+    let usage_state = dir.join("store.usage-state.json");
+    let mut mock = leko_cli::services::os_executor::MockExecutor::default();
+    mock.foreground = Some(leko_cli::services::os_executor::ForegroundActivity {
+        bundle_id: Some("com.apple.Safari".into()),
+        visible_apps: vec!["com.apple.Safari".into(), "com.apple.Notes".into()],
+        ..Default::default()
+    });
+    for at in ["2026-01-01T12:00:00Z", "2026-01-01T12:01:00Z", "2026-01-01T12:02:00Z"] {
+        let argv = [
+            "enforce", flag, "--once", "--pass-state", pass_state.to_str().unwrap(),
+            "--usage-state", usage_state.to_str().unwrap(), "--at", at,
+        ].iter().map(|s| s.to_string()).collect::<Vec<String>>();
+        assert!(leko_cli::services::enforcement_loop::enforce_with(
+            &parse(&argv).unwrap(), &mut Vec::new(), &mut Vec::new(), &mut mock
+        ).is_ok());
+    }
+    let usage = leko_core::services::load_usage_state(&usage_state).unwrap();
+    assert_eq!(usage.rules["eng"].engagement_seconds, 0);
+    assert!(!load_pass_state(&pass_state).unwrap().passes.contains_key("eng"));
     fs::remove_dir_all(dir).unwrap();
 }

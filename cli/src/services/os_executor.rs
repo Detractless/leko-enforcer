@@ -20,6 +20,7 @@ pub struct ObservedApp {
 pub struct ForegroundActivity {
     pub bundle_id: Option<String>,
     pub site: Option<String>,
+    pub visible_apps: Vec<String>,
 }
 
 pub trait ForegroundObserver {
@@ -146,27 +147,28 @@ const BROWSER_BUNDLES: &[&str] = &[
     "com.operasoftware.Opera",
 ];
 
-pub fn observe_with_frontmost<F>(
+pub fn observe_with_frontmost<F, V>(
     frontmost_fn: F,
+    visible_fn: V,
     heartbeats_path: Option<&Path>,
     eval_log_path: Option<&Path>,
 ) -> Result<Option<ForegroundActivity>, String>
 where
     F: FnOnce() -> Result<Option<macos::Application>, String>,
+    V: FnOnce() -> Result<Vec<String>, String>,
 {
-    let Some(app) = frontmost_fn()? else {
+    let bundle_id = frontmost_fn()?.and_then(|app| app.bundle).filter(|b| !b.is_empty());
+    let visible_apps = visible_fn().unwrap_or_default();
+    if bundle_id.is_none() && visible_apps.is_empty() {
         return Ok(None);
-    };
-    let Some(bundle_id) = app.bundle.filter(|b| !b.is_empty()) else {
-        return Ok(None);
-    };
-    let is_browser = BROWSER_BUNDLES
-        .iter()
-        .any(|known| known.eq_ignore_ascii_case(&bundle_id));
+    }
+    let is_browser = bundle_id
+        .as_deref()
+        .is_some_and(|id| BROWSER_BUNDLES.iter().any(|k| k.eq_ignore_ascii_case(id)));
     let mut site = None;
-    if let Some(path) = heartbeats_path.filter(|p| p.exists()) {
+    if let (Some(bid), Some(path)) = (bundle_id.as_deref(), heartbeats_path.filter(|p| p.exists())) {
         if let Ok(bytes) = fs::read(path) {
-            site = crate::services::usage_tracker::parse_site_from_heartbeats(&bytes, &bundle_id);
+            site = crate::services::usage_tracker::parse_site_from_heartbeats(&bytes, bid);
         }
     }
     if site.is_none() && is_browser {
@@ -177,8 +179,9 @@ where
         }
     }
     Ok(Some(ForegroundActivity {
-        bundle_id: Some(bundle_id),
+        bundle_id,
         site,
+        visible_apps,
     }))
 }
 
@@ -220,6 +223,7 @@ impl ForegroundObserver for SystemExecutor {
     fn observe_foreground(&mut self) -> Result<Option<ForegroundActivity>, String> {
         observe_with_frontmost(
             macos::frontmost,
+            macos::visible_apps,
             self.heartbeats_path.as_deref(),
             self.eval_log_path.as_deref(),
         )
@@ -306,14 +310,17 @@ mod tests {
 
         let from_hb = observe_with_frontmost(
             || Ok(Some(macos::Application { pid: 9, bundle: Some("com.apple.Safari".into()) })),
+            || Ok(vec!["com.apple.Notes".into()]),
             Some(&hb),
             Some(&eval),
         ).unwrap().unwrap();
         assert_eq!(from_hb.bundle_id.as_deref(), Some("com.apple.Safari"));
         assert_eq!(from_hb.site.as_deref(), Some("www.reddit.com"));
+        assert_eq!(from_hb.visible_apps, vec!["com.apple.Notes".to_string()]);
 
         let from_eval = observe_with_frontmost(
             || Ok(Some(macos::Application { pid: 10, bundle: Some("com.google.Chrome".into()) })),
+            || Ok(Vec::new()),
             Some(&hb),
             Some(&eval),
         ).unwrap().unwrap();
@@ -321,6 +328,7 @@ mod tests {
 
         let non_browser = observe_with_frontmost(
             || Ok(Some(macos::Application { pid: 11, bundle: Some("com.apple.TextEdit".into()) })),
+            || Ok(Vec::new()),
             Some(&hb),
             Some(&eval),
         ).unwrap().unwrap();

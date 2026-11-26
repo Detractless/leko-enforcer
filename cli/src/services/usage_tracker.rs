@@ -74,6 +74,32 @@ pub fn target_matches(target: &Target, activity: Option<&ForegroundActivity>) ->
     }
 }
 
+pub fn target_or_visible_matches(target: &Target, activity: Option<&ForegroundActivity>) -> bool {
+    if target_matches(target, activity) {
+        return true;
+    }
+    let Some(act) = activity else {
+        return false;
+    };
+    match target {
+        Target::SpecificApps { apps } => act.visible_apps.iter().any(|b| bundle_matches(b, apps)),
+        Target::AllowOnlyApps { allowed_apps } => {
+            act.visible_apps.iter().any(|b| !bundle_matches(b, allowed_apps))
+        }
+        _ => false,
+    }
+}
+
+pub fn usage_target_matches(
+    rule: &TechnologyManagementRule,
+    activity: Option<&ForegroundActivity>,
+) -> bool {
+    match &rule.schedule.usage_based {
+        Some(UsageLimit::TimeLimit { .. }) => target_or_visible_matches(&rule.target, activity),
+        _ => target_matches(&rule.target, activity),
+    }
+}
+
 pub fn engagement_matches(pass: &Pass, activity: Option<&ForegroundActivity>) -> bool {
     let Some(act) = activity else {
         return false;
@@ -155,7 +181,7 @@ pub fn update_tick(
     for rule in rules {
         let p_state = domain_state(pass_file, &rule.id);
         let p_active = pass_active(&rule.pass, &p_state, moment);
-        let t_active = target_matches(&rule.target, activity);
+        let t_active = usage_target_matches(rule, activity);
         let e_active = engagement_matches(&rule.pass, activity);
         let outcome = advance_rule_usage(
             usage_file,
@@ -203,7 +229,7 @@ pub fn active_time_limit_remaining(
         if pass_active(&rule.pass, &p_state, moment) {
             continue;
         }
-        if !target_matches(&rule.target, activity) {
+        if !target_or_visible_matches(&rule.target, activity) {
             continue;
         }
         let (u_state, active_seconds, _) = domain_usage(usage_file, &rule.id);

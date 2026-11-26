@@ -294,7 +294,7 @@ fn foreground_observer_is_injected_and_deterministic() {
     leko_core::store::save(&store, &NativeStore { version: 1, rules: vec![usage_rule(limit)] }).unwrap();
     let mut mock = MockExecutor::default();
     mock.foreground = Some(leko_cli::services::os_executor::ForegroundActivity {
-        bundle_id: Some("com.example.Bad".into()), site: None,
+        bundle_id: Some("com.example.Bad".into()), ..Default::default()
     });
     run_tick(&store, &usage, "2026-01-01T12:00:00Z", &mut mock);
     run_tick(&store, &usage, "2026-01-01T12:01:00Z", &mut mock);
@@ -316,7 +316,7 @@ fn time_and_session_limits_enforce_when_exhausted() {
     let mut mock = MockExecutor::default();
     mock.apps.push(ObservedApp { pid: 21, bundle: Some("com.example.Bad".into()) });
     mock.foreground = Some(leko_cli::services::os_executor::ForegroundActivity {
-        bundle_id: Some("com.example.Bad".into()), site: None,
+        bundle_id: Some("com.example.Bad".into()), ..Default::default()
     });
     run_tick(&store, &usage, "2026-01-01T12:00:00Z", &mut mock);
     assert!(mock.terminated.is_empty(), "blocked before time budget expired");
@@ -332,7 +332,7 @@ fn time_and_session_limits_enforce_when_exhausted() {
     mock.foreground = None;
     run_tick(&store, &u2, "2026-01-01T12:00:10Z", &mut mock);
     mock.foreground = Some(leko_cli::services::os_executor::ForegroundActivity {
-        bundle_id: Some("com.example.Bad".into()), site: None,
+        bundle_id: Some("com.example.Bad".into()), ..Default::default()
     });
     run_tick(&store, &u2, "2026-01-01T12:00:20Z", &mut mock);
     assert_eq!(mock.terminated, vec!["com.example.Bad".to_string()]);

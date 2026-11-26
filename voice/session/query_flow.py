@@ -184,7 +184,7 @@ def _respond(query, state, bridge, speak, cancelled, text, confirmed=False):
         spoken = voice.verbalize_for_speech(text)
         if _supports_audio_level(speak):
             speak(spoken, cancelled,
-                  on_audio_level=lambda rms: bridge.emit_rms_level(rms, ceiling=0.14))
+                  on_audio_level=lambda rms: bridge.emit_rms_level(rms, ceiling=0.06))
         else:
             speak(spoken, cancelled)
     else:

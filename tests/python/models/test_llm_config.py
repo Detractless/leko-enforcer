@@ -123,3 +123,14 @@ class TestLlmConfig(unittest.TestCase):
         ]}}]}
         with self.assertRaises(ValueError):
             llm_router._completion_result(data)
+
+    def test_request_update_allows_plain_conversational_reply(self):
+        message = {"role": "assistant", "content": "Hello, how can I help?"}
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = json.dumps(
+            {"choices": [{"message": message}]}).encode()
+        with patch.object(llm_router, "ensure_server"), patch.object(
+                llm_router.urllib.request, "urlopen", return_value=response):
+            result = llm_router.parse_request_update("Hello, is anyone there?")
+        self.assertEqual(result["action"], "reply")
+        self.assertEqual(result["content"], "Hello, how can I help?")

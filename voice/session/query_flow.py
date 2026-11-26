@@ -315,7 +315,7 @@ def _process_query(query, settings_zip, auto_confirm=False, bridge=None,
     speak = speak_fn or (lambda text, cancel=None, on_audio_level=None: voice.speak(
         text, is_cancelled=cancel,
         playback_event_sink=state.session_log.playback_sink(state.current_turn_id) if state.session_log else None,
-        on_audio_level=on_audio_level))
+        **({"on_audio_level": on_audio_level} if on_audio_level is not None else {})))
     with state.turn_lock:
         if cancelled():
             return ""

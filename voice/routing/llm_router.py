@@ -237,6 +237,8 @@ def parse_request_update(user_text: str, history=None, memories=None, active_req
     messages = _build_messages(user_text, history, memories, prompt, active_request)
     choice = {"type": "function", "function": {"name": "request_update"}}
     result = _chat_completion(messages, trace_callback, [REQUEST_UPDATE_TOOL], choice)
+    if result.get("action") == "reply" and result.get("content"):
+        return result
     if result.get("action") != "request_update":
         raise ValueError("The model did not return a request update.")
     return result

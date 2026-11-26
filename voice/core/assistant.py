@@ -36,6 +36,7 @@ sys.modules.setdefault("assistant", sys.modules[__name__])
 
 from ..normalization.verbalizer import verbalize_for_speech
 from .turn_detector import TurnDetector
+from .stream_recovery import open_input_stream
 from .ui_bridge import start_playback_sampler
 try:
     from ..stt.stt_lifecycle import SttLifecycle
@@ -294,12 +295,15 @@ def _clean_with_meter(super_clean, raw_samples, on_audio_level):
     return samples, failed
 
 
+def _open_mic_stream(**kw):
+    return open_input_stream(sd, can_refresh=lambda: _output_player.stream is None, **kw)
+
 class HandsfreeTurnManager(CaptureGate):
     def __init__(self, on_turn_complete, on_speech_onset=None, sample_rate=16000,
                  chunk_size=2560, speech_detector=None, continuation_s=4.0, on_armed=None, on_audio_level=None):
         self._on_audio_level = on_audio_level
         detector = TurnDetector(on_speech_onset=on_speech_onset, speech_detector=speech_detector, continuation_s=continuation_s)
-        super().__init__(sd.RawInputStream, detector, _echo_audio, on_turn_complete, sample_rate, chunk_size, on_armed=on_armed)
+        super().__init__(_open_mic_stream, detector, _echo_audio, on_turn_complete, sample_rate, chunk_size, on_armed=on_armed)
 
     def _clean_samples(self, raw_samples):
         return _clean_with_meter(super()._clean_samples, raw_samples, self._on_audio_level)
@@ -315,12 +319,11 @@ class HandsfreeTurnManager(CaptureGate):
         if _active_turn_detector is self.detector:
             _active_turn_detector = None
 
-
 class PushToTalkTurnManager(_PushToTalkTurnManager):
     def __init__(self, on_turn_complete, on_speech_onset=None, on_capture_error=None,
                  sample_rate=16000, chunk_size=1280, grace_s=2.0, on_audio_level=None):
         self._on_audio_level = on_audio_level
-        super().__init__(sd.RawInputStream, _echo_audio, on_turn_complete, sample_rate=sample_rate,
+        super().__init__(_open_mic_stream, _echo_audio, on_turn_complete, sample_rate=sample_rate,
                          chunk_size=chunk_size, on_speech_onset=on_speech_onset, on_capture_error=on_capture_error, grace_s=grace_s)
 
     def _clean_samples(self, raw_samples):
@@ -336,7 +339,6 @@ class PushToTalkTurnManager(_PushToTalkTurnManager):
         super().stop()
         if _active_turn_detector is self.detector:
             _active_turn_detector = None
-
 
 def main():
     """Compatibility entrypoint for the separated assistant runtime."""

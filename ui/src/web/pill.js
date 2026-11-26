@@ -84,11 +84,12 @@
     }
   }
 
-  function localFeedback() {
-    setState('listening');
-    localTimer = setTimeout(function () {
-      setState((window.__leko_config && window.__leko_config.quietTimer && timerText) ? 'timer' : 'idle');
-    }, 280);
+  function localFeedback(heldFor) {
+    if (heldFor > 200) {
+      setState('thinking');
+      return;
+    }
+    setState((window.__leko_config && window.__leko_config.quietTimer && timerText) ? 'timer' : 'idle');
   }
 
   let pressedAt = 0;
@@ -101,12 +102,12 @@
 
   pill.addEventListener('pointerup', function (event) {
     const heldFor = performance.now() - pressedAt;
-    post('ptt_end');
     if (heldFor <= 200) {
-      post('ptt_start');
+      post('ptt_cancel');
+    } else {
       post('ptt_end');
     }
-    localFeedback();
+    localFeedback(heldFor);
   });
 
   pill.addEventListener('contextmenu', function (event) {

@@ -30,7 +30,7 @@ import mlx.core as mx
 
 # Ensure voice package is importable
 HERE = Path(__file__).resolve().parent
-REPO_ROOT = HERE.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(HERE))
 sys.modules.setdefault("assistant", sys.modules[__name__])
 
@@ -279,7 +279,7 @@ def format_status_summary(raw_stdout: str, target_type: str = "", name: str = ""
 
 def process_query(*args, **kwargs) -> str:
     """Compatibility export for the separated query flow."""
-    from session.query_flow import process_query as run_query
+    from ..session.query_flow import process_query as run_query
     return run_query(*args, **kwargs)
 
 from ..audio_io.capture_gate import CaptureGate
@@ -339,7 +339,7 @@ class PushToTalkTurnManager(_PushToTalkTurnManager):
 
 def main():
     """Compatibility entrypoint for the separated assistant runtime."""
-    from session.runtime import main as run
+    from ..session.runtime import main as run
     return run()
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ import threading
 from pathlib import Path
 from typing import Callable, Optional, Dict, Any
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 LEKO_UI_DEBUG = REPO_ROOT / "target/debug/leko-pill"
 LEKO_UI_RELEASE = REPO_ROOT / "target/release/leko-pill"
 PILL_ACTIONS = Path.home() / "Library/Application Support/Leko/pill-actions.json"
@@ -153,8 +153,9 @@ class UIPipelineBridge:
                     pass
                 threading.Event().wait(0.1)
 
-        self._action_thread = threading.Thread(target=_watch_actions, daemon=True)
-        self._action_thread.start()
+        if not self._proc.stdout:
+            self._action_thread = threading.Thread(target=_watch_actions, daemon=True)
+            self._action_thread.start()
 
     def close(self) -> None:
         if self._proc:

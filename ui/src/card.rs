@@ -79,15 +79,15 @@ impl CardState {
         if !self.active {
             return (COMPACT_W as u32, COMPACT_H as u32);
         }
-        let text_lines = ((self.text.len() as u32) + 41) / 42;
-        let body_h = 34 + text_lines.clamp(1, 6) * 18;
+        let text_lines = ((self.text.len() as u32) + 37) / 38;
+        let body_h = 44 + text_lines.clamp(1, 6) * 18;
         let table_h = if self.rows.is_empty() {
             0
         } else {
             32 + (self.rows.len().min(6) as u32) * 24
         };
-        let total = 56 + body_h + table_h;
-        (EXPANDED_W as u32, total.clamp(EXPANDED_MIN_H as u32, 380))
+        let total = 64 + body_h + table_h;
+        (EXPANDED_W as u32, total.clamp(EXPANDED_MIN_H as u32, 396))
     }
 }
 

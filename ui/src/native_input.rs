@@ -1,34 +1,21 @@
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct CursorPoint {
-    pub x: f64,
-    pub y: f64,
-}
+pub struct CursorPoint { pub x: f64, pub y: f64 }
 
-pub trait CursorProvider {
-    fn position(&self) -> Option<CursorPoint>;
-}
+pub trait CursorProvider { fn position(&self) -> Option<CursorPoint>; }
 
 #[derive(Debug, Default)]
-pub struct TestCursor {
-    pub point: Option<CursorPoint>,
-}
+pub struct TestCursor { pub point: Option<CursorPoint> }
 
 impl CursorProvider for TestCursor {
-    fn position(&self) -> Option<CursorPoint> {
-        self.point
-    }
+    fn position(&self) -> Option<CursorPoint> { self.point }
 }
 
 #[cfg(target_os = "macos")]
-pub struct SystemCursor {
-    pub screen_height: f64,
-}
+pub struct SystemCursor { pub screen_height: f64 }
 
 #[cfg(target_os = "macos")]
 impl SystemCursor {
-    pub fn new(screen_height: f64) -> Self {
-        SystemCursor { screen_height }
-    }
+    pub fn new(screen_height: f64) -> Self { SystemCursor { screen_height } }
 }
 
 #[cfg(target_os = "macos")]
@@ -36,10 +23,7 @@ impl CursorProvider for SystemCursor {
     fn position(&self) -> Option<CursorPoint> {
         use objc2_app_kit::NSEvent;
         let point = unsafe { NSEvent::mouseLocation() };
-        Some(CursorPoint {
-            x: point.x,
-            y: self.screen_height - point.y,
-        })
+        Some(CursorPoint { x: point.x, y: self.screen_height - point.y })
     }
 }
 
@@ -49,16 +33,12 @@ pub struct SystemCursor;
 
 #[cfg(not(target_os = "macos"))]
 impl SystemCursor {
-    pub fn new(_screen_height: f64) -> Self {
-        SystemCursor
-    }
+    pub fn new(_screen_height: f64) -> Self { SystemCursor }
 }
 
 #[cfg(not(target_os = "macos"))]
 impl CursorProvider for SystemCursor {
-    fn position(&self) -> Option<CursorPoint> {
-        None
-    }
+    fn position(&self) -> Option<CursorPoint> { None }
 }
 
 #[cfg(target_os = "macos")]
@@ -225,6 +205,7 @@ pub struct NativeInput<P: CursorProvider> {
     pub pill_rect: (f64, f64, f64, f64),
     pub card_active: bool,
     pub drag_active: bool,
+    pub prev_pressed: bool,
     pub provider: P,
     pub inside: bool,
     pub near: bool,
@@ -238,6 +219,7 @@ impl<P: CursorProvider> NativeInput<P> {
             pill_rect: rect,
             card_active: false,
             drag_active: false,
+            prev_pressed: false,
             provider,
             inside: false,
             near: false,
@@ -261,26 +243,17 @@ impl<P: CursorProvider> NativeInput<P> {
     }
 
     pub fn interactive_at(&self, point: CursorPoint) -> bool {
-        if self.drag_active || self.contains(point) {
-            return true;
-        }
-        if !self.card_active || !Self::contains_rect(self.rect, point) {
-            return false;
-        }
-        let in_pill_band = point.y >= self.pill_rect.1 && point.y < self.pill_rect.1 + self.pill_rect.3;
-        !in_pill_band
+        if self.drag_active || self.contains(point) { return true; }
+        if !self.card_active || !Self::contains_rect(self.rect, point) { return false; }
+        !(point.y >= self.pill_rect.1 && point.y < self.pill_rect.1 + self.pill_rect.3)
     }
 
     pub fn poll(&mut self) -> InputEvent {
-        let Some(point) = self.provider.position() else {
-            return InputEvent::None;
-        };
+        let Some(point) = self.provider.position() else { return InputEvent::None; };
         self.near = self.is_near(point);
         let now_inside = self.contains(point);
         self.ignores_mouse = !self.interactive_at(point);
-        if now_inside == self.inside {
-            return InputEvent::None;
-        }
+        if now_inside == self.inside { return InputEvent::None; }
         self.inside = now_inside;
         if now_inside { InputEvent::Enter } else { InputEvent::Leave }
     }
@@ -300,7 +273,16 @@ impl<P: CursorProvider> NativeInput<P> {
         false
     }
 
-    pub fn cadence_ms(&self) -> u64 { cadence(self.near) }
+    pub fn poll_outside_click(&mut self, pressed: bool) -> bool {
+        let fresh = pressed && !self.prev_pressed;
+        self.prev_pressed = pressed;
+        if !fresh || !self.card_active || self.drag_active { return false; }
+        self.provider.position().is_some_and(|p| !self.interactive_at(p))
+    }
+
+    pub fn cadence_ms(&self) -> u64 {
+        if self.card_active { 16 } else { cadence(self.near) }
+    }
 }
 
 pub fn cadence(near: bool) -> u64 { if near { 16 } else { 90 } }
@@ -311,25 +293,20 @@ mod tests {
 
     #[test]
     fn injectable_provider_drives_hover() {
-        let cursor = TestCursor::default();
-        let mut input = NativeInput::new((0.0, 0.0, 160.0, 56.0), cursor);
+        let mut input = NativeInput::new((0.0, 0.0, 160.0, 56.0), TestCursor::default());
         assert_eq!(input.poll(), InputEvent::None);
         input.provider.point = Some(CursorPoint { x: 80.0, y: 28.0 });
         assert_eq!(input.poll(), InputEvent::Enter);
-        assert!(input.inside);
-        assert!(!input.ignores_mouse);
-        assert_eq!(input.cadence_ms(), 16);
+        assert!(input.inside && !input.ignores_mouse && input.cadence_ms() == 16);
     }
 
     #[test]
     fn leaving_restores_click_through() {
-        let cursor = TestCursor { point: Some(CursorPoint { x: 20.0, y: 20.0 }) };
-        let mut input = NativeInput::new((0.0, 0.0, 160.0, 56.0), cursor);
+        let mut input = NativeInput::new((0.0, 0.0, 160.0, 56.0), TestCursor { point: Some(CursorPoint { x: 20.0, y: 20.0 }) });
         assert_eq!(input.poll(), InputEvent::Enter);
         input.provider.point = Some(CursorPoint { x: 500.0, y: 500.0 });
         assert_eq!(input.poll(), InputEvent::Leave);
-        assert!(input.ignores_mouse);
-        assert_eq!(input.cadence_ms(), 90);
+        assert!(input.ignores_mouse && input.cadence_ms() == 90);
     }
 
     #[test]
@@ -342,8 +319,18 @@ mod tests {
         assert!(!input.update_drag(true));
         input.provider.point = Some(CursorPoint { x: 800.0, y: 800.0 });
         assert_eq!(input.poll(), InputEvent::Leave);
-        assert!(!input.ignores_mouse);
-        assert!(input.update_drag(false));
-        assert!(input.ignores_mouse);
+        assert!(!input.ignores_mouse && input.update_drag(false) && input.ignores_mouse);
+    }
+
+    #[test]
+    fn outside_click_fires_only_when_card_active_and_cursor_outside() {
+        let mut input = NativeInput::new((100.0, 100.0, 380.0, 260.0), TestCursor { point: Some(CursorPoint { x: 200.0, y: 150.0 }) });
+        input.pill_rect = (210.0, 316.0, 160.0, 32.0);
+        input.card_active = true;
+        assert!(!input.poll_outside_click(true));
+        assert!(!input.poll_outside_click(false));
+        input.provider.point = Some(CursorPoint { x: 900.0, y: 500.0 });
+        assert!(input.poll_outside_click(true));
+        assert!(!input.poll_outside_click(true));
     }
 }

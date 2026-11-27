@@ -173,6 +173,8 @@ class EmptyRuntimeTurnTests(unittest.TestCase):
 
         runtime = RuntimeController.__new__(RuntimeController)
         runtime.turn_manager = Mock(response_lock=threading.RLock())
+        runtime.args = SimpleNamespace(ui=True)
+        runtime.bridge = Mock()
         runtime.worker = SerializedTurnWorker()
         runtime._active_response_token = 41
         entered, release = threading.Event(), threading.Event()
@@ -190,6 +192,7 @@ class EmptyRuntimeTurnTests(unittest.TestCase):
             with patch("voice.session.runtime.voice.stop_playback", create=True) as stop_playback:
                 runtime.interrupt_response_for_capture()
             stop_playback.assert_called_once_with()
+            runtime.bridge.emit.assert_called_once_with({"type": "card_dismiss"})
             runtime.turn_manager.finish_response.assert_called_once_with(
                 41, delay=0, preserve_capture=True)
             release.set()

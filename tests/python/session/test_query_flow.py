@@ -123,19 +123,33 @@ class QueryFlowTests(unittest.TestCase):
                 self.assertEqual(card["rows"], [["Study", "Time Limit", "05:00"]])
 
     def test_reply_card_and_speaking_wait_for_playback_start_and_send_duration_ms(self):
+        from voice.core.ui_bridge import compute_word_timings_ms
+        import numpy as np
+
+        sr = 24000
+        pcm = np.zeros(int(sr * 2.0), dtype=np.float32)
+        pcm[int(sr * 0.2):int(sr * 0.8)] = 0.2
+        pcm[int(sr * 1.1):int(sr * 1.6)] = 0.2
+        timings = compute_word_timings_ms(pcm, sr, "Hello there, friend!", lead_ms=40)
+        self.assertEqual(len(timings), 3)
+        self.assertEqual(timings[0], 240)
+        self.assertGreater(timings[1], timings[0])
+        self.assertEqual(timings[2], 1140)
+
         observed_before_start = []
 
         def fake_speak(text, cancel=None, on_playback_start=None):
             observed_before_start.extend(e.get("type") or e.get("state") for e in self.events)
             if on_playback_start:
-                on_playback_start(2.45)
+                on_playback_start(2.45, timings)
 
-        self.intent = {"action": "reply", "content": "Hello world."}
+        self.intent = {"action": "reply", "content": "Hello there, friend!"}
         self.query("hi", speak_fn=fake_speak)
         self.assertNotIn("reply_card", observed_before_start)
         speaking = [e for e in self.events if e.get("state") == "speaking"]
         self.assertEqual(len(speaking), 1)
         self.assertEqual(speaking[0]["duration_ms"], 2450)
+        self.assertEqual(speaking[0]["word_timings_ms"], timings)
         card_idx = next(i for i, e in enumerate(self.events) if e.get("type") == "reply_card")
         spk_idx = next(i for i, e in enumerate(self.events) if e.get("state") == "speaking")
         self.assertLess(card_idx, spk_idx)

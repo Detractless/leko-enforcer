@@ -34,7 +34,7 @@ sys.modules.setdefault("assistant", sys.modules[__name__])
 from ..normalization.verbalizer import verbalize_for_speech
 from .turn_detector import TurnDetector
 from .stream_recovery import open_input_stream
-from .ui_bridge import start_playback_sampler
+from .ui_bridge import compute_word_timings_ms, start_playback_sampler
 try:
     from ..stt.stt_lifecycle import SttLifecycle
 except ImportError:
@@ -211,11 +211,12 @@ def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None,
         if is_cancelled and is_cancelled():
             return
         duration_s = len(pcm) / tts.sample_rate if hasattr(pcm, "__len__") else 0.0
+        word_timings_ms = globals()["compute_word_timings_ms"](pcm, tts.sample_rate, spoken_text) if "compute_word_timings_ms" in globals() else None
         print(f"\n[Maeve speaking] (expected duration: {duration_s:.2f}s):\n\"{spoken_text}\"", flush=True)
         set_echo_cancellation_enabled(_echo_audio.available)
         set_playback_state(True)
         emit("started", text=spoken_text, voice=VOICE_NAME, sample_rate=tts.sample_rate,
-             expected_duration_seconds=duration_s)
+             expected_duration_seconds=duration_s, word_timings_ms=word_timings_ms)
         sampler = globals().get("start_playback_sampler")
         play_started = time.monotonic()
         stop_meter = sampler(pcm, tts.sample_rate, on_audio_level) if sampler else (lambda: None)

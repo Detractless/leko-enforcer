@@ -44,10 +44,10 @@
   const barEls = Array.from(bars.children);
 
   function clearCardTimers() {
-    if (cardCollapseTimer) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; }
-    if (cardSpeechGraceTimer) { clearTimeout(cardSpeechGraceTimer); cardSpeechGraceTimer = null; }
-    if (streamTimer) { clearTimeout(streamTimer); streamTimer = null; }
-    if (streamStartTimer) { clearTimeout(streamStartTimer); streamStartTimer = null; }
+    clearTimeout(cardCollapseTimer); cardCollapseTimer = null;
+    clearTimeout(cardSpeechGraceTimer); cardSpeechGraceTimer = null;
+    clearTimeout(streamTimer); streamTimer = null;
+    clearTimeout(streamStartTimer); streamStartTimer = null;
   }
 
   function canDismissOutside() {
@@ -55,7 +55,7 @@
   }
 
   function scheduleCollapse(ms) {
-    if (cardCollapseTimer) { clearTimeout(cardCollapseTimer); }
+    clearTimeout(cardCollapseTimer);
     cardCollapseTimer = setTimeout(function () { if (!cardHovered) { dismissCard(); } }, ms);
   }
 
@@ -75,17 +75,28 @@
     return ((text || '').match(/\S+\s*/g) || []).map(function (t) { return { text: t, weight: tokenWeight(t) }; });
   }
 
-  function startTokenStream(durationMs) {
-    if (streamStartTimer) { clearTimeout(streamStartTimer); streamStartTimer = null; }
-    if (streamTimer) { clearTimeout(streamTimer); streamTimer = null; }
-    if (streamIdx >= streamTokens.length) { cardTextDone = true; maybeScheduleCollapse(3500); return; }
-    const rem = streamTokens.slice(streamIdx);
+  function resolveDeadlines(rem, startedAt, durationMs, timingsMs) {
+    if (Array.isArray(timingsMs) && timingsMs.length > 0 && streamIdx === 0) {
+      return rem.map(function (_, idx) {
+        if (timingsMs.length === rem.length) { return startedAt + timingsMs[idx]; }
+        const src = (rem.length > 1 ? idx / (rem.length - 1) : 0) * (timingsMs.length - 1);
+        const lo = Math.floor(src), hi = Math.min(timingsMs.length - 1, lo + 1);
+        return startedAt + timingsMs[lo] + (timingsMs[hi] - timingsMs[lo]) * (src - lo);
+      });
+    }
     const totalWeight = rem.reduce(function (sum, tok) { return sum + tok.weight; }, 0) || 1;
     const targetMs = durationMs > 0 ? Math.max(250, durationMs) : totalWeight * 48;
-    const startedAt = performance.now() + (durationMs > 0 && streamIdx === 0 ? 110 : 0);
     let acc = 0;
+    return rem.map(function (tok) { const ms = (acc / totalWeight) * targetMs; acc += tok.weight; return startedAt + ms; });
+  }
+
+  function startTokenStream(durationMs, timingsMs) {
+    clearTimeout(streamStartTimer); streamStartTimer = null;
+    clearTimeout(streamTimer); streamTimer = null;
+    if (streamIdx >= streamTokens.length) { cardTextDone = true; maybeScheduleCollapse(3500); return; }
+    const rem = streamTokens.slice(streamIdx);
+    const deadlines = resolveDeadlines(rem, performance.now(), durationMs, timingsMs);
     const baseIdx = streamIdx;
-    const deadlines = rem.map(function (tok) { const ms = (acc / totalWeight) * targetMs; acc += tok.weight; return startedAt + ms; });
     function tick() {
       streamTimer = null;
       if (!cardActive) { return; }
@@ -98,15 +109,15 @@
     tick();
   }
 
-  function streamText(text, durationMs) {
-    if (streamTimer) { clearTimeout(streamTimer); streamTimer = null; }
-    if (streamStartTimer) { clearTimeout(streamStartTimer); streamStartTimer = null; }
+  function streamText(text, durationMs, timingsMs) {
+    clearTimeout(streamTimer); streamTimer = null;
+    clearTimeout(streamStartTimer); streamStartTimer = null;
     streamTokens = tokenizeStream(text || '');
     streamIdx = 0;
     cardBody.textContent = '';
     if (!streamTokens.length) { cardTextDone = true; return; }
     cardTextDone = false;
-    if (durationMs > 0) { startTokenStream(durationMs); return; }
+    if (durationMs > 0 || (Array.isArray(timingsMs) && timingsMs.length > 0)) { startTokenStream(durationMs, timingsMs); return; }
     streamStartTimer = setTimeout(function () {
       streamStartTimer = null;
       if (cardActive && !cardTextDone && !streamTimer) { startTokenStream(0); }
@@ -114,7 +125,7 @@
   }
 
   function finishStreaming() {
-    if (streamStartTimer) { clearTimeout(streamStartTimer); streamStartTimer = null; }
+    clearTimeout(streamStartTimer); streamStartTimer = null;
     if (cardTextDone) { return; }
     if (streamIdx >= streamTokens.length) { cardTextDone = true; return; }
     startTokenStream(Math.min(260, (streamTokens.length - streamIdx) * 45));
@@ -145,7 +156,7 @@
     cardSpeechDone = false;
     document.body.classList.add('has-card');
     card.hidden = false;
-    streamText(event.text || '', event.duration_ms || 0);
+    streamText(event.text || '', event.duration_ms || 0, event.word_timings_ms);
     renderTable(event.columns || [], event.rows || []);
     if (!cardSpeaking) {
       cardSpeechGraceTimer = setTimeout(function () {
@@ -159,11 +170,8 @@
   function dismissCard() {
     if (!cardActive) { return; }
     clearCardTimers();
-    cardActive = false;
-    cardHovered = false;
-    cardSpeaking = false;
-    cardTextDone = true;
-    cardSpeechDone = true;
+    cardActive = cardHovered = cardSpeaking = false;
+    cardTextDone = cardSpeechDone = true;
     card.hidden = true;
     document.body.classList.remove('has-card');
     post('card_dismiss');
@@ -191,10 +199,7 @@
         barEls[i].style.height = Math.max(2.5, Math.min(11.5, height)).toFixed(1) + 'px';
         barEls[i].style.opacity = (0.48 + 0.52 * Math.min(1, amp * 1.1)).toFixed(2);
       }
-    } else {
-      targetLevel = 0;
-      smoothLevel = 0;
-    }
+    } else { targetLevel = smoothLevel = 0; }
     requestAnimationFrame(animateBars);
   }
   requestAnimationFrame(animateBars);
@@ -241,6 +246,7 @@
     pressedAt = performance.now();
     setState('held');
     post('ptt_start');
+    if (cardActive) { dismissCard(); }
   });
   pill.addEventListener('pointerup', function () { releaseHold(false); });
   pill.addEventListener('pointercancel', function () { releaseHold(false); });
@@ -307,12 +313,13 @@
     if (localPressed && state === 'held' && next === 'idle') { return; }
     if (next === 'speaking') {
       localPressed = false;
-      if (cardSpeechGraceTimer) { clearTimeout(cardSpeechGraceTimer); cardSpeechGraceTimer = null; }
+      clearTimeout(cardSpeechGraceTimer); cardSpeechGraceTimer = null;
       if (cardActive) {
-        cardSpeaking = true;
-        cardSpeechDone = false;
-        if (cardCollapseTimer) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; }
-        if (!cardTextDone && (!streamTimer || event.duration_ms > 0)) { startTokenStream(event.duration_ms || 0); }
+        cardSpeaking = true; cardSpeechDone = false;
+        clearTimeout(cardCollapseTimer); cardCollapseTimer = null;
+        if (!cardTextDone && (!streamTimer || event.duration_ms > 0 || (event.word_timings_ms && event.word_timings_ms.length))) {
+          startTokenStream(event.duration_ms || 0, event.word_timings_ms);
+        }
       }
       setState('speaking');
       return;

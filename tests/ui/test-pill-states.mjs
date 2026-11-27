@@ -292,8 +292,9 @@ test('stop_during_thinking_or_speaking_shows_red_stopped_state', () => {
     { event: 'check', now_ms: 2000 },
   ]);
   assert.deepEqual(fromThinking.map((s) => s.state), ['held', 'listening', 'thinking', 'stopped', 'idle']);
-  assert.equal(fromThinking[3].text, 'Stopped');
-  assert.equal(fromThinking[3].width, 82);
+  assert.equal(fromThinking[3].text, '');
+  assert.equal(fromThinking[3].width, 112);
+  assert.equal(fromThinking[3].bars, 7);
 
   const fromSpeaking = headless([
     { event: 'speaking', now_ms: 0 },
@@ -306,8 +307,8 @@ test('stop_during_thinking_or_speaking_shows_red_stopped_state', () => {
   assert.ok(tokens.includes('#EF4444'));
   assert.ok(tokens.includes('#DC2626'));
   const css = readFileSync(resolve(ROOT, 'ui/src/web/pill.css'), 'utf8');
-  assert.match(css, /\.state-stopped/);
-  assert.match(css, /--pill-stop-border/);
+  assert.match(css, /\.state-stopped[\s\S]*--pill-stop-border/);
+  assert.match(css, /\.state-stopped \.bar[\s\S]*--pill-stop/);
   const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
   assert.match(js, /state === 'thinking' \|\| state === 'speaking'/);
   assert.match(js, /post\('stop'\)/);

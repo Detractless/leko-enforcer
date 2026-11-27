@@ -154,7 +154,7 @@ impl Machine {
         let (text, width, height, bars, dash, state) = match self.state {
             PillState::Blocked => ("Blocked", 92, 28, 0, false, "blocked"),
             PillState::Error => ("Error", 92, 28, 0, false, "error"),
-            PillState::Stopped => ("Stopped", 82, 28, 0, false, "stopped"),
+            PillState::Stopped => ("", 112, 30, 7, false, "stopped"),
             PillState::Timer => (self.timer.as_str(), 68, 24, 0, false, "timer"),
             PillState::Listening | PillState::Held => ("", 112, 30, 7, false,
                 if self.state == PillState::Held { "held" } else { "listening" }),

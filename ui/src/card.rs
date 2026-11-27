@@ -2,7 +2,9 @@ pub const COMPACT_W: f64 = 160.0;
 pub const COMPACT_H: f64 = 56.0;
 pub const EXPANDED_W: f64 = 380.0;
 pub const EXPANDED_MIN_H: f64 = 260.0;
+#[cfg(test)]
 pub const CARD_MAX_W: f64 = 348.0;
+#[cfg(test)]
 pub const CARD_H_PAD: f64 = 12.0;
 pub const EDGE_PAD: f64 = 16.0;
 pub const CAPSULE_INSET: f64 = 12.0;

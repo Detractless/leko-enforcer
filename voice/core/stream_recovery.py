@@ -9,6 +9,7 @@ from typing import Callable, Optional
 
 
 _BUILTIN_MIC_HINTS = ("built-in", "macbook", "imac", "mac mini", "mac studio", "mac pro")
+BLUETOOTH_PREROLL_S = 0.7
 
 
 class _AudioObjectPropertyAddress(ctypes.Structure):
@@ -19,13 +20,15 @@ def _fourcc(code: str) -> int:
     return struct.unpack(">I", code.encode("ascii"))[0]
 
 
-def _coreaudio_default_output_name() -> Optional[str]:
-    """Query macOS CoreAudio for the live default output device name."""
+_BLUETOOTH_TRANSPORTS = frozenset((_fourcc("blue"), _fourcc("blea")))
+
+
+def _coreaudio_default_output_id():
+    """Return (coreaudio_lib, default_output_device_id) on macOS, or (None, None)."""
     if sys.platform != "darwin":
-        return None
+        return None, None
     try:
         ca = ctypes.CDLL("/System/Library/Frameworks/CoreAudio.framework/CoreAudio")
-        cf = ctypes.CDLL("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")
         ca.AudioObjectGetPropertyData.argtypes = [
             ctypes.c_uint32,
             ctypes.POINTER(_AudioObjectPropertyAddress),
@@ -35,20 +38,31 @@ def _coreaudio_default_output_name() -> Optional[str]:
             ctypes.c_void_p,
         ]
         ca.AudioObjectGetPropertyData.restype = ctypes.c_int32
-        cf.CFStringGetCString.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_long, ctypes.c_uint32]
-        cf.CFStringGetCString.restype = ctypes.c_bool
-        cf.CFRelease.argtypes = [ctypes.c_void_p]
-
         dev_id = ctypes.c_uint32(0)
         size = ctypes.c_uint32(ctypes.sizeof(dev_id))
         dev_addr = _AudioObjectPropertyAddress(_fourcc("dOut"), _fourcc("glob"), 0)
         if ca.AudioObjectGetPropertyData(1, ctypes.byref(dev_addr), 0, None, ctypes.byref(size), ctypes.byref(dev_id)) != 0:
-            return None
+            return None, None
+        return ca, dev_id.value
+    except Exception:
+        return None, None
+
+
+def _coreaudio_default_output_name() -> Optional[str]:
+    """Query macOS CoreAudio for the live default output device name."""
+    ca, dev_id = _coreaudio_default_output_id()
+    if ca is None or dev_id is None:
+        return None
+    try:
+        cf = ctypes.CDLL("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")
+        cf.CFStringGetCString.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_long, ctypes.c_uint32]
+        cf.CFStringGetCString.restype = ctypes.c_bool
+        cf.CFRelease.argtypes = [ctypes.c_void_p]
 
         cfstr = ctypes.c_void_p()
         name_size = ctypes.c_uint32(ctypes.sizeof(cfstr))
         name_addr = _AudioObjectPropertyAddress(_fourcc("lnam"), _fourcc("glob"), 0)
-        if ca.AudioObjectGetPropertyData(dev_id.value, ctypes.byref(name_addr), 0, None, ctypes.byref(name_size), ctypes.byref(cfstr)) != 0 or not cfstr.value:
+        if ca.AudioObjectGetPropertyData(dev_id, ctypes.byref(name_addr), 0, None, ctypes.byref(name_size), ctypes.byref(cfstr)) != 0 or not cfstr.value:
             return None
         try:
             buf = ctypes.create_string_buffer(512)
@@ -59,6 +73,56 @@ def _coreaudio_default_output_name() -> Optional[str]:
             cf.CFRelease(cfstr)
     except Exception:
         return None
+
+
+def _coreaudio_default_output_transport() -> Optional[int]:
+    """Query macOS CoreAudio for the default output device's transport type fourcc."""
+    ca, dev_id = _coreaudio_default_output_id()
+    if ca is None or dev_id is None:
+        return None
+    try:
+        transport = ctypes.c_uint32(0)
+        size = ctypes.c_uint32(ctypes.sizeof(transport))
+        addr = _AudioObjectPropertyAddress(_fourcc("tran"), _fourcc("glob"), 0)
+        if ca.AudioObjectGetPropertyData(dev_id, ctypes.byref(addr), 0, None, ctypes.byref(size), ctypes.byref(transport)) != 0:
+            return None
+        return transport.value
+    except Exception:
+        return None
+
+
+def is_bluetooth_output(get_transport: Optional[Callable[[], Optional[int]]] = None) -> bool:
+    """Return True when the active macOS default output device uses Bluetooth or BLE Audio."""
+    transport = (get_transport or _coreaudio_default_output_transport)()
+    return transport in _BLUETOOTH_TRANSPORTS
+
+
+def pad_bluetooth_preroll(
+    pcm,
+    sample_rate: int,
+    preroll_s: float = BLUETOOTH_PREROLL_S,
+    is_bluetooth_fn: Optional[Callable[[], bool]] = None,
+):
+    """Prepend silent pre-roll samples on Bluetooth output so A2DP wake-up does not clip word 1."""
+    if pcm is None or not sample_rate or sample_rate <= 0 or preroll_s <= 0:
+        return pcm
+    try:
+        if len(pcm) == 0:
+            return pcm
+    except TypeError:
+        return pcm
+    if not (is_bluetooth_fn or is_bluetooth_output)():
+        return pcm
+    import numpy as np
+
+    arr = np.asarray(pcm, dtype=np.float32)
+    pad_len = int(round(sample_rate * preroll_s))
+    if pad_len <= 0:
+        return pcm
+    if arr.ndim == 2:
+        zeros = np.zeros((pad_len, arr.shape[1]), dtype=arr.dtype)
+        return np.concatenate([zeros, arr], axis=0)
+    return np.concatenate([np.zeros(pad_len, dtype=arr.dtype), arr.reshape(-1)])
 
 
 def _refresh_portaudio(sd_module) -> None:

@@ -53,6 +53,7 @@ html, body {
 .state-idle.is-hovered { width: 72px; height: 24px; }
 .state-timer { width: 68px; height: 24px; }
 .state-blocked, .state-error { width: 92px; height: 28px; }
+.state-stopped { width: 82px; height: 28px; border-color: var(--pill-stop-border); color: var(--pill-stop); }
 .state-thinking { width: 82px; height: 28px; border-color: var(--pill-think-border); }
 .state-listening, .state-held { width: 112px; height: 30px; border-color: var(--pill-listen-border); }
 .state-speaking { width: 112px; height: 30px; border-color: var(--pill-speak-border); }
@@ -73,7 +74,7 @@ html, body {
   font-weight: 500;
   white-space: nowrap;
 }
-.state-blocked .label, .state-error .label, .state-timer .label { display: block; }
+.state-blocked .label, .state-error .label, .state-stopped .label, .state-timer .label { display: block; }
 .state-timer .label {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-variant-numeric: tabular-nums;

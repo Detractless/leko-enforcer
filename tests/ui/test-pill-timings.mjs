@@ -80,7 +80,16 @@ test('word_timings_drive_word_reveal_and_pointerdown_dismisses_active_card', () 
   assert.equal(vm.els['card-body'].textContent, 'Alpha ');
   vm.listeners.get('pill:pointerdown')({ pointerId: 1 });
   assert.equal(vm.els.card.hidden, true);
-  assert.deepEqual(vm.posted.slice(-2), ['ptt_start', 'card_dismiss']);
+  assert.deepEqual(vm.posted.slice(-2), ['card_dismiss', 'stop']);
+  assert.equal(vm.els.pill.className.includes('state-stopped'), true);
+  vm.listeners.get('pill:pointerup')({ pointerId: 1 });
+  assert.equal(vm.posted.includes('ptt_start'), false);
+  assert.equal(vm.posted.includes('ptt_end'), false);
+  const stopTimers = vm.timers.filter((t) => !t.cleared && !t.fired);
+  assert.equal(stopTimers.length, 1);
+  assert.equal(stopTimers[0].ms, 1200);
+  vm.advance(stopTimers[0]);
+  assert.equal(vm.els.pill.className.includes('state-idle'), true);
   assert.equal(vm.timers.some((t) => !t.cleared && !t.fired), false);
 });
 
@@ -103,3 +112,23 @@ test('letter_reveal_mode_types_individual_characters_across_word_windows', () =>
   assert.equal(steps[1], 'No');
   assert.equal(steps[steps.length - 1], 'No go.');
 });
+
+test('stop_during_thinking_stays_red_even_while_held_and_ignores_stale_idle', () => {
+  const vm = mountPillVm();
+  vm.ctx.window.__leko_on_event({ type: 'state', state: 'thinking' });
+  assert.equal(vm.els.pill.className.includes('state-thinking'), true);
+  vm.listeners.get('pill:pointerdown')({ pointerId: 1 });
+  assert.deepEqual(vm.posted, ['stop']);
+  assert.equal(vm.els.pill.className.includes('state-stopped'), true);
+  vm.ctx.window.__leko_on_event({ type: 'state', state: 'idle' });
+  vm.ctx.window.__leko_on_event({ type: 'state', state: 'speaking' });
+  assert.equal(vm.els.pill.className.includes('state-stopped'), true);
+  const stopTimers = vm.timers.filter((t) => !t.cleared && !t.fired);
+  assert.equal(stopTimers.length, 1);
+  vm.advance(stopTimers[0]);
+  assert.equal(vm.els.pill.className.includes('state-stopped'), true);
+  vm.listeners.get('pill:pointerup')({ pointerId: 1 });
+  assert.equal(vm.els.pill.className.includes('state-idle'), true);
+  assert.deepEqual(vm.posted, ['stop']);
+});
+

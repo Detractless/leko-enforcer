@@ -1,0 +1,70 @@
+body.has-card {
+  width: 100vw;
+  height: 100vh;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-bottom: 6px;
+  box-sizing: border-box;
+}
+
+.reply-card {
+  width: 344px;
+  max-width: calc(100vw - 16px);
+  max-height: 256px;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--pill-border);
+  background: var(--pill-fill);
+  box-shadow: var(--pill-shadow);
+  color: var(--pill-ink);
+  font-size: 12.5px;
+  line-height: 1.45;
+  outline: none;
+}
+
+.reply-card[hidden] {
+  display: none;
+}
+
+.card-body {
+  color: var(--pill-ink);
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.card-table {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.card-table th,
+.card-table td {
+  text-align: left;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--pill-border);
+  color: var(--pill-ink);
+}
+
+.card-table th {
+  color: var(--pill-muted);
+  font-weight: 600;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.card-table td:last-child,
+.card-table th:last-child {
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-table tr:last-child td {
+  border-bottom: none;
+}

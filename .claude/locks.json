@@ -691,6 +691,22 @@
           "sha256": "61b4d67ec73c0c982dfcd3bb8d74c47c1270250356c929d53ed92ee42aeb7ffb"
         }
       ]
+    },
+    {
+      "path": ".agent/contracts/native-leko-countdowns-and-voice.md",
+      "sha256": "b5e5a869fa428f768bb8483d8167e74330b15910eea85c27eac5c687cf893fa4",
+      "state": "locked",
+      "reason": "contract \"native-leko-countdowns-and-voice\" opened by the user: I approve all 5 decisions. Go ahead and implement (also make sure voice startup skips launching llama-server unless LEKO_ENABLE_LLM_ROUTER=1 so we save RAM and startup time).",
+      "evidence": "validated: goal, criteria with evidence and breaker, checklist coverage, edge cases",
+      "authorizedBy": null,
+      "updatedAt": "2026-11-27T00:37:13.562Z",
+      "history": [
+        {
+          "at": "2026-11-27T00:37:13.562Z",
+          "event": "lock",
+          "sha256": "b5e5a869fa428f768bb8483d8167e74330b15910eea85c27eac5c687cf893fa4"
+        }
+      ]
     }
   ]
 }

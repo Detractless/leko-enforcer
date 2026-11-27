@@ -7,6 +7,7 @@ pub const EXIT_USAGE: i32 = 2;
 pub const RULE_COMMANDS: &[&str] = &[
     "create-rule", "list-rules", "show-rule", "edit-rule", "delete-rule",
     "queue-edit", "cancel-edit", "request-pass", "check-status", "evaluate-rule",
+    "countdowns",
 ];
 
 pub const INFRA_COMMANDS: &[&str] = &["settings", "agent", "enforce"];

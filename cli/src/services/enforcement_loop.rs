@@ -19,7 +19,7 @@ use crate::clock::CliClock;
 use crate::commands::{refused, CommandResult};
 use crate::services::os_executor::{ObservedApp, OsExecutor, SystemExecutor};
 use crate::services::usage_tracker::{
-    active_time_limit_remaining, pass_state_path_for, save_usage_safe, update_tick,
+    pass_state_path_for, save_usage_safe, update_tick,
     usage_state_path_for, write_pill_state,
 };
 
@@ -299,7 +299,19 @@ pub fn enforce_with<E: OsExecutor>(
         }
 
         if !options.dry_run {
-            let timer = active_time_limit_remaining(&store.rules, &usage_file, &pass_file, activity.as_ref(), &moment);
+            let report = leko_core::countdowns::compute_countdowns(
+                &store.rules, &usage_file, &pass_file, &moment,
+            );
+            let timer = report.countdowns.into_iter().find(|item| {
+                if item.kind != "Time Limit" {
+                    return true;
+                }
+                store.rules.iter().find(|r| r.id == item.rule_id).is_some_and(|r| {
+                    crate::services::usage_tracker::target_or_visible_matches(
+                        &r.target, activity.as_ref(),
+                    )
+                })
+            }).map(|item| item.remaining_seconds);
             let blocked_ref = blocked.as_ref().map(|(k, t)| (k.as_str(), t.as_str()));
             write_pill_state(args, blocked_ref, timer, &moment.utc.to_rfc3339());
         }

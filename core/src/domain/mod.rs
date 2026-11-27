@@ -11,5 +11,6 @@ pub use pass_eval::{pass_active, PassState};
 pub use schedule_eval::{is_time_active, routine_windows};
 pub use seal_eval::{queued_edits_due, seal_satisfied, SealProof};
 pub use usage_eval::{
-    budget_status, period_key, usage_allows, usage_allows_tracked, UsageBudgetStatus, UsageState,
+    budget_status, compute_countdowns, period_key, rule_countdowns, sort_countdowns, usage_allows,
+    usage_allows_tracked, CountdownItem, CountdownsReport, UsageBudgetStatus, UsageState,
 };

@@ -96,6 +96,32 @@ class QueryFlowTests(unittest.TestCase):
         self.assertIsNone(self.state.pending)
         self.assertEqual(self.calls, [])
 
+    def test_deterministic_voice_routes_queries_and_emits_reply_card(self):
+        import os
+        from voice.routing import deterministic_router, llm_request
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("LEKO_ENABLE_LLM_ROUTER", None)
+            with patch.object(fixtures.fake_voice, "parse_request_update_safe",
+                              side_effect=lambda q, **_kw: llm_request.parse_request_update_safe(q), create=True):
+                reply = self.query("tell me a joke about bananas")
+                self.assertEqual(reply, deterministic_router.FALLBACK_REPLY)
+                card_events = [e for e in self.events if e.get("type") == "reply_card"]
+                self.assertTrue(card_events)
+                self.assertEqual(card_events[-1]["text"], deterministic_router.FALLBACK_REPLY)
+
+                def fake_cli(cmd, **_kw):
+                    self.calls.append(cmd)
+                    if "countdowns" in cmd:
+                        return type("P", (), {"returncode": 0, "stdout": '{"countdowns":[{"rule_id":"r1","rule":"Study","kind":"Time Limit","transition":"Limit Reached","remaining_seconds":300,"urgency":1}]}', "stderr": ""})()
+                    return type("P", (), {"returncode": 0, "stdout": "ok", "stderr": ""})()
+
+                with patch("voice.session.query_flow.subprocess.run", side_effect=fake_cli):
+                    c_reply = self.query("what countdowns are active")
+                self.assertIn("Study Time Limit", c_reply)
+                card = [e for e in self.events if e.get("type") == "reply_card"][-1]
+                self.assertEqual(card["columns"], ["Rule", "Kind", "Remaining"])
+                self.assertEqual(card["rows"], [["Study", "Time Limit", "05:00"]])
+
 
 if __name__ == "__main__":
     unittest.main()

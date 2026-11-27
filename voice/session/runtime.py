@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import re
 import time
 import threading
@@ -15,12 +16,10 @@ from .conversation import Conversation, confirmation
 from .session_log import SessionLog
 from .query_flow import clear_pending
 from ..core.settings_setup import SettingsSetupError, prepare_settings
-
 IGNORE_ISOLATED_PHRASES = {
     "yeah", "oh yeah", "yeah yeah", "uh-huh", "uh huh", "mhm", "mm-hmm",
     "yep", "yup", "oh", "ah", "ha", "huh", "mm", "umm", "um", "hmm"
 }
-
 def is_ignorable_filler(text: str) -> bool:
     clean = re.sub(r"[^\w\s]", "", text.lower()).strip()
     return clean in IGNORE_ISOLATED_PHRASES
@@ -321,7 +320,8 @@ class RuntimeController:
             self.turn_manager.start()
             # Load MLX STT on the same serialized worker that will use it.
             self.worker.submit(self._warm_stt)
-            voice.ensure_server()
+            if os.environ.get("LEKO_ENABLE_LLM_ROUTER") == "1":
+                voice.ensure_server()
             if self.args.query:
                 self.submit_query(self.args.query, input_source="cli")
                 self.worker.q.join(timeout=5)

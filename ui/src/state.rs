@@ -1,3 +1,4 @@
+use crate::card::CardState;
 use serde::Serialize;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -21,6 +22,12 @@ pub struct Snapshot {
     pub timer: String,
     pub bars: u8,
     pub dash: bool,
+    pub card_active: bool,
+    pub card_text: String,
+    pub card_columns: Vec<String>,
+    pub card_rows: Vec<Vec<String>>,
+    pub card_width: u32,
+    pub card_height: u32,
 }
 
 pub struct Machine {
@@ -29,6 +36,7 @@ pub struct Machine {
     pub blocked_until: f64,
     pub quiet_timer: bool,
     pub hovering: bool,
+    pub card: CardState,
 }
 
 impl Machine {
@@ -39,21 +47,45 @@ impl Machine {
             blocked_until: 0.0,
             quiet_timer,
             hovering: false,
+            card: CardState::default(),
         }
     }
 
     pub fn apply(&mut self, event: &str, now: f64, duration: f64) -> Snapshot {
+        self.apply_value(&serde_json::json!({ "event": event }), now, duration)
+    }
+
+    pub fn apply_value(&mut self, value: &serde_json::Value, now: f64, duration: f64) -> Snapshot {
+        let event = value.get("event").and_then(|v| v.as_str()).unwrap_or("");
         match event {
             "blocked" => {
                 self.state = PillState::Blocked;
                 self.blocked_until = now + 2.2;
+                self.card.clear();
             }
             "ptt_start" => self.state = PillState::Held,
             "ptt_end" | "grace" => self.state = PillState::Listening,
-            "speaking" => self.state = PillState::Speaking,
+            "speaking" => {
+                self.state = PillState::Speaking;
+                if self.card.active {
+                    self.card.speaking = true;
+                    self.card.collapse_at = None;
+                }
+            }
             "thinking" => self.state = PillState::Thinking,
-            "error" => self.state = PillState::Error,
-            "idle" => self.state = self.rest(),
+            "error" => {
+                self.state = PillState::Error;
+                self.card.clear();
+            }
+            "idle" => {
+                self.state = self.rest();
+                if self.card.active && self.card.speaking {
+                    self.card.speaking = false;
+                    if !self.card.hovered {
+                        self.card.collapse_at = Some(now + 4.0);
+                    }
+                }
+            }
             "timer_start" => {
                 self.timer = clock(duration);
                 if self.quiet_timer && matches!(self.state, PillState::Idle | PillState::Timer) {
@@ -66,10 +98,29 @@ impl Machine {
             }
             "hover_on" => self.hovering = true,
             "hover_off" => self.hovering = false,
+            "reply_card" => self.card.apply_reply(value),
+            "card_hover_on" => {
+                self.card.hovered = true;
+                self.card.collapse_at = None;
+            }
+            "card_hover_off" => {
+                self.card.hovered = false;
+                if self.card.active && !self.card.speaking {
+                    self.card.collapse_at = Some(now + 2.0);
+                }
+            }
+            "card_dismiss" | "escape" | "outside_click" => self.card.clear(),
             _ => {}
         }
         if self.state == PillState::Blocked && now >= self.blocked_until {
             self.state = self.rest();
+        }
+        if self.card.active && !self.card.hovered {
+            if let Some(at) = self.card.collapse_at {
+                if now >= at {
+                    self.card.clear();
+                }
+            }
         }
         self.snapshot()
     }
@@ -94,6 +145,7 @@ impl Machine {
             PillState::Idle => ("", if self.hovering { 72 } else { 54 },
                 if self.hovering { 24 } else { 16 }, 0, true, "idle"),
         };
+        let (card_width, card_height) = self.card.desired_size();
         Snapshot {
             state: state.to_string(),
             text: text.to_string(),
@@ -102,6 +154,12 @@ impl Machine {
             timer: self.timer.clone(),
             bars,
             dash,
+            card_active: self.card.active,
+            card_text: self.card.text.clone(),
+            card_columns: self.card.columns.clone(),
+            card_rows: self.card.rows.clone(),
+            card_width,
+            card_height,
         }
     }
 }

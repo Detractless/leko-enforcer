@@ -233,3 +233,37 @@ fn usage_tracker_and_engagement_flags_validate_streams() {
     assert!(serde_json::from_str::<serde_json::Value>(out.trim()).is_ok());
     fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn countdowns_flags_validate_streams_and_empty_stores() {
+    let dir = std::env::temp_dir().join(format!("leko-cli-cd-args-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let store = dir.join("store.json");
+    let flag = store.to_str().unwrap();
+
+    for bad in [
+        &["countdowns", "--store"][..],
+        &["countdowns", "--store", flag, "--at", "not-a-timestamp"][..],
+    ] {
+        let (code, out, err) = call(bad);
+        assert_ne!(code, 0, "expected non-zero for {:?}", bad);
+        assert!(out.is_empty(), "expected empty stdout for {:?}", bad);
+        assert!(!err.is_empty(), "expected stderr message for {:?}", bad);
+    }
+
+    let empty = dir.join("empty.json");
+    leko_core::store::save(&empty, &leko_core::store::NativeStore { version: 1, rules: vec![] }).unwrap();
+    for _ in 0..2 {
+        let (code, out, err) = call(&["countdowns", "--store", empty.to_str().unwrap(), "--at", "2026-01-01T00:00:00Z", "--json"]);
+        assert_eq!(code, 0, "{}", err);
+        assert!(err.is_empty());
+        let parsed: serde_json::Value = serde_json::from_str(out.trim()).unwrap();
+        assert_eq!(parsed["countdowns"].as_array().unwrap().len(), 0);
+        assert!(parsed["soonest"].is_null());
+    }
+    let (hcode, hout, herr) = call(&["countdowns", "--store", empty.to_str().unwrap(), "--at", "2026-01-01T00:00:00Z"]);
+    assert_eq!(hcode, 0, "{}", herr);
+    assert!(hout.contains("Countdowns: None"));
+    fs::remove_dir_all(dir).unwrap();
+}

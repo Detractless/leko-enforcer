@@ -7,7 +7,7 @@ from typing import Any
 import sqlite3
 import subprocess
 import voice.core.assistant as voice
-from ..routing import canonical_speech
+from ..routing import canonical_speech, deterministic_router
 from .conversation import Conversation, confirmation
 try:
     from ..request_state.flow import advance_request
@@ -60,15 +60,10 @@ def process_query(query, settings_zip, auto_confirm=False, bridge=None,
 
 
 def _memory_stage(state, query):
-    """Run the deterministic memory stage.
-
-    Returns (kind, payload): "reply" -> payload is the sentence to speak and the turn is done;
-    "model" -> payload is the memories list to pass to the model.
-    """
+    """Run the deterministic memory stage returning ("reply", text) or ("model", memories)."""
     try:
         command = state.memory.command(query)
         if command is not None:
-            # Forget/correct also remove old facts from ephemeral conversation context.
             state.history.clear()
             return "reply", command
         return "model", state.memory.retrieve(query)
@@ -97,8 +92,6 @@ def _llm_intent(query, state, memories):
          tool=tool, arguments=args, content=intent.get("content"),
          reasoning_content=intent.get("reasoning_content"))
     return intent
-
-
 
 
 def _prepare_draft(tool, args, settings_zip, cancelled, state=None):
@@ -174,12 +167,16 @@ def _supports_audio_level(speak):
         return False
 
 
-def _respond(query, state, bridge, speak, cancelled, text, confirmed=False):
+def _respond(query, state, bridge, speak, cancelled, text, confirmed=False, card=None):
     if cancelled():
         return ""
     state.record(query, text)
     _log(state, "assistant_reply", text=text, confirmed=confirmed)
     if bridge:
+        if isinstance(card, dict):
+            bridge.emit_reply_card(card.get("text", text), card.get("columns"), card.get("rows"))
+        elif text:
+            bridge.emit_reply_card(text)
         bridge.emit_speaking(text)
         spoken = voice.verbalize_for_speech(text)
         if _supports_audio_level(speak):
@@ -278,7 +275,7 @@ def _route_intent(query, settings_zip, auto_confirm, bridge, state, speak,
                   cancelled, confirmation_id, intent):
     if intent.get("action") == "reply":
         return _respond(query, state, bridge, speak, cancelled,
-                        intent.get("content") or "Please rephrase that request.")
+                        intent.get("content") or "Please rephrase that request.", card=intent.get("card"))
     tool, args = intent.get("tool"), intent.get("arguments", {})
     _log(state, "tool_call_selected", tool=tool, arguments=args)
     if isinstance(args, dict):
@@ -297,8 +294,7 @@ def _route_intent(query, settings_zip, auto_confirm, bridge, state, speak,
         state.active_request.clear()
         return _respond(query, state, bridge, speak, cancelled, summary)
     summary += " Say yes to confirm or no to cancel."
-    action_id = _stage_pending(tool, args, settings_zip, intent, name, kind, description,
-                               state, bridge, cancelled)
+    action_id = _stage_pending(tool, args, settings_zip, intent, name, kind, description, state, bridge, cancelled)
     if action_id is None:
         return ""
     if auto_confirm:
@@ -307,14 +303,14 @@ def _route_intent(query, settings_zip, auto_confirm, bridge, state, speak,
     return _respond(query, state, bridge, speak, cancelled, summary)
 
 
-def _process_query(query, settings_zip, auto_confirm=False, bridge=None,
-                  is_cancelled=None, speak_fn=None, conversation=None, confirmation_id=None):
+def _process_query(query, settings_zip, auto_confirm=False, bridge=None, is_cancelled=None,
+                   speak_fn=None, conversation=None, confirmation_id=None):
     state = conversation if conversation is not None else DEFAULT_CONVERSATION
     epoch = state.epoch
     cancelled = lambda: state.epoch != epoch or bool(is_cancelled and is_cancelled())
+    sink = state.session_log.playback_sink(state.current_turn_id) if state.session_log else None
     speak = speak_fn or (lambda text, cancel=None, on_audio_level=None: voice.speak(
-        text, is_cancelled=cancel,
-        playback_event_sink=state.session_log.playback_sink(state.current_turn_id) if state.session_log else None,
+        text, is_cancelled=cancel, playback_event_sink=sink,
         **({"on_audio_level": on_audio_level} if on_audio_level is not None else {})))
     with state.turn_lock:
         if cancelled():
@@ -323,27 +319,29 @@ def _process_query(query, settings_zip, auto_confirm=False, bridge=None,
         if planned:
             return _respond(query, state, bridge, speak, cancelled, planned)
         decision = confirmation(query)
-        answer_to_active = decision is True and state.pending is None and state.active_request.active
-        if not answer_to_active:
+        if not (decision is True and state.pending is None and state.active_request.active):
             replied = _confirmation_reply(query, state, bridge, speak, cancelled, confirmation_id)
             if replied is not None:
                 return replied
-        # A new request invalidates the old draft, but history still resolves revisions.
         _reset_pending(state, bridge)
         memory_kind, payload = _memory_stage(state, query)
         if memory_kind == "reply":
             return _respond(query, state, bridge, speak, cancelled, payload)
-        memories = payload
         if bridge:
             bridge.emit_thinking(query)
-        intent = _llm_intent(query, state, memories)
+        intent = _llm_intent(query, state, payload)
         if cancelled():
             return ""
+        handled = deterministic_router.maybe_handle_intent(intent, settings_zip, voice.LEKO_BIN, subprocess.run)
+        if handled is not None:
+            return _respond(query, state, bridge, speak, cancelled, handled["content"], card=handled.get("card"))
+        if isinstance(intent, dict) and intent.get("action") == "reply":
+            return _respond(query, state, bridge, speak, cancelled,
+                            intent.get("content") or "How can I help?", card=intent.get("card"))
         progress = advance_request(state.active_request, intent, query, state.current_turn_id)
         if progress["kind"] == "clarify":
             _log(state, "request_clarification", field=progress["field"], action=state.active_request.action)
             return _respond(query, state, bridge, speak, cancelled, progress["text"])
         if progress["kind"] == "reply":
             return _respond(query, state, bridge, speak, cancelled, progress["text"])
-        return _route_intent(query, settings_zip, auto_confirm, bridge, state, speak,
-                             cancelled, confirmation_id, progress["intent"])
+        return _route_intent(query, settings_zip, auto_confirm, bridge, state, speak, cancelled, confirmation_id, progress["intent"])

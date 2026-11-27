@@ -71,6 +71,36 @@ class VoiceNativeCommandTests(unittest.TestCase):
         argv = tool_to_cli_args("store.json", "create_rule", {"name": "Study"})
         self.assertEqual(argv, tool_to_cli_args("store.json", "create_rule", {"name": "Study"}))
 
+    def test_default_voice_path_never_calls_local_llm(self):
+        from unittest.mock import patch
+        from voice.routing import deterministic_router, llm_request, llm_router
+
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("LEKO_ENABLE_LLM_ROUTER", None)
+            with patch.object(llm_router, "ensure_server", side_effect=AssertionError("LLM server started")), \
+                 patch.object(llm_router, "parse_user_intent", side_effect=AssertionError("LLM called")), \
+                 patch.object(llm_router, "parse_request_update", side_effect=AssertionError("LLM called")):
+                self.assertEqual(llm_request.parse_user_intent_safe("what countdowns are active")["tool"], "countdowns")
+                self.assertEqual(llm_request.parse_user_intent_safe("list my rules")["tool"], "list_rules")
+                self.assertEqual(llm_request.parse_user_intent_safe("what's currently blocked")["tool"], "status_summary")
+                self.assertEqual(llm_request.parse_request_update_safe("how much time left on safari")["arguments"]["rule_hint"], "safari")
+                self.assertEqual(llm_request.parse_request_update_safe("what passes are active")["arguments"]["filter"], "pass")
+                self.assertEqual(llm_request.parse_user_intent_safe("delete rule r1")["tool"], "delete_rule")
+                self.assertEqual(llm_request.parse_user_intent_safe("request pass for r1")["tool"], "request_pass")
+                block = llm_request.parse_user_intent_safe("block youtube.com for 15 minutes")
+                self.assertEqual(block["tool"], "create_rule")
+                self.assertEqual(block["arguments"]["duration"], "15m")
+                handled = deterministic_router.maybe_handle_intent(
+                    {"tool": "countdowns", "deterministic": True, "arguments": {}},
+                    "store.json", "leko",
+                    lambda cmd, **_kw: type("P", (), {"returncode": 0, "stdout": '{"countdowns":[{"rule_id":"r1","rule":"Focus","kind":"Time Limit","transition":"Enforcement Starts","remaining_seconds":252,"urgency":1}]}'})(),
+                )
+                self.assertIn("Focus Time Limit", handled["content"])
+                self.assertEqual(handled["card"]["columns"], ["Rule", "Kind", "Remaining"])
+                self.assertEqual(handled["card"]["rows"], [["Focus", "Time Limit", "04:12"]])
+        runtime_src = (ROOT / "voice/session/runtime.py").read_text(encoding="utf-8")
+        self.assertIn('os.environ.get("LEKO_ENABLE_LLM_ROUTER") == "1"', runtime_src)
+
 
 if __name__ == "__main__":
     unittest.main()

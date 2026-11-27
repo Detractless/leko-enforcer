@@ -10,18 +10,25 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 function mountPillVm() {
   const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
   const listeners = new Map();
-  const makeEl = (id) => ({
-    style: { setProperty() {} },
-    classList: { add() {}, remove() {} },
-    children: [],
-    appendChild(c) { this.children.push(c); },
-    addEventListener(type, fn) { listeners.set(`${id}:${type}`, fn); },
-    contains() { return false; },
-    setPointerCapture() {},
-    hidden: false,
-    textContent: '',
-    innerHTML: '',
-  });
+  const makeEl = (id) => {
+    const classes = new Set();
+    return {
+      style: { setProperty() {} },
+      classList: {
+        add(c) { classes.add(c); },
+        remove(c) { classes.delete(c); },
+        contains(c) { return classes.has(c); },
+      },
+      children: [],
+      appendChild(c) { this.children.push(c); },
+      addEventListener(type, fn) { listeners.set(`${id}:${type}`, fn); },
+      contains() { return false; },
+      setPointerCapture() {},
+      hidden: false,
+      textContent: '',
+      innerHTML: '',
+    };
+  };
   const els = Object.fromEntries(
     ['pill', 'bars', 'label', 'card', 'card-close', 'card-body', 'card-table', 'card-head', 'card-rows']
       .map((k) => [k, makeEl(k)]),
@@ -135,5 +142,20 @@ test('stop_during_thinking_stays_red_even_while_held_and_ignores_stale_idle', ()
   vm.listeners.get('pill:pointerup')({ pointerId: 1 });
   assert.equal(vm.els.pill.className.includes('state-idle'), true);
   assert.deepEqual(vm.posted, ['stop']);
+});
+
+test('card_cursor_updates_close_button_and_card_hover_without_window_focus', () => {
+  const vm = mountPillVm();
+  vm.els.card.getBoundingClientRect = () => ({ left: 16, top: 12, right: 364, bottom: 200, width: 348, height: 188 });
+  vm.els['card-close'].getBoundingClientRect = () => ({ left: 334, top: 20, right: 356, bottom: 42, width: 22, height: 22 });
+  vm.ctx.window.__leko_on_event({ type: 'reply_card', text: 'Hello' });
+  vm.ctx.window.__leko_on_event({ state: 'card_cursor', x: 345, y: 31 });
+  assert.equal(vm.els['card-close'].classList.contains('is-hovered'), true);
+  assert.deepEqual(vm.posted, ['card_hover_on']);
+  vm.ctx.window.__leko_on_event({ state: 'card_cursor', x: 100, y: 100 });
+  assert.equal(vm.els['card-close'].classList.contains('is-hovered'), false);
+  assert.deepEqual(vm.posted, ['card_hover_on']);
+  vm.ctx.window.__leko_on_event({ state: 'card_cursor', x: -1, y: -1 });
+  assert.deepEqual(vm.posted, ['card_hover_on', 'card_hover_off']);
 });
 

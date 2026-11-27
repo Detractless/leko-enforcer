@@ -248,6 +248,13 @@ impl<P: CursorProvider> NativeInput<P> {
         !(point.y >= self.pill_rect.1 && point.y < self.pill_rect.1 + self.pill_rect.3)
     }
 
+    pub fn local_cursor(&self) -> Option<(f64, f64)> {
+        if !self.card_active { return None; }
+        let point = self.provider.position()?;
+        if !Self::contains_rect(self.rect, point) { return None; }
+        Some((point.x - self.rect.0, point.y - self.rect.1))
+    }
+
     pub fn poll(&mut self) -> InputEvent {
         let Some(point) = self.provider.position() else { return InputEvent::None; };
         self.near = self.is_near(point);
@@ -323,14 +330,15 @@ mod tests {
     }
 
     #[test]
-    fn outside_click_fires_only_when_card_active_and_cursor_outside() {
+    fn outside_click_and_local_cursor_track_card_bounds() {
         let mut input = NativeInput::new((100.0, 100.0, 380.0, 260.0), TestCursor { point: Some(CursorPoint { x: 200.0, y: 150.0 }) });
         input.pill_rect = (210.0, 316.0, 160.0, 32.0);
+        assert_eq!(input.local_cursor(), None);
         input.card_active = true;
-        assert!(!input.poll_outside_click(true));
-        assert!(!input.poll_outside_click(false));
+        assert_eq!(input.local_cursor(), Some((100.0, 50.0)));
+        assert!(!input.poll_outside_click(true) && !input.poll_outside_click(false));
         input.provider.point = Some(CursorPoint { x: 900.0, y: 500.0 });
-        assert!(input.poll_outside_click(true));
-        assert!(!input.poll_outside_click(true));
+        assert_eq!(input.local_cursor(), None);
+        assert!(input.poll_outside_click(true) && !input.poll_outside_click(true));
     }
 }

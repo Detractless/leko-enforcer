@@ -251,6 +251,29 @@ class EmptyRuntimeTurnTests(unittest.TestCase):
         warm_tts.assert_called_once_with()
         self.assertEqual(emitted, ["idle"])
 
+    def test_warm_tts_warms_output_player_silently(self):
+        import importlib
+        saved_mod = sys.modules.pop("voice.core.assistant", None)
+        saved_attr = getattr(sys.modules["voice.core"], "assistant", None)
+        try:
+            real_assistant = importlib.import_module("voice.core.assistant")
+            fake_tts = SimpleNamespace(sample_rate=24000, synth=Mock())
+            with patch.object(real_assistant, "get_tts", return_value=fake_tts), \
+                 patch.object(real_assistant._output_player, "play") as play_mock:
+                res = real_assistant.warm_tts()
+            self.assertIs(res, fake_tts)
+            fake_tts.synth.assert_called_once_with("Ready.", voice=real_assistant.VOICE_NAME)
+            play_mock.assert_called_once()
+            pcm, sr = play_mock.call_args.args[:2]
+            self.assertEqual(sr, 24000)
+            self.assertEqual(len(pcm), 1200)
+            self.assertEqual(float(np.max(np.abs(pcm))), 0.0)
+        finally:
+            if saved_mod is not None:
+                sys.modules["voice.core.assistant"] = saved_mod
+            if saved_attr is not None:
+                sys.modules["voice.core"].assistant = saved_attr
+
 
 class StreamRecoveryTests(unittest.TestCase):
     def test_succeeds_without_refresh_when_first_open_works(self):

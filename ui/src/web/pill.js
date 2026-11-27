@@ -81,8 +81,8 @@
     if (streamIdx >= streamTokens.length) { cardTextDone = true; maybeScheduleCollapse(3500); return; }
     const rem = streamTokens.slice(streamIdx);
     const totalWeight = rem.reduce(function (sum, tok) { return sum + tok.weight; }, 0) || 1;
-    const targetMs = durationMs > 0 ? Math.max(250, durationMs - 140) : totalWeight * 48;
-    const startedAt = performance.now();
+    const targetMs = durationMs > 0 ? Math.max(250, durationMs) : totalWeight * 48;
+    const startedAt = performance.now() + (durationMs > 0 && streamIdx === 0 ? 110 : 0);
     let acc = 0;
     const baseIdx = streamIdx;
     const deadlines = rem.map(function (tok) { const ms = (acc / totalWeight) * targetMs; acc += tok.weight; return startedAt + ms; });

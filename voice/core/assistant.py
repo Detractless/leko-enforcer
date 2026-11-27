@@ -33,7 +33,7 @@ sys.modules.setdefault("assistant", sys.modules[__name__])
 
 from ..normalization.verbalizer import verbalize_for_speech
 from .turn_detector import TurnDetector
-from .stream_recovery import open_input_stream, sync_output_device
+from .stream_recovery import open_input_stream, pad_bluetooth_preroll, sync_output_device
 from .ui_bridge import compute_word_timings_ms, load_card_timing, start_playback_sampler
 try:
     from ..stt.stt_lifecycle import SttLifecycle
@@ -199,6 +199,12 @@ def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None,
         pcm = tts.synth(spoken_text, voice=VOICE_NAME)
         if is_cancelled and is_cancelled():
             return
+        sync_fn = globals().get("sync_output_device")
+        if sync_fn:
+            sync_fn(sd, can_refresh=lambda: _active_input_stream is None or getattr(_active_input_stream, "closed", True))
+        pad_fn = globals().get("pad_bluetooth_preroll")
+        if pad_fn:
+            pcm = pad_fn(pcm, tts.sample_rate)
         duration_s = len(pcm) / tts.sample_rate if hasattr(pcm, "__len__") else 0.0
         word_timings_ms = globals()["compute_word_timings_ms"](pcm, tts.sample_rate, spoken_text) if "compute_word_timings_ms" in globals() else None
         card_cfg = globals()["load_card_timing"]() if "load_card_timing" in globals() else {}
@@ -212,9 +218,6 @@ def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None,
         play_started = time.monotonic()
         stop_meter = sampler(pcm, tts.sample_rate, on_audio_level) if sampler else (lambda: None)
         try:
-            sync_fn = globals().get("sync_output_device")
-            if sync_fn:
-                sync_fn(sd, can_refresh=lambda: _active_input_stream is None or getattr(_active_input_stream, "closed", True))
             if _output_player.play(pcm, tts.sample_rate, is_cancelled):
                 emit("completed", elapsed_seconds=round(time.monotonic() - play_started, 3))
                 return

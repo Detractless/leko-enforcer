@@ -5,7 +5,15 @@ from pathlib import Path
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
-from voice.core.stream_recovery import open_input_stream, resolve_input_device, sync_output_device
+from voice.core.stream_recovery import (
+    _fourcc,
+    is_bluetooth_output,
+    open_input_stream,
+    pad_bluetooth_preroll,
+    resolve_input_device,
+    sync_output_device,
+)
+from voice.core.ui_bridge import compute_word_timings_ms
 
 
 def _fake_sd(devices, default_pair, on_refresh=None):
@@ -90,6 +98,36 @@ class OutputDeviceSyncTests(unittest.TestCase):
         self.assertEqual(sd.events, [])
         self.assertFalse(sync_output_device(sd, can_refresh=lambda: False, get_live_output_name=lambda: "Other"))
         self.assertEqual(sd.events, [])
+
+
+class BluetoothPrerollTests(unittest.TestCase):
+    def test_detects_bluetooth_and_ble_transports_only(self):
+        self.assertTrue(is_bluetooth_output(get_transport=lambda: _fourcc("blue")))
+        self.assertTrue(is_bluetooth_output(get_transport=lambda: _fourcc("blea")))
+        self.assertFalse(is_bluetooth_output(get_transport=lambda: _fourcc("bltn")))
+        self.assertFalse(is_bluetooth_output(get_transport=lambda: None))
+
+    def test_pads_silent_preroll_only_when_bluetooth_output_is_active(self):
+        import numpy as np
+
+        pcm = np.full(2400, 0.25, dtype=np.float32)
+        unpadded = pad_bluetooth_preroll(pcm, 24000, preroll_s=0.5, is_bluetooth_fn=lambda: False)
+        self.assertIs(unpadded, pcm)
+
+        padded = pad_bluetooth_preroll(pcm, 24000, preroll_s=0.5, is_bluetooth_fn=lambda: True)
+        self.assertEqual(len(padded), 14400)
+        self.assertTrue(np.all(padded[:12000] == 0.0))
+        self.assertTrue(np.allclose(padded[12000:], 0.25))
+
+    def test_word_timings_shift_forward_by_bluetooth_preroll(self):
+        import numpy as np
+
+        sr = 24000
+        pcm = np.full(sr // 2, 0.3, dtype=np.float32)
+        base_timings = compute_word_timings_ms(pcm, sr, "Hello world", lead_ms=0)
+        padded = pad_bluetooth_preroll(pcm, sr, preroll_s=0.6, is_bluetooth_fn=lambda: True)
+        padded_timings = compute_word_timings_ms(padded, sr, "Hello world", lead_ms=0)
+        self.assertEqual(padded_timings[0] - base_timings[0], 600)
 
 
 if __name__ == "__main__":

@@ -161,6 +161,11 @@ def get_tts():
 def warm_tts():
     tts = get_tts()
     tts.synth("Ready.", voice=VOICE_NAME)
+    try:
+        sr = int(getattr(tts, "sample_rate", 24000) or 24000)
+        _output_player.play(np.zeros(max(1, sr // 20), dtype=np.float32), sr)
+    except Exception:
+        pass
     return tts
 
 def stop_playback():

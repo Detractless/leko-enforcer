@@ -258,6 +258,8 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
   assert.match(js, /tokenWeight/);
   assert.match(js, /startTokenStream/);
   assert.match(js, /event\.duration_ms/);
+  assert.doesNotMatch(js, /durationMs - 140/);
+  assert.match(js, /\? 110 : 0/);
   assert.match(js, /renderTable/);
   assert.match(js, /Escape/);
   assert.match(js, /card_hover_on/);
@@ -276,4 +278,32 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
   const mainRs = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
   assert.match(mainRs, /webview\.set_bounds/);
   assert.match(mainRs, /poll_outside_click/);
+});
+
+test('word_sync_waits_for_audio_offset_and_paces_to_full_duration', async () => {
+  const { runInNewContext } = await import('node:vm');
+  const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
+  const makeEl = () => ({ style: { setProperty() {} }, classList: { add() {}, remove() {} }, children: [], appendChild(c) { this.children.push(c); }, addEventListener() {}, contains() { return false; }, hidden: false, textContent: '', innerHTML: '' });
+  const els = Object.fromEntries(['pill', 'bars', 'label', 'card', 'card-close', 'card-body', 'card-table', 'card-head', 'card-rows'].map((k) => [k, makeEl()]));
+  let now = 1000;
+  const timers = [];
+  const ctx = {
+    document: { getElementById: (id) => els[id] || makeEl(), createElement: makeEl, addEventListener() {}, body: { classList: { add() {}, remove() {} } } },
+    window: { addEventListener() {}, ipc: { postMessage() {} }, __leko_config: {} },
+    performance: { now: () => now },
+    requestAnimationFrame: () => 0,
+    setTimeout: (fn, ms) => { const entry = { fn, at: now + ms, ms, cleared: false }; timers.push(entry); return entry; },
+    clearTimeout: (entry) => { if (entry) { entry.cleared = true; } },
+  };
+  ctx.window.window = ctx.window;
+  runInNewContext(js, ctx);
+  ctx.window.__leko_on_event({ type: 'reply_card', text: 'Alpha beta.' });
+  ctx.window.__leko_on_event({ type: 'state', state: 'speaking', text: 'Alpha beta.', duration_ms: 2000 });
+  assert.equal(els['card-body'].textContent, '');
+  const active = timers.filter((t) => !t.cleared);
+  assert.equal(active.length, 1);
+  assert.ok(active[0].ms >= 105 && active[0].ms <= 115, `expected ~110ms initial wait, got ${active[0].ms}`);
+  now = active[0].at;
+  active[0].fn();
+  assert.equal(els['card-body'].textContent, 'Alpha ');
 });

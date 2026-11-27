@@ -179,11 +179,8 @@
   function dismissCard() {
     if (!cardActive) { return; }
     clearCardTimers();
-    cardActive = cardHovered = cardSpeaking = false;
-    cardTextDone = cardSpeechDone = true;
-    card.hidden = true;
-    document.body.classList.remove('has-card');
-    post('card_dismiss');
+    cardActive = cardHovered = cardSpeaking = false; cardTextDone = cardSpeechDone = true;
+    card.hidden = true; cardClose.classList.remove('is-hovered'); document.body.classList.remove('has-card'); post('card_dismiss');
   }
 
   function render() {
@@ -268,9 +265,11 @@
   window.addEventListener('pointercancel', function () { if (stopPress || localPressed || state === 'held') { releaseHold(false); } });
   pill.addEventListener('contextmenu', function (event) { event.preventDefault(); });
 
+  function hitRect(el, x, y) { const r = el && el.getBoundingClientRect && el.getBoundingClientRect(); return Boolean(r && r.width > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom); }
+  function setCardHover(on) { if (cardHovered === on) { return; } cardHovered = on; if (on) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; post('card_hover_on'); } else { post('card_hover_off'); maybeScheduleCollapse(2000); } }
   cardClose.addEventListener('click', function (event) { event.stopPropagation(); dismissCard(); });
-  card.addEventListener('mouseenter', function () { cardHovered = true; clearTimeout(cardCollapseTimer); cardCollapseTimer = null; post('card_hover_on'); });
-  card.addEventListener('mouseleave', function () { cardHovered = false; post('card_hover_off'); maybeScheduleCollapse(2000); });
+  card.addEventListener('mouseenter', function () { setCardHover(true); });
+  card.addEventListener('mouseleave', function () { setCardHover(false); });
   document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && cardActive) { dismissCard(); } });
   document.addEventListener('pointerdown', function (event) { if (canDismissOutside() && !card.contains(event.target) && !pill.contains(event.target)) { dismissCard(); } });
   window.addEventListener('blur', function () { if (stopPress || localPressed || state === 'held') { releaseHold(true); } if (canDismissOutside() && !cardHovered) { dismissCard(); } });
@@ -296,6 +295,12 @@
     }
     if (next === 'card_dismiss') { dismissCard(); return; }
     if (next === 'hover_on' || next === 'hover_off') { hovered = next === 'hover_on'; render(); return; }
+    if (next === 'card_cursor') {
+      const active = cardActive && !card.hidden;
+      if (active && hitRect(cardClose, event.x, event.y)) { cardClose.classList.add('is-hovered'); } else { cardClose.classList.remove('is-hovered'); }
+      if (active && card.getBoundingClientRect) { setCardHover(hitRect(card, event.x, event.y)); }
+      return;
+    }
     if (next === 'stop' || next === 'stopped') { localPressed = false; dismissCard(); flashStopped(); return; }
     if (next === 'blocked' || next === 'error') { localPressed = false; dismissCard(); setState(next); localTimer = setTimeout(function () { setState(restState()); }, 2200); return; }
     if (next === 'timer_start') {

@@ -265,6 +265,7 @@ fn main() {
         }
     });
 
+    let mut last_card_cursor: Option<(i32, i32)> = None;
     unsafe { set_ignores_mouse(native_window as *mut std::ffi::c_void, true); }
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -283,6 +284,14 @@ fn main() {
             };
             if !script.is_empty() {
                 let _ = webview.evaluate_script(script);
+            }
+            let next_cursor = input.local_cursor().map(|(x, y)| (x.round() as i32, y.round() as i32));
+            if next_cursor != last_card_cursor {
+                last_card_cursor = next_cursor;
+                let (cx, cy) = next_cursor.unwrap_or((-1, -1));
+                let _ = webview.evaluate_script(&format!(
+                    "window.__leko_on_event({{state:'card_cursor',x:{},y:{}}});", cx, cy
+                ));
             }
             if drag_released {
                 let _ = webview.evaluate_script("window.__leko_on_event({state:'force_release'});");

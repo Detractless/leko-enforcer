@@ -61,7 +61,8 @@ body[data-anchor="top-right"] {
   display: block;
 }
 
-.card-close:hover {
+.card-close:hover,
+.card-close.is-hovered {
   background: var(--pill-close-hover-bg);
   border-color: var(--pill-close-hover-border);
   color: var(--pill-ink);

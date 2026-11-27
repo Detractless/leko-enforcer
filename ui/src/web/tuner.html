@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leko Card Timing Tuner</title>
+<link rel="stylesheet" href="/tokens.css">
+<link rel="stylesheet" href="/pill.css">
+<link rel="stylesheet" href="/card.css">
+<style>
+  html, body {
+    height: auto;
+    min-height: 100%;
+    overflow: auto;
+    display: block;
+    background: #0d1016;
+    color: #f2f4f8;
+    padding: 20px;
+    user-select: text;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; display: grid; gap: 16px; }
+  .head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+  .head h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+  .sub { font-size: 12px; color: #9aa3b2; }
+  .grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 780px) { .grid { grid-template-columns: 1fr; } }
+  .panel {
+    background: #141923;
+    border: 1px solid #262e3d;
+    border-radius: 14px;
+    padding: 16px;
+    display: grid;
+    gap: 14px;
+  }
+  .stage {
+    min-height: 220px;
+    border-radius: 12px;
+    border: 1px dashed #2e384b;
+    background: radial-gradient(circle at 50% 85%, #1d2433 0%, #10141c 75%);
+    padding: 18px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  body[data-theme="light"] .stage {
+    background: radial-gradient(circle at 50% 85%, #eef2f7 0%, #dde3ec 75%);
+  }
+  canvas#wave {
+    width: 100%;
+    height: 132px;
+    display: block;
+    background: #0c1017;
+    border: 1px solid #232b3a;
+    border-radius: 10px;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+  button.btn, select.ctrl {
+    background: #1d2534;
+    color: #eef2f7;
+    border: 1px solid #323d52;
+    border-radius: 8px;
+    padding: 7px 11px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  button.btn:hover { background: #263145; }
+  button.btn.primary { background: #2563eb; border-color: #3b82f6; color: #fff; }
+  button.btn.primary:hover { background: #1d4ed8; }
+  button.btn.save { background: #0f766e; border-color: #14b8a6; color: #fff; }
+  button.btn.save:hover { background: #0d9488; }
+  button.btn.active { border-color: #3b82f6; background: #1e3a8a; }
+  textarea#phrase {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 62px;
+    background: #0c1017;
+    color: #f2f4f8;
+    border: 1px solid #2b3547;
+    border-radius: 8px;
+    padding: 9px 10px;
+    font: inherit;
+    font-size: 13px;
+    resize: vertical;
+  }
+  .slider { display: grid; gap: 5px; }
+  .slider label { display: flex; justify-content: space-between; font-size: 12px; color: #cbd5e1; }
+  .slider span.val { font-family: ui-monospace, Menlo, monospace; color: #93c5fd; }
+  input[type="range"] { width: 100%; accent-color: #3b82f6; }
+  .meta { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #94a3b8; white-space: pre-wrap; }
+  .status-line { font-size: 12px; color: #86efac; min-height: 16px; }
+</style>
+</head>
+<body data-theme="dark">
+<div class="wrap">
+  <div class="head">
+    <div>
+      <h1>Leko Speech &amp; Card Timing Tuner</h1>
+      <div class="sub">Test real TTS audio against word-by-word or letter-by-letter reveal, then save directly to Leko.</div>
+    </div>
+    <div class="row">
+      <button id="theme-btn" class="btn" type="button">Theme: Dark</button>
+      <label class="sub"><input id="keep-open" type="checkbox" checked> Keep card open</label>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="stage">
+        <div id="card" class="reply-card" hidden role="region" aria-label="Leko reply card">
+          <button id="card-close" class="card-close" type="button" aria-label="Close reply card">&times;</button>
+          <div id="card-body" class="card-body"></div>
+          <table id="card-table" class="card-table" hidden>
+            <thead id="card-head"></thead>
+            <tbody id="card-rows"></tbody>
+          </table>
+        </div>
+        <div id="pill-slot" class="pill-slot">
+          <button id="pill" class="leko-pill state-idle" type="button" aria-label="Leko voice pill">
+            <span class="dash"></span>
+            <span class="bars" id="bars"></span>
+            <span class="dots" id="dots"><span></span><span></span><span></span></span>
+            <span class="label" id="label"></span>
+          </button>
+        </div>
+      </div>
+
+      <canvas id="wave" width="840" height="264"></canvas>
+      <div id="timing-meta" class="meta">Click Play to synthesize and preview.</div>
+    </div>
+
+    <div class="panel">
+      <div class="presets" id="presets"></div>
+      <textarea id="phrase" spellcheck="false">No active countdowns.</textarea>
+
+      <div class="row">
+        <button id="play-btn" class="btn primary" type="button">Play &amp; Sync</button>
+        <button id="stop-btn" class="btn" type="button">Stop</button>
+        <select id="speed" class="ctrl" aria-label="Playback speed">
+          <option value="0.75">0.75x (Slow inspect)</option>
+          <option value="1" selected>1.0x (Real speed)</option>
+          <option value="1.25">1.25x</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <span class="sub">Reveal mode:</span>
+        <button id="mode-word" class="btn active" type="button">Word by word</button>
+        <button id="mode-letter" class="btn" type="button">Letter by letter</button>
+      </div>
+
+      <div class="slider">
+        <label>Lead offset (negative = earlier) <span id="lead-val" class="val">-30 ms</span></label>
+        <input id="lead_ms" type="range" min="-200" max="150" step="5" value="-30">
+      </div>
+
+      <div class="slider">
+        <label>End pad (stretch / tighten phrase tail) <span id="end-pad-val" class="val">0 ms</span></label>
+        <input id="end_pad_ms" type="range" min="-250" max="250" step="10" value="0">
+      </div>
+
+      <div class="slider">
+        <label>Speech energy threshold <span id="thresh-val" class="val">0.04</span></label>
+        <input id="energy_threshold" type="range" min="0.01" max="0.15" step="0.005" value="0.04">
+      </div>
+
+      <div class="slider">
+        <label>Pause gap bridge <span id="gap-val" class="val">120 ms</span></label>
+        <input id="gap_bridge_ms" type="range" min="40" max="300" step="20" value="120">
+      </div>
+
+      <div class="row">
+        <button id="save-btn" class="btn save" type="button">Save to Leko App</button>
+        <button id="reset-btn" class="btn" type="button">Reset Defaults</button>
+      </div>
+      <div id="status-line" class="status-line"></div>
+    </div>
+  </div>
+</div>
+<script src="/pill.js"></script>
+<script src="/tuner.js"></script>
+</body>
+</html>

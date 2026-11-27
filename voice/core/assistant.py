@@ -34,7 +34,7 @@ sys.modules.setdefault("assistant", sys.modules[__name__])
 from ..normalization.verbalizer import verbalize_for_speech
 from .turn_detector import TurnDetector
 from .stream_recovery import open_input_stream
-from .ui_bridge import compute_word_timings_ms, start_playback_sampler
+from .ui_bridge import compute_word_timings_ms, load_card_timing, start_playback_sampler
 try:
     from ..stt.stt_lifecycle import SttLifecycle
 except ImportError:
@@ -46,22 +46,10 @@ from ..routing.llm_router import ensure_server
 from ..session.turn_worker import SerializedTurnWorker
 
 __all__ = [
-    'parse_user_intent_safe',
-    'parse_request_update_safe',
-    'tool_to_cli_args',
-    'ensure_server',
-    'SerializedTurnWorker',
-    'process_query',
-    'format_status_summary',
-    'speak',
-    'stop_playback',
-    'acquire_single_instance_lock',
-    'is_audio_muted_for_echo',
-    'set_playback_state',
-    'HandsfreeTurnManager',
-    'PushToTalkTurnManager',
-    'TurnDetector',
-    'verbalize_for_speech',
+    'parse_user_intent_safe', 'parse_request_update_safe', 'tool_to_cli_args', 'ensure_server',
+    'SerializedTurnWorker', 'process_query', 'format_status_summary', 'speak', 'stop_playback',
+    'acquire_single_instance_lock', 'is_audio_muted_for_echo', 'set_playback_state',
+    'HandsfreeTurnManager', 'PushToTalkTurnManager', 'TurnDetector', 'verbalize_for_speech',
 ]
 from ..audio_io.echo_canceller import EchoAudioProcessor, VoiceOutputPlayer
 
@@ -212,11 +200,13 @@ def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None,
             return
         duration_s = len(pcm) / tts.sample_rate if hasattr(pcm, "__len__") else 0.0
         word_timings_ms = globals()["compute_word_timings_ms"](pcm, tts.sample_rate, spoken_text) if "compute_word_timings_ms" in globals() else None
+        card_cfg = globals()["load_card_timing"]() if "load_card_timing" in globals() else {}
         print(f"\n[Maeve speaking] (expected duration: {duration_s:.2f}s):\n\"{spoken_text}\"", flush=True)
         set_echo_cancellation_enabled(_echo_audio.available)
         set_playback_state(True)
         emit("started", text=spoken_text, voice=VOICE_NAME, sample_rate=tts.sample_rate,
-             expected_duration_seconds=duration_s, word_timings_ms=word_timings_ms)
+             expected_duration_seconds=duration_s, word_timings_ms=word_timings_ms,
+             reveal_mode=card_cfg.get("reveal_mode"))
         sampler = globals().get("start_playback_sampler")
         play_started = time.monotonic()
         stop_meter = sampler(pcm, tts.sample_rate, on_audio_level) if sampler else (lambda: None)

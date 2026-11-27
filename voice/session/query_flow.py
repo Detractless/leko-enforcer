@@ -158,7 +158,7 @@ def _respond(query, state, bridge, speak, cancelled, text, confirmed=False, card
     if bridge:
         spoken = voice.verbalize_for_speech(text)
         opened = {"done": False}
-        def open_ui(duration_s=None, word_timings_ms=None):
+        def open_ui(duration_s=None, word_timings_ms=None, reveal_mode=None):
             if opened["done"] or cancelled():
                 return
             opened["done"] = True
@@ -167,7 +167,8 @@ def _respond(query, state, bridge, speak, cancelled, text, confirmed=False, card
             elif text:
                 bridge.emit_reply_card(text)
             duration_ms = int(round(duration_s * 1000)) if duration_s else None
-            spk_kw = {k: v for k, v in (("duration_ms", duration_ms), ("word_timings_ms", word_timings_ms)) if v}
+            spk_kw = {k: v for k, v in (("duration_ms", duration_ms), ("word_timings_ms", word_timings_ms),
+                                        ("reveal_mode", reveal_mode if reveal_mode == "letter" else None)) if v}
             bridge.emit_speaking(text, **spk_kw)
         kw = {}
         if _supports_param(speak, "on_audio_level"):
@@ -308,7 +309,7 @@ def _process_query(query, settings_zip, auto_confirm=False, bridge=None, is_canc
             if sink:
                 sink(ev)
             if on_playback_start and ev.get("status") == "started":
-                on_playback_start(ev.get("expected_duration_seconds") or 0.0, ev.get("word_timings_ms"))
+                on_playback_start(ev.get("expected_duration_seconds") or 0.0, ev.get("word_timings_ms"), ev.get("reveal_mode"))
         voice.speak(text, is_cancelled=cancel, playback_event_sink=_sink if (sink or on_playback_start) else None,
                     **({"on_audio_level": on_audio_level} if on_audio_level is not None else {}))
     speak = speak_fn or _default_speak

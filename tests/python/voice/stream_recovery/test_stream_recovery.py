@@ -5,21 +5,33 @@ from pathlib import Path
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
-from voice.core.stream_recovery import open_input_stream, resolve_input_device
+from voice.core.stream_recovery import open_input_stream, resolve_input_device, sync_output_device
 
 
-def _fake_sd(devices, default_pair):
+def _fake_sd(devices, default_pair, on_refresh=None):
     opened = []
+    events = []
 
     def raw_stream(**kw):
         opened.append(kw)
         return "stream"
 
+    def terminate():
+        events.append("terminate")
+
+    def initialize():
+        events.append("initialize")
+        if on_refresh:
+            on_refresh()
+
     return SimpleNamespace(
         default=SimpleNamespace(device=default_pair),
         query_devices=lambda: devices,
         RawInputStream=raw_stream,
+        _terminate=terminate,
+        _initialize=initialize,
         opened=opened,
+        events=events,
     )
 
 
@@ -56,6 +68,28 @@ class BluetoothInputRoutingTests(unittest.TestCase):
         self.assertIsNone(resolve_input_device(sd))
         open_input_stream(sd, device=0, samplerate=16000, channels=1)
         self.assertEqual(sd.opened[-1]["device"], 0)
+
+
+class OutputDeviceSyncTests(unittest.TestCase):
+    def test_refreshes_portaudio_when_live_output_differs_from_cached_default(self):
+        devices = [
+            {"index": 0, "name": "MacBook Air Microphone"},
+            {"index": 1, "name": "MacBook Air Speakers"},
+        ]
+        sd = _fake_sd(devices, [0, 1])
+        self.assertTrue(sync_output_device(sd, get_live_output_name=lambda: "Galaxy Buds2 (5B05)"))
+        self.assertEqual(sd.events, ["terminate", "initialize"])
+
+    def test_skips_refresh_when_output_matches_or_input_is_active(self):
+        devices = [
+            {"index": 0, "name": "MacBook Air Microphone"},
+            {"index": 1, "name": "Galaxy Buds2 (5B05)"},
+        ]
+        sd = _fake_sd(devices, [0, 1])
+        self.assertFalse(sync_output_device(sd, get_live_output_name=lambda: "Galaxy Buds2 (5B05)"))
+        self.assertEqual(sd.events, [])
+        self.assertFalse(sync_output_device(sd, can_refresh=lambda: False, get_live_output_name=lambda: "Other"))
+        self.assertEqual(sd.events, [])
 
 
 if __name__ == "__main__":

@@ -33,7 +33,7 @@ sys.modules.setdefault("assistant", sys.modules[__name__])
 
 from ..normalization.verbalizer import verbalize_for_speech
 from .turn_detector import TurnDetector
-from .stream_recovery import open_input_stream
+from .stream_recovery import open_input_stream, sync_output_device
 from .ui_bridge import compute_word_timings_ms, load_card_timing, start_playback_sampler
 try:
     from ..stt.stt_lifecycle import SttLifecycle
@@ -68,6 +68,7 @@ _playback_decay_until = _playback_start_time = 0.0
 _echo_audio = EchoAudioProcessor()
 _output_player = VoiceOutputPlayer(_echo_audio)
 _active_turn_detector = None
+_active_input_stream = None
 
 def set_playback_state(is_playing: bool, post_mute_s: float = 0.25) -> None:
     """Manages audio playback state and echo defense."""
@@ -211,6 +212,9 @@ def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None,
         play_started = time.monotonic()
         stop_meter = sampler(pcm, tts.sample_rate, on_audio_level) if sampler else (lambda: None)
         try:
+            sync_fn = globals().get("sync_output_device")
+            if sync_fn:
+                sync_fn(sd, can_refresh=lambda: _active_input_stream is None or getattr(_active_input_stream, "closed", True))
             if _output_player.play(pcm, tts.sample_rate, is_cancelled):
                 emit("completed", elapsed_seconds=round(time.monotonic() - play_started, 3))
                 return
@@ -284,9 +288,11 @@ def _clean_with_meter(super_clean, raw_samples, on_audio_level):
         on_audio_level(float(np.sqrt(np.mean(norm * norm))))
     return samples, failed
 
-
 def _open_mic_stream(**kw):
-    return open_input_stream(sd, can_refresh=lambda: _output_player.stream is None, **kw)
+    global _active_input_stream
+    stream = open_input_stream(sd, can_refresh=lambda: _output_player.stream is None, **kw)
+    _active_input_stream = stream
+    return stream
 
 class HandsfreeTurnManager(CaptureGate):
     def __init__(self, on_turn_complete, on_speech_onset=None, sample_rate=16000,

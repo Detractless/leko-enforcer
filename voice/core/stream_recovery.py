@@ -1,11 +1,64 @@
-"""Recover sounddevice input streams across macOS CoreAudio and Bluetooth profile switches."""
+"""Recover sounddevice input and output streams across macOS CoreAudio and Bluetooth switches."""
 from __future__ import annotations
 
+import ctypes
+import struct
+import sys
 import time
 from typing import Callable, Optional
 
 
 _BUILTIN_MIC_HINTS = ("built-in", "macbook", "imac", "mac mini", "mac studio", "mac pro")
+
+
+class _AudioObjectPropertyAddress(ctypes.Structure):
+    _fields_ = [("mSelector", ctypes.c_uint32), ("mScope", ctypes.c_uint32), ("mElement", ctypes.c_uint32)]
+
+
+def _fourcc(code: str) -> int:
+    return struct.unpack(">I", code.encode("ascii"))[0]
+
+
+def _coreaudio_default_output_name() -> Optional[str]:
+    """Query macOS CoreAudio for the live default output device name."""
+    if sys.platform != "darwin":
+        return None
+    try:
+        ca = ctypes.CDLL("/System/Library/Frameworks/CoreAudio.framework/CoreAudio")
+        cf = ctypes.CDLL("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")
+        ca.AudioObjectGetPropertyData.argtypes = [
+            ctypes.c_uint32,
+            ctypes.POINTER(_AudioObjectPropertyAddress),
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+            ctypes.POINTER(ctypes.c_uint32),
+            ctypes.c_void_p,
+        ]
+        ca.AudioObjectGetPropertyData.restype = ctypes.c_int32
+        cf.CFStringGetCString.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_long, ctypes.c_uint32]
+        cf.CFStringGetCString.restype = ctypes.c_bool
+        cf.CFRelease.argtypes = [ctypes.c_void_p]
+
+        dev_id = ctypes.c_uint32(0)
+        size = ctypes.c_uint32(ctypes.sizeof(dev_id))
+        dev_addr = _AudioObjectPropertyAddress(_fourcc("dOut"), _fourcc("glob"), 0)
+        if ca.AudioObjectGetPropertyData(1, ctypes.byref(dev_addr), 0, None, ctypes.byref(size), ctypes.byref(dev_id)) != 0:
+            return None
+
+        cfstr = ctypes.c_void_p()
+        name_size = ctypes.c_uint32(ctypes.sizeof(cfstr))
+        name_addr = _AudioObjectPropertyAddress(_fourcc("lnam"), _fourcc("glob"), 0)
+        if ca.AudioObjectGetPropertyData(dev_id.value, ctypes.byref(name_addr), 0, None, ctypes.byref(name_size), ctypes.byref(cfstr)) != 0 or not cfstr.value:
+            return None
+        try:
+            buf = ctypes.create_string_buffer(512)
+            if not cf.CFStringGetCString(cfstr, buf, len(buf), 0x08000100):
+                return None
+            return buf.value.decode("utf-8", errors="replace").strip() or None
+        finally:
+            cf.CFRelease(cfstr)
+    except Exception:
+        return None
 
 
 def _refresh_portaudio(sd_module) -> None:
@@ -17,6 +70,46 @@ def _refresh_portaudio(sd_module) -> None:
             initialize()
         except Exception:
             pass
+
+
+def _cached_output_name(sd_module) -> Optional[str]:
+    default = getattr(sd_module, "default", None)
+    pair = getattr(default, "device", None)
+    query_devices = getattr(sd_module, "query_devices", None)
+    if pair is None or not callable(query_devices):
+        return None
+    try:
+        out_idx = pair[1]
+        if not isinstance(out_idx, int) or out_idx < 0:
+            return None
+        devices = list(query_devices())
+        if out_idx >= len(devices):
+            return None
+        return str(devices[out_idx].get("name") or "").strip() or None
+    except Exception:
+        return None
+
+
+def sync_output_device(
+    sd_module,
+    *,
+    can_refresh: Optional[Callable[[], bool]] = None,
+    get_live_output_name: Optional[Callable[[], Optional[str]]] = None,
+) -> bool:
+    """Refresh PortAudio if macOS default output changed after startup."""
+    terminate = getattr(sd_module, "_terminate", None)
+    initialize = getattr(sd_module, "_initialize", None)
+    if not (callable(terminate) and callable(initialize)):
+        return False
+    live_name = (get_live_output_name or _coreaudio_default_output_name)()
+    if not live_name:
+        return False
+    if _cached_output_name(sd_module) == live_name:
+        return False
+    if can_refresh is not None and not can_refresh():
+        return False
+    _refresh_portaudio(sd_module)
+    return True
 
 
 def _resolve_device_pair(sd_module, devices):

@@ -11,7 +11,7 @@
 
   const WIDTHS = {
     idle: 54, timer: 68, blocked: 92, listening: 112, held: 112,
-    thinking: 82, speaking: 112, error: 92
+    thinking: 82, speaking: 112, stopped: 82, error: 92
   };
   const BAR_COUNTS = { listening: 7, held: 7, speaking: 7 };
   const WEIGHTS_7 = [0.56, 0.81, 0.92, 1.0, 0.92, 0.81, 0.56];
@@ -190,7 +190,7 @@
     const count = BAR_COUNTS[state] || 0;
     barEls.forEach((bar, index) => { bar.style.display = index < count ? 'block' : 'none'; });
     if (state === 'timer') { label.textContent = timerText; }
-    else if (state === 'blocked' || state === 'error') { label.textContent = state === 'blocked' ? 'Blocked' : 'Error'; }
+    else if (state === 'blocked' || state === 'error' || state === 'stopped') { label.textContent = state === 'blocked' ? 'Blocked' : state === 'stopped' ? 'Stopped' : 'Error'; }
     else { label.textContent = ''; }
   }
 
@@ -232,9 +232,13 @@
     setState(restState());
   }
 
-  let pressedAt = 0;
-  let localPressed = false;
+  let pressedAt = 0, localPressed = false, stopPress = false;
+  function flashStopped() {
+    setState('stopped');
+    localTimer = setTimeout(function () { localTimer = null; if (!stopPress && state === 'stopped') { setState(restState()); } }, 1200);
+  }
   function releaseHold(force) {
+    if (stopPress) { stopPress = false; if (!localTimer && state === 'stopped') { setState(restState()); } return; }
     const heldFor = performance.now() - pressedAt;
     const wasPressed = localPressed;
     localPressed = false;
@@ -250,13 +254,14 @@
 
   pill.addEventListener('pointerdown', function (event) {
     try { pill.setPointerCapture(event.pointerId); } catch (_) {}
-    localPressed = true; pressedAt = performance.now(); setState('held'); post('ptt_start');
     if (cardActive) { dismissCard(); }
+    if (state === 'thinking' || state === 'speaking') { stopPress = true; localPressed = false; flashStopped(); post('stop'); return; }
+    stopPress = false; localPressed = true; pressedAt = performance.now(); setState('held'); post('ptt_start');
   });
   pill.addEventListener('pointerup', function () { releaseHold(false); });
   pill.addEventListener('pointercancel', function () { releaseHold(false); });
-  window.addEventListener('pointerup', function () { if (localPressed || state === 'held') { releaseHold(false); } });
-  window.addEventListener('pointercancel', function () { if (localPressed || state === 'held') { releaseHold(false); } });
+  window.addEventListener('pointerup', function () { if (stopPress || localPressed || state === 'held') { releaseHold(false); } });
+  window.addEventListener('pointercancel', function () { if (stopPress || localPressed || state === 'held') { releaseHold(false); } });
   pill.addEventListener('contextmenu', function (event) { event.preventDefault(); });
 
   cardClose.addEventListener('click', function (event) { event.stopPropagation(); dismissCard(); });
@@ -264,7 +269,7 @@
   card.addEventListener('mouseleave', function () { cardHovered = false; post('card_hover_off'); maybeScheduleCollapse(2000); });
   document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && cardActive) { dismissCard(); } });
   document.addEventListener('pointerdown', function (event) { if (canDismissOutside() && !card.contains(event.target) && !pill.contains(event.target)) { dismissCard(); } });
-  window.addEventListener('blur', function () { if (localPressed || state === 'held') { releaseHold(true); } if (canDismissOutside() && !cardHovered) { dismissCard(); } });
+  window.addEventListener('blur', function () { if (stopPress || localPressed || state === 'held') { releaseHold(true); } if (canDismissOutside() && !cardHovered) { dismissCard(); } });
 
   window.__leko_on_event = function (raw) {
     let event;
@@ -280,19 +285,15 @@
     if (next === 'outside_click') { if (canDismissOutside()) { dismissCard(); } return; }
     if (next === 'reply_card') {
       localPressed = false;
+      if (state === 'stopped' && (stopPress || localTimer)) { return; }
       if (state !== 'speaking') { setState(restState()); }
       openCard(event);
       return;
     }
     if (next === 'card_dismiss') { dismissCard(); return; }
     if (next === 'hover_on' || next === 'hover_off') { hovered = next === 'hover_on'; render(); return; }
-    if (next === 'blocked' || next === 'error') {
-      localPressed = false;
-      dismissCard();
-      setState(next);
-      localTimer = setTimeout(function () { setState(restState()); }, 2200);
-      return;
-    }
+    if (next === 'stop' || next === 'stopped') { localPressed = false; dismissCard(); flashStopped(); return; }
+    if (next === 'blocked' || next === 'error') { localPressed = false; dismissCard(); setState(next); localTimer = setTimeout(function () { setState(restState()); }, 2200); return; }
     if (next === 'timer_start') {
       timerText = event.timer || '';
       if (window.__leko_config && window.__leko_config.quietTimer && (state === 'idle' || state === 'timer')) {
@@ -303,6 +304,7 @@
     if (next === 'timer_stop') { timerText = ''; setState('idle'); return; }
     if (next === 'held' && !localPressed) { return; }
     if (localPressed && state === 'held' && next === 'idle') { return; }
+    if (state === 'stopped' && (stopPress || localTimer) && (next === 'idle' || next === 'speaking')) { return; }
     if (next === 'speaking') {
       localPressed = false;
       clearTimeout(cardSpeechGraceTimer); cardSpeechGraceTimer = null;

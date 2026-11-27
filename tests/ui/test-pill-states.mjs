@@ -283,3 +283,34 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
   assert.match(mainRs, /poll_outside_click/);
 });
 
+test('stop_during_thinking_or_speaking_shows_red_stopped_state', () => {
+  const fromThinking = headless([
+    { event: 'ptt_start', now_ms: 0 },
+    { event: 'ptt_end', now_ms: 300 },
+    { event: 'thinking', now_ms: 320 },
+    { event: 'stop', now_ms: 500 },
+    { event: 'check', now_ms: 2000 },
+  ]);
+  assert.deepEqual(fromThinking.map((s) => s.state), ['held', 'listening', 'thinking', 'stopped', 'idle']);
+  assert.equal(fromThinking[3].text, 'Stopped');
+  assert.equal(fromThinking[3].width, 82);
+
+  const fromSpeaking = headless([
+    { event: 'speaking', now_ms: 0 },
+    { event: 'stop', now_ms: 200 },
+    { event: 'check', now_ms: 1600 },
+  ]);
+  assert.deepEqual(fromSpeaking.map((s) => s.state), ['speaking', 'stopped', 'idle']);
+
+  const tokens = readFileSync(resolve(ROOT, 'ui/src/web/tokens.css'), 'utf8');
+  assert.ok(tokens.includes('#EF4444'));
+  assert.ok(tokens.includes('#DC2626'));
+  const css = readFileSync(resolve(ROOT, 'ui/src/web/pill.css'), 'utf8');
+  assert.match(css, /\.state-stopped/);
+  assert.match(css, /--pill-stop-border/);
+  const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
+  assert.match(js, /state === 'thinking' \|\| state === 'speaking'/);
+  assert.match(js, /post\('stop'\)/);
+  assert.match(js, /stopPress/);
+});
+

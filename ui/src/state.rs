@@ -10,6 +10,7 @@ pub enum PillState {
     Held,
     Thinking,
     Speaking,
+    Stopped,
     Error,
 }
 
@@ -34,6 +35,7 @@ pub struct Machine {
     pub state: PillState,
     pub timer: String,
     pub blocked_until: f64,
+    pub stopped_until: f64,
     pub quiet_timer: bool,
     pub hovering: bool,
     pub card: CardState,
@@ -45,6 +47,7 @@ impl Machine {
             state: PillState::Idle,
             timer: String::new(),
             blocked_until: 0.0,
+            stopped_until: 0.0,
             quiet_timer,
             hovering: false,
             card: CardState::default(),
@@ -69,6 +72,11 @@ impl Machine {
                 }
             }
             "thinking" => self.state = PillState::Thinking,
+            "stop" | "stopped" => {
+                self.state = PillState::Stopped;
+                self.stopped_until = now + 1.2;
+                self.card.clear();
+            }
             "error" => {
                 self.state = PillState::Error;
                 self.card.clear();
@@ -121,6 +129,9 @@ impl Machine {
         if self.state == PillState::Blocked && now >= self.blocked_until {
             self.state = self.rest();
         }
+        if self.state == PillState::Stopped && now >= self.stopped_until {
+            self.state = self.rest();
+        }
         if self.card.active && !self.card.hovered {
             if let Some(at) = self.card.collapse_at {
                 if now >= at {
@@ -143,6 +154,7 @@ impl Machine {
         let (text, width, height, bars, dash, state) = match self.state {
             PillState::Blocked => ("Blocked", 92, 28, 0, false, "blocked"),
             PillState::Error => ("Error", 92, 28, 0, false, "error"),
+            PillState::Stopped => ("Stopped", 82, 28, 0, false, "stopped"),
             PillState::Timer => (self.timer.as_str(), 68, 24, 0, false, "timer"),
             PillState::Listening | PillState::Held => ("", 112, 30, 7, false,
                 if self.state == PillState::Held { "held" } else { "listening" }),

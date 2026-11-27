@@ -14,6 +14,32 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 LEKO_UI_DEBUG = REPO_ROOT / "target/debug/leko-pill"
 LEKO_UI_RELEASE = REPO_ROOT / "target/release/leko-pill"
 PILL_ACTIONS = Path.home() / "Library/Application Support/Leko/pill-actions.json"
+CARD_TIMING_PATH = Path.home() / "Library/Application Support/Leko/card-timing.json"
+DEFAULT_CARD_TIMING: Dict[str, Any] = {
+    "reveal_mode": "word",
+    "lead_ms": -30,
+    "energy_threshold": 0.04,
+    "gap_bridge_ms": 120,
+    "end_pad_ms": 0,
+}
+
+
+def load_card_timing(path: Optional[Path] = None) -> Dict[str, Any]:
+    cfg = dict(DEFAULT_CARD_TIMING)
+    try:
+        raw = json.loads((path or CARD_TIMING_PATH).read_text(encoding="utf-8"))
+        if isinstance(raw, dict):
+            if raw.get("reveal_mode") in ("word", "letter"):
+                cfg["reveal_mode"] = raw["reveal_mode"]
+            for key in ("lead_ms", "gap_bridge_ms", "end_pad_ms"):
+                if isinstance(raw.get(key), (int, float)):
+                    cfg[key] = int(round(raw[key]))
+            if isinstance(raw.get("energy_threshold"), (int, float)):
+                cfg["energy_threshold"] = max(0.005, min(0.25, float(raw["energy_threshold"])))
+    except (OSError, json.JSONDecodeError, ValueError):
+        pass
+    return cfg
+
 
 class UIPipelineBridge:
     def __init__(self, event_sink: Optional[Callable[[Dict[str, Any]], None]] = None):
@@ -76,7 +102,8 @@ class UIPipelineBridge:
         self.emit(payload)
 
     def emit_speaking(self, text: str, duration_ms: Optional[int] = None,
-                      word_timings_ms: Optional[list] = None) -> None:
+                      word_timings_ms: Optional[list] = None,
+                      reveal_mode: Optional[str] = None) -> None:
         payload: Dict[str, Any] = {
             "type": "state",
             "state": "speaking",
@@ -87,6 +114,8 @@ class UIPipelineBridge:
             payload["duration_ms"] = int(duration_ms)
         if word_timings_ms:
             payload["word_timings_ms"] = [int(t) for t in word_timings_ms]
+        if reveal_mode in ("word", "letter"):
+            payload["reveal_mode"] = reveal_mode
         self.emit(payload)
 
     def emit_audio_level(self, level: float) -> None:
@@ -227,24 +256,33 @@ def _word_weight(word: str) -> float:
     return 0.4 + 0.45 * len(clean) + 0.8 * syllables + 1.5 * digits
 
 
-def compute_word_timings_ms(pcm, sample_rate: int, text: str, lead_ms: int = 50) -> list[int]:
+def compute_word_timings_ms(pcm, sample_rate: int, text: str, lead_ms: Optional[int] = None,
+                            energy_threshold: Optional[float] = None, gap_bridge_ms: Optional[int] = None,
+                            end_pad_ms: Optional[int] = None, return_details: bool = False):
     """Compute per-word reveal offsets (ms) from synthesized PCM energy and clauses."""
     import re
     import numpy as np
+    cfg = load_card_timing()
+    lead = int(cfg["lead_ms"] if lead_ms is None else lead_ms)
+    ratio = float(cfg["energy_threshold"] if energy_threshold is None else energy_threshold)
+    gap_frames = max(1, int(round((cfg["gap_bridge_ms"] if gap_bridge_ms is None else gap_bridge_ms) / 20)))
+    pad_end = int(cfg["end_pad_ms"] if end_pad_ms is None else end_pad_ms)
     words = re.findall(r"\S+\s*", text or "")
-    if not words or not sample_rate:
-        return []
     arr = np.asarray(pcm, dtype=np.float32).reshape(-1)
+    total_ms = int(round(len(arr) * 1000 / sample_rate)) if sample_rate else 0
+    if not words or not sample_rate:
+        return {"timings_ms": [], "segments_ms": [], "duration_ms": total_ms, "end_ms": total_ms, "rms_20ms": [], "threshold": 0.0} if return_details else []
     win = max(1, int(sample_rate * 0.02))
     n_win = len(arr) // win
     if n_win <= 0:
-        return [0 for _ in words]
+        timings = [0 for _ in words]
+        return {"timings_ms": timings, "segments_ms": [], "duration_ms": total_ms, "end_ms": total_ms, "rms_20ms": [], "threshold": 0.0} if return_details else timings
     rms = np.sqrt(np.mean(arr[:n_win * win].reshape(n_win, win) ** 2, axis=1))
-    thresh = max(float(rms.max()) * 0.04, 1e-4)
+    thresh = max(float(rms.max()) * ratio, 1e-4)
     active = [bool(v > thresh) for v in rms]
     if not any(active):
-        total_ms = int(round(len(arr) * 1000 / sample_rate))
-        return [int(round(i * total_ms / max(1, len(words)))) for i in range(len(words))]
+        timings = [max(0, int(round(i * total_ms / max(1, len(words)))) + lead) for i in range(len(words))]
+        return {"timings_ms": timings, "segments_ms": [], "duration_ms": total_ms, "end_ms": max(0, total_ms + lead + pad_end), "rms_20ms": [round(float(v), 5) for v in rms], "threshold": round(thresh, 5)} if return_details else timings
     bridged = list(active)
     idx = 0
     while idx < len(bridged):
@@ -252,7 +290,7 @@ def compute_word_timings_ms(pcm, sample_rate: int, text: str, lead_ms: int = 50)
             end = idx
             while end < len(bridged) and not bridged[end]:
                 end += 1
-            if 0 < idx and end < len(bridged) and (end - idx) < 6:
+            if 0 < idx and end < len(bridged) and (end - idx) < gap_frames:
                 for pos in range(idx, end):
                     bridged[pos] = True
             idx = end
@@ -274,17 +312,21 @@ def compute_word_timings_ms(pcm, sample_rate: int, text: str, lead_ms: int = 50)
             c_words = re.findall(r"\S+\s*", clause)
             weights = [_word_weight(w) for w in c_words]
             total = sum(weights) or 1.0
+            span = max(60, (seg_b - seg_a) + pad_end)
             acc = 0.0
             for wt in weights:
-                timings.append(int(round(seg_a + (acc / total) * (seg_b - seg_a))) + lead_ms)
+                timings.append(max(0, int(round(seg_a + (acc / total) * span)) + lead))
                 acc += wt
-        return timings
-    voiced_ms = [pos * 20 for pos, v in enumerate(bridged) if v] or [segs[0][0]]
-    weights = [_word_weight(w) + (2.4 if re.search(r"[.!?]$", w.strip()) else 1.2 if re.search(r"[,;:]$", w.strip()) else 0.0) for w in words]
-    total = sum(weights) or 1.0
-    acc = 0.0
-    for wt in weights:
-        frame = min(len(voiced_ms) - 1, int((acc / total) * len(voiced_ms)))
-        timings.append(int(voiced_ms[frame]) + lead_ms)
-        acc += wt
+    else:
+        voiced_ms = [pos * 20 for pos, v in enumerate(bridged) if v] or [segs[0][0]]
+        weights = [_word_weight(w) + (2.4 if re.search(r"[.!?]$", w.strip()) else 1.2 if re.search(r"[,;:]$", w.strip()) else 0.0) for w in words]
+        total = sum(weights) or 1.0
+        acc = 0.0
+        for wt in weights:
+            frame = min(len(voiced_ms) - 1, int((acc / total) * len(voiced_ms)))
+            timings.append(max(0, int(voiced_ms[frame]) + lead))
+            acc += wt
+    end_ms = max((timings[-1] + 120) if timings else 0, segs[-1][1] + lead + pad_end)
+    if return_details:
+        return {"timings_ms": timings, "segments_ms": segs, "duration_ms": total_ms, "end_ms": end_ms, "rms_20ms": [round(float(v), 5) for v in rms], "threshold": round(thresh, 5)}
     return timings

@@ -31,6 +31,8 @@
   let cardCollapseTimer = null;
   let cardSpeechGraceTimer = null;
   let streamTokens = [];
+  let streamRawText = '';
+  let streamMode = 'word';
   let streamIdx = 0;
   let streamTimer = null;
   let streamStartTimer = null;
@@ -75,7 +77,7 @@
     return ((text || '').match(/\S+\s*/g) || []).map(function (t) { return { text: t, weight: tokenWeight(t) }; });
   }
 
-  function resolveDeadlines(rem, startedAt, durationMs, timingsMs) {
+  function resolveWordStarts(rem, startedAt, durationMs, timingsMs) {
     if (Array.isArray(timingsMs) && timingsMs.length > 0 && streamIdx === 0) {
       return rem.map(function (_, idx) {
         if (timingsMs.length === rem.length) { return startedAt + timingsMs[idx]; }
@@ -88,6 +90,25 @@
     const targetMs = durationMs > 0 ? Math.max(250, durationMs) : totalWeight * 48;
     let acc = 0;
     return rem.map(function (tok) { const ms = (acc / totalWeight) * targetMs; acc += tok.weight; return startedAt + ms; });
+  }
+
+  function resolveDeadlines(rem, startedAt, durationMs, timingsMs) {
+    const wordStarts = resolveWordStarts(rem, startedAt, durationMs, timingsMs);
+    if (streamMode !== 'letter' || streamIdx !== 0) { return wordStarts; }
+    const chars = [], deadlines = [];
+    for (let i = 0; i < rem.length; i += 1) {
+      const wStart = wordStarts[i];
+      const wEnd = i + 1 < rem.length
+        ? Math.max(wStart + 25, wordStarts[i + 1])
+        : Math.max(wStart + Math.max(90, rem[i].text.length * 42), startedAt + (durationMs || 0));
+      const parts = Array.from(rem[i].text);
+      parts.forEach(function (ch, c) {
+        chars.push({ text: ch, weight: 1 });
+        deadlines.push(wStart + (c / Math.max(1, parts.length)) * (wEnd - wStart));
+      });
+    }
+    streamTokens = chars;
+    return deadlines;
   }
 
   function startTokenStream(durationMs, timingsMs) {
@@ -109,31 +130,26 @@
     tick();
   }
 
-  function streamText(text, durationMs, timingsMs) {
-    clearTimeout(streamTimer); streamTimer = null;
-    clearTimeout(streamStartTimer); streamStartTimer = null;
-    streamTokens = tokenizeStream(text || '');
-    streamIdx = 0;
-    cardBody.textContent = '';
+  function streamText(text, durationMs, timingsMs, mode) {
+    clearTimeout(streamTimer); streamTimer = null; clearTimeout(streamStartTimer); streamStartTimer = null;
+    streamRawText = text || '';
+    streamMode = mode || (window.__leko_config && window.__leko_config.revealMode) || 'word';
+    streamTokens = tokenizeStream(streamRawText); streamIdx = 0; cardBody.textContent = '';
     if (!streamTokens.length) { cardTextDone = true; return; }
     cardTextDone = false;
     if (durationMs > 0 || (Array.isArray(timingsMs) && timingsMs.length > 0)) { startTokenStream(durationMs, timingsMs); return; }
-    streamStartTimer = setTimeout(function () {
-      streamStartTimer = null;
-      if (cardActive && !cardTextDone && !streamTimer) { startTokenStream(0); }
-    }, 20);
+    streamStartTimer = setTimeout(function () { streamStartTimer = null; if (cardActive && !cardTextDone && !streamTimer) { startTokenStream(0); } }, 20);
   }
 
   function finishStreaming() {
     clearTimeout(streamStartTimer); streamStartTimer = null;
     if (cardTextDone) { return; }
     if (streamIdx >= streamTokens.length) { cardTextDone = true; return; }
-    startTokenStream(Math.min(260, (streamTokens.length - streamIdx) * 45));
+    startTokenStream(Math.min(260, (streamTokens.length - streamIdx) * (streamMode === 'letter' ? 12 : 45)));
   }
 
   function renderTable(columns, rows) {
-    cardHead.innerHTML = '';
-    cardRows.innerHTML = '';
+    cardHead.innerHTML = ''; cardRows.innerHTML = '';
     if (!Array.isArray(rows) || rows.length === 0) { cardTable.hidden = true; return; }
     if (Array.isArray(columns) && columns.length > 0) {
       const tr = document.createElement('tr');
@@ -150,20 +166,12 @@
   }
 
   function openCard(event) {
-    clearCardTimers();
-    cardActive = true;
-    cardSpeaking = state === 'speaking';
-    cardSpeechDone = false;
-    document.body.classList.add('has-card');
-    card.hidden = false;
-    streamText(event.text || '', event.duration_ms || 0, event.word_timings_ms);
+    clearCardTimers(); cardActive = true; cardSpeaking = state === 'speaking'; cardSpeechDone = false;
+    document.body.classList.add('has-card'); card.hidden = false;
+    streamText(event.text || '', event.duration_ms || 0, event.word_timings_ms, event.reveal_mode);
     renderTable(event.columns || [], event.rows || []);
     if (!cardSpeaking) {
-      cardSpeechGraceTimer = setTimeout(function () {
-        cardSpeechGraceTimer = null;
-        cardSpeechDone = true;
-        maybeScheduleCollapse(6000);
-      }, 400);
+      cardSpeechGraceTimer = setTimeout(function () { cardSpeechGraceTimer = null; cardSpeechDone = true; maybeScheduleCollapse(6000); }, 400);
     }
   }
 
@@ -242,10 +250,7 @@
 
   pill.addEventListener('pointerdown', function (event) {
     try { pill.setPointerCapture(event.pointerId); } catch (_) {}
-    localPressed = true;
-    pressedAt = performance.now();
-    setState('held');
-    post('ptt_start');
+    localPressed = true; pressedAt = performance.now(); setState('held'); post('ptt_start');
     if (cardActive) { dismissCard(); }
   });
   pill.addEventListener('pointerup', function () { releaseHold(false); });
@@ -255,24 +260,11 @@
   pill.addEventListener('contextmenu', function (event) { event.preventDefault(); });
 
   cardClose.addEventListener('click', function (event) { event.stopPropagation(); dismissCard(); });
-  card.addEventListener('mouseenter', function () {
-    cardHovered = true;
-    if (cardCollapseTimer) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; }
-    post('card_hover_on');
-  });
-  card.addEventListener('mouseleave', function () {
-    cardHovered = false;
-    post('card_hover_off');
-    maybeScheduleCollapse(2000);
-  });
+  card.addEventListener('mouseenter', function () { cardHovered = true; clearTimeout(cardCollapseTimer); cardCollapseTimer = null; post('card_hover_on'); });
+  card.addEventListener('mouseleave', function () { cardHovered = false; post('card_hover_off'); maybeScheduleCollapse(2000); });
   document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && cardActive) { dismissCard(); } });
-  document.addEventListener('pointerdown', function (event) {
-    if (canDismissOutside() && !card.contains(event.target) && !pill.contains(event.target)) { dismissCard(); }
-  });
-  window.addEventListener('blur', function () {
-    if (localPressed || state === 'held') { releaseHold(true); }
-    if (canDismissOutside() && !cardHovered) { dismissCard(); }
-  });
+  document.addEventListener('pointerdown', function (event) { if (canDismissOutside() && !card.contains(event.target) && !pill.contains(event.target)) { dismissCard(); } });
+  window.addEventListener('blur', function () { if (localPressed || state === 'held') { releaseHold(true); } if (canDismissOutside() && !cardHovered) { dismissCard(); } });
 
   window.__leko_on_event = function (raw) {
     let event;
@@ -317,6 +309,8 @@
       if (cardActive) {
         cardSpeaking = true; cardSpeechDone = false;
         clearTimeout(cardCollapseTimer); cardCollapseTimer = null;
+        if (event.reveal_mode) { streamMode = event.reveal_mode; }
+        if (streamIdx === 0 && streamRawText) { streamTokens = tokenizeStream(streamRawText); }
         if (!cardTextDone && (!streamTimer || event.duration_ms > 0 || (event.word_timings_ms && event.word_timings_ms.length))) {
           startTokenStream(event.duration_ms || 0, event.word_timings_ms);
         }

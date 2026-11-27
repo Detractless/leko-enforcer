@@ -16,10 +16,8 @@ from .conversation import Conversation, confirmation
 from .session_log import SessionLog
 from .query_flow import clear_pending
 from ..core.settings_setup import SettingsSetupError, prepare_settings
-IGNORE_ISOLATED_PHRASES = {
-    "yeah", "oh yeah", "yeah yeah", "uh-huh", "uh huh", "mhm", "mm-hmm",
-    "yep", "yup", "oh", "ah", "ha", "huh", "mm", "umm", "um", "hmm"
-}
+IGNORE_ISOLATED_PHRASES = {"yeah", "oh yeah", "yeah yeah", "uh-huh", "uh huh", "mhm", "mm-hmm",
+    "yep", "yup", "oh", "ah", "ha", "huh", "mm", "umm", "um", "hmm"}
 def is_ignorable_filler(text: str) -> bool:
     clean = re.sub(r"[^\w\s]", "", text.lower()).strip()
     return clean in IGNORE_ISOLATED_PHRASES
@@ -162,10 +160,12 @@ class RuntimeController:
             print(f"\n[Transcribed]: {json.dumps(text or '', ensure_ascii=False)}", flush=True)
             if not text:
                 self.session_log.append("turn_outcome", turn_id, outcome="empty_transcript")
+                if self.args.ui: self.bridge.emit_state("idle")
                 return
             if confirmation(text) is None and is_ignorable_filler(text):
                 print("[Turn Guard]: Dropped an isolated filler transcript.", flush=True)
                 self.session_log.append("turn_outcome", turn_id, outcome="filtered_filler")
+                if self.args.ui: self.bridge.emit_state("idle")
                 return
             voice.process_query(text, self.args.settings, bridge=self.bridge, conversation=self.conversation,
                                 is_cancelled=lambda: self.worker.is_superseded(seq),

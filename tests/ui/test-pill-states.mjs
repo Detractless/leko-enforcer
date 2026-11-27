@@ -230,12 +230,21 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
     { event: 'escape', now_ms: 6200 },
   ]);
   assert.equal(opened.card_active, true);
-  assert.equal(opened.card_width, 360);
+  assert.equal(opened.card_width, 380);
   assert.deepEqual(opened.card_columns, ['Rule', 'Kind', 'Remaining']);
   assert.equal(opened.card_rows.length, 2);
   assert.equal(speaking.state, 'speaking');
   assert.equal(stayed.card_active, true);
   assert.equal(escaped.card_active, false);
+  const [fromThinking, forced] = headless([
+    { event: 'thinking', now_ms: 0 },
+    { event: 'reply_card', now_ms: 50, text: 'Brief reply' },
+    { event: 'ptt_start', now_ms: 100 },
+    { event: 'force_release', now_ms: 200 },
+  ]).filter((_, idx) => idx === 1 || idx === 3);
+  assert.equal(fromThinking.state, 'idle');
+  assert.equal(fromThinking.card_active, true);
+  assert.equal(forced.state, 'idle');
   const [, settled] = headless([
     { event: 'reply_card', now_ms: 0, text: 'Brief reply' },
     { event: 'card_hover_on', now_ms: 100 },
@@ -248,4 +257,12 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
   assert.match(js, /renderTable/);
   assert.match(js, /Escape/);
   assert.match(js, /card_hover_on/);
+  assert.match(js, /force_release/);
+  assert.match(js, /next === 'held' && !localPressed/);
+  const cardCss = readFileSync(resolve(ROOT, 'ui/src/web/card.css'), 'utf8');
+  assert.match(cardCss, /width: min\(348px, calc\(100vw - 24px\)\)/);
+  assert.match(cardCss, /max-height: calc\(100vh - 72px\)/);
+  assert.match(cardCss, /word-wrap: break-word/);
+  const mainRs = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
+  assert.match(mainRs, /webview\.set_bounds/);
 });

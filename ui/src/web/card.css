@@ -1,19 +1,23 @@
-body.has-card {
-  width: 100vw;
-  height: 100vh;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 8px;
-  padding-bottom: 6px;
-  box-sizing: border-box;
+body[data-anchor="bottom-right"] .pill-slot,
+body[data-anchor="top-right"] .pill-slot {
+  align-self: flex-end;
+}
+
+body[data-anchor="bottom-left"] .pill-slot {
+  align-self: flex-start;
+}
+
+body[data-anchor="top-right"] {
+  flex-direction: column-reverse;
+  padding: 12px 0 0 0;
 }
 
 .reply-card {
-  width: 344px;
-  max-width: calc(100vw - 16px);
-  max-height: 256px;
+  width: min(348px, calc(100vw - 24px));
+  max-height: calc(100vh - 72px);
   overflow-y: auto;
   box-sizing: border-box;
+  word-wrap: break-word;
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid var(--pill-border);
@@ -23,6 +27,8 @@ body.has-card {
   font-size: 12.5px;
   line-height: 1.45;
   outline: none;
+  flex-shrink: 1;
+  transition: opacity 0.16s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .reply-card[hidden] {

@@ -31,12 +31,10 @@
   for (let i = 0; i < 7; i += 1) {
     const bar = document.createElement('span');
     bar.className = 'bar';
+    bar.style.setProperty('--bar-index', i);
     bars.appendChild(bar);
   }
   const barEls = Array.from(bars.children);
-  barEls.forEach((bar, index) => {
-    bar.style.setProperty('--bar-index', index);
-  });
 
   function clearCardTimers() {
     if (cardCollapseTimer) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; }
@@ -45,54 +43,35 @@
 
   function scheduleCollapse(ms) {
     if (cardCollapseTimer) { clearTimeout(cardCollapseTimer); }
-    cardCollapseTimer = setTimeout(function () {
-      if (!cardHovered) { dismissCard(); }
-    }, ms);
+    cardCollapseTimer = setTimeout(function () { if (!cardHovered) { dismissCard(); } }, ms);
   }
 
   function streamText(text) {
     if (typeTimer) { clearInterval(typeTimer); typeTimer = null; }
     const full = text || '';
-    if (full.length <= 24) {
-      cardBody.textContent = full;
-      return;
-    }
+    if (full.length <= 24) { cardBody.textContent = full; return; }
     let idx = 0;
     cardBody.textContent = '';
     typeTimer = setInterval(function () {
       idx = Math.min(full.length, idx + 4);
       cardBody.textContent = full.slice(0, idx);
-      if (idx >= full.length) {
-        clearInterval(typeTimer);
-        typeTimer = null;
-      }
+      if (idx >= full.length) { clearInterval(typeTimer); typeTimer = null; }
     }, 16);
   }
 
   function renderTable(columns, rows) {
     cardHead.innerHTML = '';
     cardRows.innerHTML = '';
-    if (!Array.isArray(rows) || rows.length === 0) {
-      cardTable.hidden = true;
-      return;
-    }
+    if (!Array.isArray(rows) || rows.length === 0) { cardTable.hidden = true; return; }
     if (Array.isArray(columns) && columns.length > 0) {
       const tr = document.createElement('tr');
-      columns.forEach(function (col) {
-        const th = document.createElement('th');
-        th.textContent = String(col);
-        tr.appendChild(th);
-      });
+      columns.forEach(function (col) { const th = document.createElement('th'); th.textContent = String(col); tr.appendChild(th); });
       cardHead.appendChild(tr);
     }
     rows.forEach(function (row) {
       if (!Array.isArray(row)) { return; }
       const tr = document.createElement('tr');
-      row.forEach(function (cell) {
-        const td = document.createElement('td');
-        td.textContent = String(cell);
-        tr.appendChild(td);
-      });
+      row.forEach(function (cell) { const td = document.createElement('td'); td.textContent = String(cell); tr.appendChild(td); });
       cardRows.appendChild(tr);
     });
     cardTable.hidden = false;
@@ -179,39 +158,60 @@
     }
   }
 
+  function restState() {
+    return (window.__leko_config && window.__leko_config.quietTimer && timerText) ? 'timer' : 'idle';
+  }
+
   function localFeedback(heldFor) {
     if (heldFor > 200) {
       setState('thinking');
       return;
     }
-    setState((window.__leko_config && window.__leko_config.quietTimer && timerText) ? 'timer' : 'idle');
+    setState(restState());
   }
 
   let pressedAt = 0;
-  function releaseHold() {
+  let localPressed = false;
+  function releaseHold(force) {
     const heldFor = performance.now() - pressedAt;
-    if (state !== 'held') {
+    const wasPressed = localPressed;
+    localPressed = false;
+    if (state !== 'held' && !(force && state === 'listening')) {
       return;
     }
-    if (heldFor <= 200) {
-      post('ptt_cancel');
+    if (wasPressed) {
+      if (heldFor <= 200) {
+        post('ptt_cancel');
+      } else {
+        post('ptt_end');
+      }
+      localFeedback(heldFor);
     } else {
-      post('ptt_end');
+      if (force) {
+        post('ptt_end');
+      }
+      setState(restState());
     }
-    localFeedback(heldFor);
   }
 
   pill.addEventListener('pointerdown', function (event) {
     try {
       pill.setPointerCapture(event.pointerId);
     } catch (_) {}
+    localPressed = true;
     pressedAt = performance.now();
     setState('held');
     post('ptt_start');
   });
 
-  pill.addEventListener('pointerup', releaseHold);
-  pill.addEventListener('pointercancel', releaseHold);
+  pill.addEventListener('pointerup', function () { releaseHold(false); });
+  pill.addEventListener('pointercancel', function () { releaseHold(false); });
+  window.addEventListener('pointerup', function () {
+    if (localPressed || state === 'held') { releaseHold(false); }
+  });
+  window.addEventListener('pointercancel', function () {
+    if (localPressed || state === 'held') { releaseHold(false); }
+  });
   pill.addEventListener('contextmenu', function (event) {
     event.preventDefault();
   });
@@ -239,6 +239,9 @@
     }
   });
   window.addEventListener('blur', function () {
+    if (localPressed || state === 'held') {
+      releaseHold(true);
+    }
     if (cardActive && !cardHovered) {
       dismissCard();
     }
@@ -258,7 +261,15 @@
     }
     const rawState = event.state || event.type;
     const next = rawState === 'grace' ? 'listening' : rawState;
+    if (next === 'force_release') {
+      releaseHold(true);
+      return;
+    }
     if (next === 'reply_card') {
+      localPressed = false;
+      if (state !== 'speaking') {
+        setState(restState());
+      }
       openCard(event);
       return;
     }
@@ -272,10 +283,11 @@
       return;
     }
     if (next === 'blocked' || next === 'error') {
+      localPressed = false;
       dismissCard();
       setState(next);
       localTimer = setTimeout(function () {
-        setState((window.__leko_config && window.__leko_config.quietTimer && timerText) ? 'timer' : 'idle');
+        setState(restState());
       }, 2200);
       return;
     }
@@ -291,19 +303,28 @@
       setState('idle');
       return;
     }
-    if (state === 'held' && next === 'idle') {
+    if (next === 'held' && !localPressed) {
       return;
     }
-    if (next === 'speaking' && cardActive) {
-      cardSpeaking = true;
-      if (cardCollapseTimer) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; }
+    if (localPressed && state === 'held' && next === 'idle') {
+      return;
     }
-    if (next === 'idle' && cardActive) {
-      cardSpeaking = false;
-      if (!cardHovered) { scheduleCollapse(3500); }
+    if (next === 'speaking') {
+      localPressed = false;
+      if (cardActive) {
+        cardSpeaking = true;
+        if (cardCollapseTimer) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; }
+      }
+      setState('speaking');
+      return;
     }
-    if (next === 'idle' && window.__leko_config && window.__leko_config.quietTimer && timerText) {
-      setState('timer');
+    if (next === 'idle') {
+      localPressed = false;
+      if (cardActive) {
+        cardSpeaking = false;
+        if (!cardHovered) { scheduleCollapse(3500); }
+      }
+      setState(restState());
       return;
     }
     if (WIDTHS[next]) {

@@ -22,17 +22,15 @@ def is_ignorable_filler(text: str) -> bool:
     clean = re.sub(r"[^\w\s]", "", text.lower()).strip()
     return clean in IGNORE_ISOLATED_PHRASES
 
-
 def _parse_args():
     parser = argparse.ArgumentParser(description="Leko Voice Assistant")
     parser.add_argument("--settings", help="Optional settings override; normally managed automatically")
     parser.add_argument("--query", type=str, help="Single query to process")
     parser.add_argument("--confirm", action="store_true", help="Auto confirm and write changes")
     parser.add_argument("--ui", action="store_true", help="Launch native WebKit Minimalist UI window and connect IPC")
-    parser.add_argument("--speech-detector", choices=("silero", "loudness", "webrtc", "rnnoise", "ten"), default="silero",
-                        help="Speech start detection (default: silero)")
+    parser.add_argument("--speech-detector", choices=("silero", "loudness", "webrtc", "rnnoise", "ten"),
+                        default="silero", help="Speech start detection (default: silero)")
     return parser, parser.parse_args()
-
 
 def _select_speech_detector(args, parser):
     if args.ui:
@@ -59,7 +57,6 @@ def _select_speech_detector(args, parser):
         except Exception as exc:
             parser.exit(2, f"TEN VAD unavailable: {exc}\n")
     return selected_detector
-
 
 class RuntimeController:
     def __init__(self, args, selected_detector):
@@ -271,12 +268,13 @@ class RuntimeController:
                 self.submit_query(query, input_source="ui_text")
 
     def _warm_stt(self, seq):
-        try:
-            voice._stt_lifecycle.warm_cache()
-            voice.get_stt()
-            print("[STT] Model loaded and ready.", flush=True)
-        except Exception as exc:
-            print(f"[STT] Warm-up failed: {exc}", flush=True)
+        for label, fn in (("STT", lambda: (voice._stt_lifecycle.warm_cache(), voice.get_stt())),
+                          ("TTS", lambda: voice.warm_tts() if hasattr(voice, "warm_tts") else None)):
+            try:
+                fn()
+                print(f"[{label}] Model loaded and ready.", flush=True)
+            except Exception as exc:
+                print(f"[{label}] Warm-up failed: {exc}", flush=True)
         if self.args.ui and not self.turn_manager.busy and getattr(self.turn_manager, "capture_mode", "idle") == "idle" and not self.shutdown.is_set():
             self.bridge.emit_state("idle")
 
@@ -290,7 +288,6 @@ class RuntimeController:
                 try:
                     line = input("\n> ").strip()
                 except (EOFError, OSError):
-                    # Background launches keep the UI alive without a console.
                     self.shutdown.wait()
                     return
                 except KeyboardInterrupt:
@@ -318,7 +315,6 @@ class RuntimeController:
                 self.bridge.emit_state("loading", "Loading model...")
             self.turn_manager.set_muted(voice._is_muted)
             self.turn_manager.start()
-            # Load MLX STT on the same serialized worker that will use it.
             self.worker.submit(self._warm_stt)
             if os.environ.get("LEKO_ENABLE_LLM_ROUTER") == "1":
                 voice.ensure_server()
@@ -333,7 +329,6 @@ class RuntimeController:
             self.stop_runtime()
             if self.args.ui:
                 self.bridge.close()
-
 
 def main():
     parser, args = _parse_args()

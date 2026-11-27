@@ -75,13 +75,16 @@ class UIPipelineBridge:
             payload["rows"] = list(rows)
         self.emit(payload)
 
-    def emit_speaking(self, text: str) -> None:
-        self.emit({
+    def emit_speaking(self, text: str, duration_ms: Optional[int] = None) -> None:
+        payload: Dict[str, Any] = {
             "type": "state",
             "state": "speaking",
             "text": text,
-            "label": "Maeve Speaking..."
-        })
+            "label": "Maeve Speaking...",
+        }
+        if duration_ms is not None and duration_ms > 0:
+            payload["duration_ms"] = int(duration_ms)
+        self.emit(payload)
 
     def emit_audio_level(self, level: float) -> None:
         clamped = max(0.0, min(1.0, float(level)))

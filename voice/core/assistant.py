@@ -1,7 +1,4 @@
-"""Leko Voice Assistant: Full interactive loop combining Hands-Free STT, Zero-Model Turn-Taking,
-LLM Tool Calling, CLI execution, Maeve TTS, Single-Instance Lock, Serialized Turn Execution,
-and Minimalist Circle UI IPC.
-"""
+"""Leko Voice Assistant: Hands-free/PTT STT, LLM/deterministic routing, Maeve TTS, and Pill UI IPC."""
 from __future__ import annotations
 
 import atexit
@@ -77,18 +74,12 @@ _tts_engine = None
 def _load_stt_model(path):
     from mlx_audio.stt.utils import load_model
     return load_model(str(path))
-
 _stt_lifecycle = SttLifecycle(PHONON_25_MODEL, _load_stt_model, idle_timeout_s=300.0)
-_is_speaking = False
-_is_muted = False
-_playback_active = False
-_playback_decay_until = 0.0
+_is_speaking = _is_muted = _playback_active = False
+_playback_decay_until = _playback_start_time = 0.0
 _echo_audio = EchoAudioProcessor()
 _output_player = VoiceOutputPlayer(_echo_audio)
-
 _active_turn_detector = None
-
-_playback_start_time = 0.0
 
 def set_playback_state(is_playing: bool, post_mute_s: float = 0.25) -> None:
     """Manages audio playback state and echo defense."""
@@ -162,12 +153,15 @@ def get_tts():
     if _tts_engine is None:
         import ptts
         _tts_engine = ptts.TTS(
-            "hf://gradium/phonon-31m-en",
-            lang="en",
-            quant="f32",
-            voice_catalog="hf://gradium/phonon-voices"
+            "hf://gradium/phonon-31m-en", lang="en", quant="f32",
+            voice_catalog="hf://gradium/phonon-voices",
         )
     return _tts_engine
+
+def warm_tts():
+    tts = get_tts()
+    tts.synth("Ready.", voice=VOICE_NAME)
+    return tts
 
 def stop_playback():
     """Interrupts any active audio playback safely, suppressing AUHAL abort stderr errors."""

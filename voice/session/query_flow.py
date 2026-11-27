@@ -17,22 +17,18 @@ except ImportError:
     from request_state.draft_summary import draft_summary
 
 DEFAULT_CONVERSATION = Conversation()
-MUTATIONS = {"create_rule", "edit_rule", "delete_rule", "queue_edit",
-             "cancel_edit", "request_pass"}
+MUTATIONS = {"create_rule", "edit_rule", "delete_rule", "queue_edit", "cancel_edit", "request_pass"}
 READS = {"list_rules", "show_rule", "check_status", "evaluate_rule"}
-
 
 def clear_pending(conversation=DEFAULT_CONVERSATION, bridge=None):
     conversation.cancel()
     if bridge:
         bridge.emit({"type": "reset"})
 
-
 def _log(state, event, **details):
     if state.session_log is not None:
         return state.session_log.append(event, turn_id=state.current_turn_id, **details)
     return False
-
 
 def process_query(query, settings_zip, auto_confirm=False, bridge=None,
                   is_cancelled=None, speak_fn=None, conversation=None, confirmation_id=None,
@@ -58,7 +54,6 @@ def process_query(query, settings_zip, auto_confirm=False, bridge=None,
                 if not preserve_pending_on_cancel:
                     clear_pending(state, bridge)
 
-
 def _memory_stage(state, query):
     """Run the deterministic memory stage returning ("reply", text) or ("model", memories)."""
     try:
@@ -69,7 +64,6 @@ def _memory_stage(state, query):
         return "model", state.memory.retrieve(query)
     except (OSError, sqlite3.Error):
         return "reply", "Local memory is unavailable. Please check its storage path."
-
 
 def _llm_intent(query, state, memories):
     """Request a turn-local patch, with fallback for older test/runtime adapters."""
@@ -93,14 +87,8 @@ def _llm_intent(query, state, memories):
          reasoning_content=intent.get("reasoning_content"))
     return intent
 
-
 def _prepare_draft(tool, args, settings_zip, cancelled, state=None):
-    """Run the CLI dry run for a draft.
-
-    Returns (stdout, reply_or_none, was_cancelled): stdout is the CLI output to summarize
-    (empty for focus sessions), reply_or_none short-circuits the turn when the preparation
-    fails, and was_cancelled is True when the request was cancelled mid-preparation.
-    """
+    """Run the CLI dry run for a draft, returning (stdout, reply_or_none, was_cancelled)."""
     prep_started = time.perf_counter()
     try:
         cli_args = voice.tool_to_cli_args(settings_zip, tool, args, write=False)
@@ -143,7 +131,6 @@ def _prepare_draft(tool, args, settings_zip, cancelled, state=None):
                  elapsed_seconds=round(elapsed, 3))
         return "", canonical_speech.error_notice("the preview could not be prepared"), False
 
-
 def _stage_pending(tool, args, settings_zip, intent, name, kind, description, state, bridge, cancelled):
     """Stage the draft as the one pending action and emit it; returns the action id or None."""
     with state.lock:
@@ -156,16 +143,12 @@ def _stage_pending(tool, args, settings_zip, intent, name, kind, description, st
             bridge.emit_draft(name, kind, description, raw_intent=intent, action_id=action_id)
     return action_id
 
-
-def _supports_audio_level(speak):
+def _supports_param(speak, name):
     try:
         params = inspect.signature(speak).parameters
-        return "on_audio_level" in params or any(
-            p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
-        )
+        return name in params or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
     except (TypeError, ValueError):
         return False
-
 
 def _respond(query, state, bridge, speak, cancelled, text, confirmed=False, card=None):
     if cancelled():
@@ -173,17 +156,28 @@ def _respond(query, state, bridge, speak, cancelled, text, confirmed=False, card
     state.record(query, text)
     _log(state, "assistant_reply", text=text, confirmed=confirmed)
     if bridge:
-        if isinstance(card, dict):
-            bridge.emit_reply_card(card.get("text", text), card.get("columns"), card.get("rows"))
-        elif text:
-            bridge.emit_reply_card(text)
-        bridge.emit_speaking(text)
         spoken = voice.verbalize_for_speech(text)
-        if _supports_audio_level(speak):
-            speak(spoken, cancelled,
-                  on_audio_level=lambda rms: bridge.emit_rms_level(rms, ceiling=0.06))
+        opened = {"done": False}
+        def open_ui(duration_s=None):
+            if opened["done"] or cancelled():
+                return
+            opened["done"] = True
+            if isinstance(card, dict):
+                bridge.emit_reply_card(card.get("text", text), card.get("columns"), card.get("rows"))
+            elif text:
+                bridge.emit_reply_card(text)
+            duration_ms = int(round(duration_s * 1000)) if duration_s else None
+            bridge.emit_speaking(text, duration_ms=duration_ms)
+        kw = {}
+        if _supports_param(speak, "on_audio_level"):
+            kw["on_audio_level"] = lambda rms: bridge.emit_rms_level(rms, ceiling=0.06)
+        if _supports_param(speak, "on_playback_start"):
+            kw["on_playback_start"] = open_ui
         else:
-            speak(spoken, cancelled)
+            open_ui(None)
+        speak(spoken, cancelled, **kw)
+        if not opened["done"] and not cancelled():
+            open_ui(None)
     else:
         speak(voice.verbalize_for_speech(text), cancelled)
     if bridge and not cancelled():
@@ -309,9 +303,15 @@ def _process_query(query, settings_zip, auto_confirm=False, bridge=None, is_canc
     epoch = state.epoch
     cancelled = lambda: state.epoch != epoch or bool(is_cancelled and is_cancelled())
     sink = state.session_log.playback_sink(state.current_turn_id) if state.session_log else None
-    speak = speak_fn or (lambda text, cancel=None, on_audio_level=None: voice.speak(
-        text, is_cancelled=cancel, playback_event_sink=sink,
-        **({"on_audio_level": on_audio_level} if on_audio_level is not None else {})))
+    def _default_speak(text, cancel=None, on_audio_level=None, on_playback_start=None):
+        def _sink(ev):
+            if sink:
+                sink(ev)
+            if on_playback_start and ev.get("status") == "started":
+                on_playback_start(ev.get("expected_duration_seconds") or 0.0)
+        voice.speak(text, is_cancelled=cancel, playback_event_sink=_sink if (sink or on_playback_start) else None,
+                    **({"on_audio_level": on_audio_level} if on_audio_level is not None else {}))
+    speak = speak_fn or _default_speak
     with state.turn_lock:
         if cancelled():
             return ""

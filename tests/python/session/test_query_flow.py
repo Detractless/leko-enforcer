@@ -122,6 +122,24 @@ class QueryFlowTests(unittest.TestCase):
                 self.assertEqual(card["columns"], ["Rule", "Kind", "Remaining"])
                 self.assertEqual(card["rows"], [["Study", "Time Limit", "05:00"]])
 
+    def test_reply_card_and_speaking_wait_for_playback_start_and_send_duration_ms(self):
+        observed_before_start = []
+
+        def fake_speak(text, cancel=None, on_playback_start=None):
+            observed_before_start.extend(e.get("type") or e.get("state") for e in self.events)
+            if on_playback_start:
+                on_playback_start(2.45)
+
+        self.intent = {"action": "reply", "content": "Hello world."}
+        self.query("hi", speak_fn=fake_speak)
+        self.assertNotIn("reply_card", observed_before_start)
+        speaking = [e for e in self.events if e.get("state") == "speaking"]
+        self.assertEqual(len(speaking), 1)
+        self.assertEqual(speaking[0]["duration_ms"], 2450)
+        card_idx = next(i for i, e in enumerate(self.events) if e.get("type") == "reply_card")
+        spk_idx = next(i for i, e in enumerate(self.events) if e.get("state") == "speaking")
+        self.assertLess(card_idx, spk_idx)
+
 
 if __name__ == "__main__":
     unittest.main()

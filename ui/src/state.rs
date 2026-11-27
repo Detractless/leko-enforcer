@@ -51,10 +51,6 @@ impl Machine {
         }
     }
 
-    pub fn apply(&mut self, event: &str, now: f64, duration: f64) -> Snapshot {
-        self.apply_value(&serde_json::json!({ "event": event }), now, duration)
-    }
-
     pub fn apply_value(&mut self, value: &serde_json::Value, now: f64, duration: f64) -> Snapshot {
         let event = value.get("event").and_then(|v| v.as_str()).unwrap_or("");
         match event {

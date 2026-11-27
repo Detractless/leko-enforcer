@@ -16,6 +16,7 @@ from .conversation import Conversation, confirmation
 from .session_log import SessionLog
 from .query_flow import clear_pending
 from ..core.settings_setup import SettingsSetupError, prepare_settings
+from ..core.bluetooth_keepalive import stop_bluetooth_keepalive, warm_bluetooth_output
 IGNORE_ISOLATED_PHRASES = {"yeah", "oh yeah", "yeah yeah", "uh-huh", "uh huh", "mhm", "mm-hmm",
     "yep", "yup", "oh", "ah", "ha", "huh", "mm", "umm", "um", "hmm"}
 def is_ignorable_filler(text: str) -> bool:
@@ -91,6 +92,7 @@ class RuntimeController:
             if token is None:
                 return False
             self._active_response_token = token
+            warm_bluetooth_output(getattr(voice, "sd", None))
 
             def execute(seq):
                 self.turn_manager.wait_paused()
@@ -117,18 +119,15 @@ class RuntimeController:
             return True
 
     def on_handsfree_speech(self, audio_f32: np.ndarray, token):
-        if token is None:
-            return
+        if token is None: return
         turn_id = self._capture_turn_id or self.session_log.new_turn_id()
         self._capture_turn_id = None
         if audio_f32 is None or not len(audio_f32):
             self.session_log.append("turn_outcome", turn_id, outcome="empty_capture")
             self.turn_manager.finish_response(token)
-            if self.args.ui:
-                self.bridge.emit_state("idle")
+            if self.args.ui: self.bridge.emit_state("idle")
             return
-        if self.args.ui:
-            self.bridge.emit_state("thinking")
+        if self.args.ui: self.bridge.emit_state("thinking")
 
         def execute_turn(seq):
             self.bridge.emit_state("thinking", "Transcribing...")
@@ -172,6 +171,7 @@ class RuntimeController:
 
     def on_speech_onset(self):
         if not self.turn_manager.busy and not voice._is_muted:
+            warm_bluetooth_output(getattr(voice, "sd", None))
             self.bridge.emit_state("listening", "Listening...")
 
     def on_mic_armed(self):
@@ -209,6 +209,7 @@ class RuntimeController:
         self.shutdown.set()
         self.turn_manager.stop()
         self.cancel_response()
+        stop_bluetooth_keepalive()
         self.worker.stop()
 
     def submit_query(self, query, confirmation_id=None, input_source="ui"):
@@ -224,11 +225,11 @@ class RuntimeController:
         if act == "window_closed":
             self.stop_runtime()
             return
-        if self.shutdown.is_set():
-            return
+        if self.shutdown.is_set(): return
         if act == "ptt_start" and self.args.ui:
             voice._is_muted = False
             if self.turn_manager.begin_capture():
+                warm_bluetooth_output(getattr(voice, "sd", None))
                 self._capture_turn_id = self.session_log.new_turn_id()
                 self.session_log.append("capture_started", self._capture_turn_id, source="push_to_talk")
                 self.interrupt_response_for_capture()

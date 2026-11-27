@@ -204,7 +204,7 @@ def speak(text: str, is_cancelled: Optional[Callable[[], bool]] = None,
             sync_fn(sd, can_refresh=lambda: _active_input_stream is None or getattr(_active_input_stream, "closed", True))
         pad_fn = globals().get("pad_bluetooth_preroll")
         if pad_fn:
-            pcm = pad_fn(pcm, tts.sample_rate)
+            pcm = pad_fn(pcm, tts.sample_rate, sd_module=sd)
         duration_s = len(pcm) / tts.sample_rate if hasattr(pcm, "__len__") else 0.0
         word_timings_ms = globals()["compute_word_timings_ms"](pcm, tts.sample_rate, spoken_text) if "compute_word_timings_ms" in globals() else None
         card_cfg = globals()["load_card_timing"]() if "load_card_timing" in globals() else {}

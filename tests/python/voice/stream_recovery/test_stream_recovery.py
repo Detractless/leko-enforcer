@@ -107,19 +107,20 @@ class BluetoothPrerollTests(unittest.TestCase):
         self.assertFalse(is_bluetooth_output(get_transport=lambda: _fourcc("bltn")))
         self.assertFalse(is_bluetooth_output(get_transport=lambda: None))
 
-    def test_pads_silent_preroll_only_when_bluetooth_output_is_active(self):
+    def test_pads_pilot_preroll_only_when_bluetooth_needs_warmup(self):
         import numpy as np
 
         pcm = np.full(2400, 0.25, dtype=np.float32)
-        unpadded = pad_bluetooth_preroll(pcm, 24000, preroll_s=0.5, is_bluetooth_fn=lambda: False)
-        self.assertIs(unpadded, pcm)
+        self.assertIs(pad_bluetooth_preroll(pcm, 24000, preroll_s=0.5, is_bluetooth_fn=lambda: False), pcm)
+        self.assertIs(pad_bluetooth_preroll(pcm, 24000, preroll_s=0.5, is_bluetooth_fn=lambda: True, warm_duration_fn=lambda: 0.6), pcm)
 
-        padded = pad_bluetooth_preroll(pcm, 24000, preroll_s=0.5, is_bluetooth_fn=lambda: True)
-        self.assertEqual(len(padded), 14400)
-        self.assertTrue(np.all(padded[:12000] == 0.0))
-        self.assertTrue(np.allclose(padded[12000:], 0.25))
+        padded = pad_bluetooth_preroll(pcm, 24000, preroll_s=0.5, is_bluetooth_fn=lambda: True, warm_duration_fn=lambda: 0.2)
+        self.assertEqual(len(padded), 9600)
+        self.assertTrue(np.any(padded[:7200] != 0.0))
+        self.assertLessEqual(float(np.max(np.abs(padded[:7200]))), 0.001)
+        self.assertTrue(np.allclose(padded[7200:], 0.25))
 
-    def test_word_timings_shift_forward_by_bluetooth_preroll(self):
+    def test_word_timings_shift_forward_by_bluetooth_pilot_preroll(self):
         import numpy as np
 
         sr = 24000
@@ -128,6 +129,67 @@ class BluetoothPrerollTests(unittest.TestCase):
         padded = pad_bluetooth_preroll(pcm, sr, preroll_s=0.6, is_bluetooth_fn=lambda: True)
         padded_timings = compute_word_timings_ms(padded, sr, "Hello world", lead_ms=0)
         self.assertEqual(padded_timings[0] - base_timings[0], 600)
+
+
+class BluetoothKeepaliveTests(unittest.TestCase):
+    def test_keepalive_reuses_stream_generates_pilot_and_auto_sleeps(self):
+        import time
+        import numpy as np
+        from voice.core.bluetooth_keepalive import BluetoothKeepalive
+
+        streams = []
+
+        class FakeStream:
+            def __init__(self, **kw):
+                self.kw = kw
+                self.active = False
+                self.events = []
+                streams.append(self)
+
+            def start(self):
+                self.active = True
+                self.events.append("start")
+
+            def stop(self):
+                self.active = False
+                self.events.append("stop")
+
+            def close(self):
+                self.events.append("close")
+
+        keepalive = BluetoothKeepalive(
+            idle_timeout_s=0.12,
+            is_bluetooth_fn=lambda: True,
+            get_output_name_fn=lambda: "Galaxy Buds2 (5B05)",
+            stream_factory=FakeStream,
+        )
+        try:
+            self.assertTrue(keepalive.warm())
+            self.assertTrue(keepalive.warm())
+            self.assertEqual(len(streams), 1)
+            buf = np.zeros((480, 1), dtype=np.float32)
+            streams[0].kw["callback"](buf, 480, None, None)
+            self.assertTrue(np.any(buf != 0.0))
+            self.assertLessEqual(float(np.max(np.abs(buf))), 0.001)
+            time.sleep(0.06)
+            self.assertGreaterEqual(keepalive.warm_duration_s(), 0.04)
+            time.sleep(0.18)
+            self.assertEqual(keepalive.warm_duration_s(), 0.0)
+            self.assertEqual(streams[0].events, ["start", "stop", "close"])
+        finally:
+            keepalive.stop()
+
+    def test_sync_output_device_stops_keepalive_before_portaudio_refresh(self):
+        from unittest.mock import patch
+
+        devices = [{"index": 0, "name": "Mic"}, {"index": 1, "name": "MacBook Air Speakers"}]
+        sd = _fake_sd(devices, [0, 1])
+        order = []
+        orig_terminate = sd._terminate
+        sd._terminate = lambda: (order.append("terminate"), orig_terminate())[1]
+        with patch("voice.core.bluetooth_keepalive.stop_bluetooth_keepalive", side_effect=lambda: order.append("stop_keepalive")):
+            self.assertTrue(sync_output_device(sd, get_live_output_name=lambda: "Galaxy Buds2 (5B05)"))
+        self.assertEqual(order, ["stop_keepalive", "terminate"])
 
 
 if __name__ == "__main__":

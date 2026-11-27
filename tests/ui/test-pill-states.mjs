@@ -222,7 +222,7 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
       columns: ['Rule', 'Kind', 'Remaining'],
       rows: [['Safari', 'Time Limit', '04:12'], ['Notes', 'Timed Pass', '08:00']],
     },
-    { event: 'speaking', now_ms: 100 },
+    { event: 'speaking', now_ms: 100, duration_ms: 2400 },
     { event: 'idle', now_ms: 500 },
     { event: 'card_hover_on', now_ms: 1000 },
     { event: 'check', now_ms: 6000 },
@@ -254,6 +254,10 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
   assert.equal(settled.card_active, false);
   const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
   assert.match(js, /streamText/);
+  assert.match(js, /tokenizeStream/);
+  assert.match(js, /tokenWeight/);
+  assert.match(js, /startTokenStream/);
+  assert.match(js, /event\.duration_ms/);
   assert.match(js, /renderTable/);
   assert.match(js, /Escape/);
   assert.match(js, /card_hover_on/);
@@ -261,7 +265,6 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
   assert.match(js, /next === 'held' && !localPressed/);
   assert.match(js, /cardClose\.addEventListener\('click'/);
   assert.match(js, /canDismissOutside\(\)/);
-  assert.match(js, /stepStream\(1\);\s*\}, 62\)/);
   const html = readFileSync(resolve(ROOT, 'ui/src/web/pill.html'), 'utf8');
   assert.match(html, /id="card-close"/);
   const cardCss = readFileSync(resolve(ROOT, 'ui/src/web/card.css'), 'utf8');

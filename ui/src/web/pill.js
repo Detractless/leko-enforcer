@@ -30,9 +30,10 @@
   let cardSpeechDone = true;
   let cardCollapseTimer = null;
   let cardSpeechGraceTimer = null;
-  let typeTimer = null;
-  let streamFull = '';
+  let streamTokens = [];
   let streamIdx = 0;
+  let streamTimer = null;
+  let streamStartTimer = null;
 
   for (let i = 0; i < 7; i += 1) {
     const bar = document.createElement('span');
@@ -45,7 +46,8 @@
   function clearCardTimers() {
     if (cardCollapseTimer) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; }
     if (cardSpeechGraceTimer) { clearTimeout(cardSpeechGraceTimer); cardSpeechGraceTimer = null; }
-    if (typeTimer) { clearInterval(typeTimer); typeTimer = null; }
+    if (streamTimer) { clearTimeout(streamTimer); streamTimer = null; }
+    if (streamStartTimer) { clearTimeout(streamStartTimer); streamStartTimer = null; }
   }
 
   function canDismissOutside() {
@@ -61,31 +63,61 @@
     if (canDismissOutside() && !cardHovered) { scheduleCollapse(ms); }
   }
 
-  function stepStream(step) {
-    streamIdx = Math.min(streamFull.length, streamIdx + step);
-    cardBody.textContent = streamFull.slice(0, streamIdx);
-    if (streamIdx >= streamFull.length) {
-      clearInterval(typeTimer);
-      typeTimer = null;
-      cardTextDone = true;
-      maybeScheduleCollapse(3500);
-    }
+  function tokenWeight(token) {
+    const t = token.trim();
+    const letters = t.replace(/[^a-zA-Z]/g, '').length;
+    const digits = t.replace(/[^0-9]/g, '').length;
+    const pause = /[.!?]$/.test(t) ? 4.2 : /[,;:]$/.test(t) ? 2.0 : 0;
+    return 1.6 + letters + digits * 2.2 + pause;
   }
 
-  function streamText(text) {
-    if (typeTimer) { clearInterval(typeTimer); typeTimer = null; }
-    streamFull = text || '';
+  function tokenizeStream(text) {
+    return ((text || '').match(/\S+\s*/g) || []).map(function (t) { return { text: t, weight: tokenWeight(t) }; });
+  }
+
+  function startTokenStream(durationMs) {
+    if (streamStartTimer) { clearTimeout(streamStartTimer); streamStartTimer = null; }
+    if (streamTimer) { clearTimeout(streamTimer); streamTimer = null; }
+    if (streamIdx >= streamTokens.length) { cardTextDone = true; maybeScheduleCollapse(3500); return; }
+    const rem = streamTokens.slice(streamIdx);
+    const totalWeight = rem.reduce(function (sum, tok) { return sum + tok.weight; }, 0) || 1;
+    const targetMs = durationMs > 0 ? Math.max(250, durationMs - 140) : totalWeight * 48;
+    const startedAt = performance.now();
+    let acc = 0;
+    const baseIdx = streamIdx;
+    const deadlines = rem.map(function (tok) { const ms = (acc / totalWeight) * targetMs; acc += tok.weight; return startedAt + ms; });
+    function tick() {
+      streamTimer = null;
+      if (!cardActive) { return; }
+      const now = performance.now();
+      while (streamIdx < streamTokens.length && deadlines[streamIdx - baseIdx] <= now + 4) { streamIdx += 1; }
+      cardBody.textContent = streamTokens.slice(0, streamIdx).map(function (t) { return t.text; }).join('');
+      if (streamIdx >= streamTokens.length) { cardTextDone = true; maybeScheduleCollapse(3500); return; }
+      streamTimer = setTimeout(tick, Math.max(8, Math.round(deadlines[streamIdx - baseIdx] - now)));
+    }
+    tick();
+  }
+
+  function streamText(text, durationMs) {
+    if (streamTimer) { clearTimeout(streamTimer); streamTimer = null; }
+    if (streamStartTimer) { clearTimeout(streamStartTimer); streamStartTimer = null; }
+    streamTokens = tokenizeStream(text || '');
     streamIdx = 0;
-    if (!streamFull) { cardBody.textContent = ''; cardTextDone = true; return; }
-    cardTextDone = false;
     cardBody.textContent = '';
-    typeTimer = setInterval(function () { stepStream(1); }, 62);
+    if (!streamTokens.length) { cardTextDone = true; return; }
+    cardTextDone = false;
+    if (durationMs > 0) { startTokenStream(durationMs); return; }
+    streamStartTimer = setTimeout(function () {
+      streamStartTimer = null;
+      if (cardActive && !cardTextDone && !streamTimer) { startTokenStream(0); }
+    }, 20);
   }
 
   function finishStreaming() {
-    if (cardTextDone || !typeTimer) { return; }
-    clearInterval(typeTimer);
-    typeTimer = setInterval(function () { stepStream(2); }, 16);
+    if (streamStartTimer) { clearTimeout(streamStartTimer); streamStartTimer = null; }
+    if (cardTextDone) { return; }
+    if (streamIdx >= streamTokens.length) { cardTextDone = true; return; }
+    startTokenStream(Math.min(260, (streamTokens.length - streamIdx) * 45));
   }
 
   function renderTable(columns, rows) {
@@ -113,7 +145,7 @@
     cardSpeechDone = false;
     document.body.classList.add('has-card');
     card.hidden = false;
-    streamText(event.text || '');
+    streamText(event.text || '', event.duration_ms || 0);
     renderTable(event.columns || [], event.rows || []);
     if (!cardSpeaking) {
       cardSpeechGraceTimer = setTimeout(function () {
@@ -140,28 +172,19 @@
   function render() {
     pill.className = 'leko-pill state-' + state + (hovered ? ' is-hovered' : '');
     const count = BAR_COUNTS[state] || 0;
-    barEls.forEach((bar, index) => {
-      bar.style.display = index < count ? 'block' : 'none';
-    });
-    if (state === 'timer') {
-      label.textContent = timerText;
-    } else if (state === 'blocked' || state === 'error') {
-      label.textContent = state === 'blocked' ? 'Blocked' : 'Error';
-    } else {
-      label.textContent = '';
-    }
+    barEls.forEach((bar, index) => { bar.style.display = index < count ? 'block' : 'none'; });
+    if (state === 'timer') { label.textContent = timerText; }
+    else if (state === 'blocked' || state === 'error') { label.textContent = state === 'blocked' ? 'Blocked' : 'Error'; }
+    else { label.textContent = ''; }
   }
 
   function animateBars(now) {
     if (BAR_COUNTS[state]) {
-      if (now - lastLevelAt > 240) {
-        targetLevel = 0;
-      }
+      if (now - lastLevelAt > 240) { targetLevel = 0; }
       const rate = targetLevel > smoothLevel ? 0.42 : 0.34;
       smoothLevel += (targetLevel - smoothLevel) * rate;
       const t = now / 1000;
-      const breath = 0.05 + 0.03 * Math.sin(t * 2.2);
-      const amp = Math.max(breath, smoothLevel);
+      const amp = Math.max(0.05 + 0.03 * Math.sin(t * 2.2), smoothLevel);
       for (let i = 0; i < barEls.length; i += 1) {
         const jitter = smoothLevel > 0.03 ? (0.66 + 0.34 * (0.5 + 0.5 * Math.sin(t * 13 + i * 1.9))) : 1.0;
         const height = 2.5 + amp * 9.0 * WEIGHTS_7[i] * jitter;
@@ -177,21 +200,14 @@
   requestAnimationFrame(animateBars);
 
   function setState(next, text) {
-    if (localTimer) {
-      clearTimeout(localTimer);
-      localTimer = null;
-    }
+    if (localTimer) { clearTimeout(localTimer); localTimer = null; }
     state = next;
-    if (text !== undefined && next === 'timer') {
-      timerText = text;
-    }
+    if (text !== undefined && next === 'timer') { timerText = text; }
     render();
   }
 
   function post(action) {
-    if (window.ipc && window.ipc.postMessage) {
-      window.ipc.postMessage(JSON.stringify({ action: action }));
-    }
+    if (window.ipc && window.ipc.postMessage) { window.ipc.postMessage(JSON.stringify({ action: action })); }
   }
 
   function restState() {
@@ -199,10 +215,7 @@
   }
 
   function localFeedback(heldFor) {
-    if (heldFor > 200) {
-      setState('thinking');
-      return;
-    }
+    if (heldFor > 200) { setState('thinking'); return; }
     setState(restState());
   }
 
@@ -212,50 +225,30 @@
     const heldFor = performance.now() - pressedAt;
     const wasPressed = localPressed;
     localPressed = false;
-    if (state !== 'held' && !(force && state === 'listening')) {
-      return;
-    }
+    if (state !== 'held' && !(force && state === 'listening')) { return; }
     if (wasPressed) {
-      if (heldFor <= 200) {
-        post('ptt_cancel');
-      } else {
-        post('ptt_end');
-      }
+      post(heldFor <= 200 ? 'ptt_cancel' : 'ptt_end');
       localFeedback(heldFor);
     } else {
-      if (force) {
-        post('ptt_end');
-      }
+      if (force) { post('ptt_end'); }
       setState(restState());
     }
   }
 
   pill.addEventListener('pointerdown', function (event) {
-    try {
-      pill.setPointerCapture(event.pointerId);
-    } catch (_) {}
+    try { pill.setPointerCapture(event.pointerId); } catch (_) {}
     localPressed = true;
     pressedAt = performance.now();
     setState('held');
     post('ptt_start');
   });
-
   pill.addEventListener('pointerup', function () { releaseHold(false); });
   pill.addEventListener('pointercancel', function () { releaseHold(false); });
-  window.addEventListener('pointerup', function () {
-    if (localPressed || state === 'held') { releaseHold(false); }
-  });
-  window.addEventListener('pointercancel', function () {
-    if (localPressed || state === 'held') { releaseHold(false); }
-  });
-  pill.addEventListener('contextmenu', function (event) {
-    event.preventDefault();
-  });
+  window.addEventListener('pointerup', function () { if (localPressed || state === 'held') { releaseHold(false); } });
+  window.addEventListener('pointercancel', function () { if (localPressed || state === 'held') { releaseHold(false); } });
+  pill.addEventListener('contextmenu', function (event) { event.preventDefault(); });
 
-  cardClose.addEventListener('click', function (event) {
-    event.stopPropagation();
-    dismissCard();
-  });
+  cardClose.addEventListener('click', function (event) { event.stopPropagation(); dismissCard(); });
   card.addEventListener('mouseenter', function () {
     cardHovered = true;
     if (cardCollapseTimer) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; }
@@ -266,9 +259,7 @@
     post('card_hover_off');
     maybeScheduleCollapse(2000);
   });
-  document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' && cardActive) { dismissCard(); }
-  });
+  document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && cardActive) { dismissCard(); } });
   document.addEventListener('pointerdown', function (event) {
     if (canDismissOutside() && !card.contains(event.target) && !pill.contains(event.target)) { dismissCard(); }
   });
@@ -321,6 +312,7 @@
         cardSpeaking = true;
         cardSpeechDone = false;
         if (cardCollapseTimer) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; }
+        if (!cardTextDone && (!streamTimer || event.duration_ms > 0)) { startTokenStream(event.duration_ms || 0); }
       }
       setState('speaking');
       return;

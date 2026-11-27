@@ -238,6 +238,19 @@ class EmptyRuntimeTurnTests(unittest.TestCase):
         controller._warm_stt(2)
         self.assertEqual(emitted, ["idle"])
 
+    def test_warm_stt_preloads_tts_alongside_stt(self):
+        from voice.session.runtime import RuntimeController
+        controller = object.__new__(RuntimeController)
+        controller.args = SimpleNamespace(ui=True)
+        controller.shutdown = threading.Event()
+        controller.turn_manager = SimpleNamespace(busy=False, capture_mode="idle")
+        emitted = []
+        controller.bridge = SimpleNamespace(emit_state=lambda state, label=None: emitted.append(state))
+        with patch("voice.session.runtime.voice.warm_tts", create=True) as warm_tts:
+            controller._warm_stt(1)
+        warm_tts.assert_called_once_with()
+        self.assertEqual(emitted, ["idle"])
+
 
 class StreamRecoveryTests(unittest.TestCase):
     def test_succeeds_without_refresh_when_first_open_works(self):

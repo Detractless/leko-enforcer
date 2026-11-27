@@ -98,7 +98,17 @@ impl Machine {
             }
             "hover_on" => self.hovering = true,
             "hover_off" => self.hovering = false,
-            "reply_card" => self.card.apply_reply(value),
+            "reply_card" => {
+                self.card.apply_reply(value);
+                if matches!(self.state, PillState::Held | PillState::Listening | PillState::Thinking) {
+                    self.state = self.rest();
+                }
+            }
+            "force_release" => {
+                if matches!(self.state, PillState::Held | PillState::Listening) {
+                    self.state = self.rest();
+                }
+            }
             "card_hover_on" => {
                 self.card.hovered = true;
                 self.card.collapse_at = None;

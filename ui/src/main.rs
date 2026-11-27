@@ -3,9 +3,10 @@ mod native_input;
 mod state;
 mod timer_poll;
 
-use card::{merge_html, resize_panel, CardState};
+use card::{merge_html, pill_slot_rect, resize_panel, window_frame, CardState, COMPACT_H, COMPACT_W};
 use native_input::{
-    set_ignores_mouse, CursorPoint, InputEvent, NativeInput, SystemCursor, TestCursor,
+    pressed_mouse_buttons, set_ignores_mouse, CursorPoint, InputEvent, NativeInput, SystemCursor,
+    TestCursor,
 };
 #[cfg(target_os = "macos")]
 use native_input::{
@@ -100,8 +101,7 @@ fn timer_probe() {
             Some(TimerUpdate::Stop) => ("timer_stop", String::new()),
             None => ("none", String::new()),
         };
-        let out = serde_json::json!({"quiet": quiet, "update": update, "timer": timer});
-        println!("{}", out);
+        println!("{}", serde_json::json!({"quiet": quiet, "update": update, "timer": timer}));
     }
 }
 
@@ -113,39 +113,28 @@ fn input_probe() {
         input.provider.point = value.get("x").and_then(|v| v.as_f64())
             .zip(value.get("y").and_then(|v| v.as_f64()))
             .map(|(x, y)| CursorPoint { x, y });
-        let event = input.poll();
-        let name = match event {
+        let name = match input.poll() {
             InputEvent::Enter => "enter",
             InputEvent::Leave => "leave",
             InputEvent::None => "none",
         };
-        let out = serde_json::json!({
+        println!("{}", serde_json::json!({
             "event": name,
             "inside": input.inside,
             "ignore_mouse": input.ignores_mouse,
             "cadence_ms": input.cadence_ms(),
-        });
-        println!("{}", out);
+        }));
     }
 }
 
-fn anchor_position(anchor: &str, monitor: &tao::monitor::MonitorHandle) -> tao::dpi::LogicalPosition<i32> {
-    let size = monitor.size();
-    let scale = monitor.scale_factor();
-    let width = 160.0;
-    let height = 56.0;
-    let left = monitor.position().x as f64 / scale;
-    let top = monitor.position().y as f64 / scale;
-    let max_x = left + size.width as f64 / scale - width;
-    let max_y = top + size.height as f64 / scale - height;
-    let pad = 16.0;
-    let (x, y) = match anchor {
-        "bottom-right" => (max_x - pad, max_y - pad),
-        "top-right" => (max_x - pad, top + pad),
-        "bottom-left" => (left + pad, max_y - pad),
-        _ => (left + (size.width as f64 / scale - width) / 2.0, max_y - pad),
+fn monitor_rect_logical(monitor: Option<&tao::monitor::MonitorHandle>) -> (f64, f64, f64, f64) {
+    let Some(m) = monitor else {
+        return (0.0, 0.0, 1440.0, 900.0);
     };
-    tao::dpi::LogicalPosition::new(x as i32, y as i32)
+    let scale = m.scale_factor();
+    let pos = m.position();
+    let size = m.size();
+    (pos.x as f64 / scale, pos.y as f64 / scale, size.width as f64 / scale, size.height as f64 / scale)
 }
 
 fn main() {
@@ -172,11 +161,9 @@ fn main() {
     }
     let proxy = event_loop.create_proxy();
     let monitor = event_loop.primary_monitor();
-    let position = monitor.as_ref().map(|m| anchor_position(&anchor, m));
-    let screen_height = monitor
-        .as_ref()
-        .map(|item| item.size().height as f64 / item.scale_factor())
-        .unwrap_or(900.0);
+    let monitor_rect = monitor_rect_logical(monitor.as_ref());
+    let screen_height = monitor_rect.3;
+    let initial_rect = window_frame(&anchor, monitor_rect, COMPACT_W, COMPACT_H);
 
     let html = merge_html(HTML, TOKENS, CSS, CARD_CSS, JS);
     let handler_proxy = proxy.clone();
@@ -184,8 +171,8 @@ fn main() {
         .with_transparent(true)
         .with_html(&html)
         .with_initialization_script(&format!(
-            "document.body.dataset.theme='{}';window.__leko_config={{quietTimer:{}}};",
-            theme, quiet
+            "document.body.dataset.theme='{}';document.body.dataset.anchor='{}';window.__leko_config={{quietTimer:{}}};",
+            theme, anchor, quiet
         ))
         .with_ipc_handler(move |request| {
             let raw = request.body();
@@ -204,8 +191,9 @@ fn main() {
     #[cfg(target_os = "macos")]
     let (native_window, webview, rect) = {
         let prev_pid = unsafe { frontmost_pid() };
-        let (x, y) = position.map(|p| (p.x as f64, p.y as f64)).unwrap_or((0.0, 0.0));
-        let panel = unsafe { create_nonactivating_panel(x, y, 160.0, 56.0, screen_height) };
+        let panel = unsafe {
+            create_nonactivating_panel(initial_rect.0, initial_rect.1, COMPACT_W, COMPACT_H, screen_height)
+        };
         let webview = wv_builder
             .with_accept_first_mouse(true)
             .build(&panel)
@@ -219,30 +207,26 @@ fn main() {
     };
     #[cfg(not(target_os = "macos"))]
     let (native_window, webview, rect) = {
-        let mut builder = WindowBuilder::new()
+        let window = WindowBuilder::new()
             .with_title("Leko Pill")
             .with_decorations(false)
             .with_transparent(true)
             .with_always_on_top(true)
             .with_resizable(false)
             .with_focused(false)
-            .with_inner_size(tao::dpi::LogicalSize::new(160.0, 56.0));
-        if let Some(pos) = position {
-            builder = builder.with_position(pos);
-        }
-        let window = builder.build(&event_loop).expect("build pill window");
+            .with_inner_size(tao::dpi::LogicalSize::new(COMPACT_W, COMPACT_H))
+            .with_position(tao::dpi::LogicalPosition::new(initial_rect.0, initial_rect.1))
+            .build(&event_loop)
+            .expect("build pill window");
         let webview = wv_builder.build(&window).expect("build webview");
-        let rect = position
-            .map(|point| (point.x as f64, point.y as f64, 160.0, 56.0))
-            .unwrap_or((0.0, 0.0, 160.0, 56.0));
-        (0usize, webview, rect)
+        (0usize, webview, initial_rect)
     };
     #[cfg(not(target_os = "macos"))]
     let _window_keep = native_window;
 
-    let base_rect = rect;
     let mut card_state = CardState::default();
     let mut input = NativeInput::new(rect, SystemCursor::new(screen_height));
+    input.pill_rect = pill_slot_rect(&anchor, rect);
     let delay = Arc::new(AtomicU64::new(input.cadence_ms()));
     let cursor_proxy = proxy.clone();
     let cursor_delay = delay.clone();
@@ -265,23 +249,16 @@ fn main() {
         let mut timer_active = false;
         loop {
             let dir = app_support();
-            let path = dir.join("pill-events.json");
-            if let Ok(text) = fs::read_to_string(&path) {
+            if let Ok(text) = fs::read_to_string(dir.join("pill-events.json")) {
                 let value: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
                 if value.get("event").and_then(|v| v.as_str()) == Some("blocked") {
-                    let _ = poll_proxy.send_event(Message::Event(
-                        "{\"state\":\"blocked\"}".to_string()
-                    ));
+                    let _ = poll_proxy.send_event(Message::Event("{\"state\":\"blocked\"}".to_string()));
                 }
             }
             let (_, _, quiet_now) = read_config(&dir);
             match poll_step(quiet_now, &mut timer_active, &dir, now_epoch_seconds()) {
-                Some(TimerUpdate::Start(text)) => {
-                    let _ = poll_proxy.send_event(Message::Timer(text));
-                }
-                Some(TimerUpdate::Stop) => {
-                    let _ = poll_proxy.send_event(Message::TimerStop);
-                }
+                Some(TimerUpdate::Start(text)) => { let _ = poll_proxy.send_event(Message::Timer(text)); }
+                Some(TimerUpdate::Stop) => { let _ = poll_proxy.send_event(Message::TimerStop); }
                 None => {}
             }
             thread::sleep(Duration::from_millis(250));
@@ -293,6 +270,7 @@ fn main() {
         *control_flow = ControlFlow::Wait;
         if let Event::UserEvent(Message::PollTick) = &event {
             let event_kind = input.poll();
+            let drag_released = input.update_drag((pressed_mouse_buttons() & 1) != 0);
             let pointer = native_window as *mut std::ffi::c_void;
             unsafe { set_ignores_mouse(pointer, input.ignores_mouse); }
             delay.store(input.cadence_ms(), Ordering::Relaxed);
@@ -304,15 +282,35 @@ fn main() {
             if !script.is_empty() {
                 let _ = webview.evaluate_script(script);
             }
+            if drag_released {
+                let _ = webview.evaluate_script("window.__leko_on_event({state:'force_release'});");
+            }
             return;
         }
         match event {
             Event::UserEvent(Message::Event(raw)) => {
                 let value: serde_json::Value = serde_json::from_str(&raw).unwrap_or_default();
-                if let Some(new_rect) = card_state.handle_event(&value, base_rect) {
+                if let Some(action) = value.get("action").and_then(|v| v.as_str()) {
+                    if action == "ptt_start" {
+                        input.drag_active = true;
+                        input.ignores_mouse = false;
+                        unsafe { set_ignores_mouse(native_window as *mut std::ffi::c_void, false); }
+                    } else if action == "ptt_end" || action == "ptt_cancel" {
+                        input.drag_active = false;
+                    }
+                }
+                if let Some(new_rect) = card_state.handle_event(&value, &anchor, monitor_rect) {
                     let ptr = native_window as *mut std::ffi::c_void;
-                    unsafe { resize_panel(ptr, base_rect, new_rect.2, new_rect.3, screen_height); }
+                    unsafe { resize_panel(ptr, new_rect, screen_height); }
+                    let _ = webview.set_bounds(wry::Rect {
+                        position: wry::dpi::LogicalPosition::new(0.0, 0.0).into(),
+                        size: wry::dpi::LogicalSize::new(new_rect.2, new_rect.3).into(),
+                    });
                     input.rect = new_rect;
+                    input.pill_rect = pill_slot_rect(&anchor, new_rect);
+                    input.card_active = card_state.active;
+                    let _ = input.poll();
+                    unsafe { set_ignores_mouse(ptr, input.ignores_mouse); }
                     delay.store(input.cadence_ms(), Ordering::Relaxed);
                 }
                 if value.get("action").is_none() {

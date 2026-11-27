@@ -40,23 +40,38 @@ body[data-anchor="top-right"] {
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   padding: 0;
-  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--pill-close-border);
   border-radius: 999px;
-  background: transparent;
+  background: var(--pill-close-bg);
   color: var(--pill-muted);
-  font-size: 15px;
-  line-height: 18px;
-  text-align: center;
   cursor: pointer;
   outline: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.card-close svg {
+  width: 10px;
+  height: 10px;
+  display: block;
+}
+
+.card-close:hover {
+  background: var(--pill-close-hover-bg);
+  border-color: var(--pill-close-hover-border);
+  color: var(--pill-ink);
+  transform: scale(1.06);
 }
 
 .card-close:active {
   color: var(--pill-ink);
   border-color: var(--pill-border);
+  transform: scale(0.95);
 }
 
 .card-body {

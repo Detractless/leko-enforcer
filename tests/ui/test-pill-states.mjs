@@ -275,6 +275,9 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
   assert.match(cardCss, /word-wrap: break-word/);
   assert.match(cardCss, /padding: 20px 34px 20px 16px/);
   assert.match(cardCss, /\.card-close/);
+  assert.match(cardCss, /\.card-close:hover/);
+  assert.match(cardCss, /--pill-close-border/);
+  assert.match(cardCss, /--pill-close-hover-bg/);
   const mainRs = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
   assert.match(mainRs, /webview\.set_bounds/);
   assert.match(mainRs, /poll_outside_click/);

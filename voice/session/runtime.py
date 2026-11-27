@@ -197,6 +197,8 @@ class RuntimeController:
             voice.stop_playback()
             self.turn_manager.finish_response(token, delay=0, preserve_capture=True)
             self._active_response_token = None
+            if getattr(getattr(self, "args", None), "ui", False) and getattr(self, "bridge", None):
+                self.bridge.emit({"type": "card_dismiss"})
 
     def on_capture_error(self, _error):
         self.session_log.append("capture_error", self._capture_turn_id, error=str(_error))

@@ -36,6 +36,10 @@
   --pill-think-border: var(--color-dark-think-border);
   --pill-speak: var(--color-dark-speak);
   --pill-speak-border: var(--color-dark-speak-border);
+  --pill-close-bg: rgba(255, 255, 255, 0.07);
+  --pill-close-border: rgba(255, 255, 255, 0.16);
+  --pill-close-hover-bg: rgba(255, 255, 255, 0.18);
+  --pill-close-hover-border: #6E6E6E;
 }
 
 body[data-theme="light"] {
@@ -51,4 +55,8 @@ body[data-theme="light"] {
   --pill-think-border: var(--color-light-think-border);
   --pill-speak: var(--color-light-speak);
   --pill-speak-border: var(--color-light-speak-border);
+  --pill-close-bg: rgba(0, 0, 0, 0.05);
+  --pill-close-border: rgba(0, 0, 0, 0.15);
+  --pill-close-hover-bg: rgba(0, 0, 0, 0.12);
+  --pill-close-hover-border: #999999;
 }

@@ -259,10 +259,18 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
   assert.match(js, /card_hover_on/);
   assert.match(js, /force_release/);
   assert.match(js, /next === 'held' && !localPressed/);
+  assert.match(js, /cardClose\.addEventListener\('click'/);
+  assert.match(js, /canDismissOutside\(\)/);
+  assert.match(js, /stepStream\(1\);\s*\}, 62\)/);
+  const html = readFileSync(resolve(ROOT, 'ui/src/web/pill.html'), 'utf8');
+  assert.match(html, /id="card-close"/);
   const cardCss = readFileSync(resolve(ROOT, 'ui/src/web/card.css'), 'utf8');
   assert.match(cardCss, /width: min\(348px, calc\(100vw - 24px\)\)/);
   assert.match(cardCss, /max-height: calc\(100vh - 72px\)/);
   assert.match(cardCss, /word-wrap: break-word/);
+  assert.match(cardCss, /padding: 20px 34px 20px 16px/);
+  assert.match(cardCss, /\.card-close/);
   const mainRs = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
   assert.match(mainRs, /webview\.set_bounds/);
+  assert.match(mainRs, /poll_outside_click/);
 });

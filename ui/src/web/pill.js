@@ -3,6 +3,7 @@
   const bars = document.getElementById('bars');
   const label = document.getElementById('label');
   const card = document.getElementById('card');
+  const cardClose = document.getElementById('card-close');
   const cardBody = document.getElementById('card-body');
   const cardTable = document.getElementById('card-table');
   const cardHead = document.getElementById('card-head');
@@ -25,8 +26,13 @@
   let cardActive = false;
   let cardHovered = false;
   let cardSpeaking = false;
+  let cardTextDone = true;
+  let cardSpeechDone = true;
   let cardCollapseTimer = null;
+  let cardSpeechGraceTimer = null;
   let typeTimer = null;
+  let streamFull = '';
+  let streamIdx = 0;
 
   for (let i = 0; i < 7; i += 1) {
     const bar = document.createElement('span');
@@ -38,7 +44,12 @@
 
   function clearCardTimers() {
     if (cardCollapseTimer) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; }
+    if (cardSpeechGraceTimer) { clearTimeout(cardSpeechGraceTimer); cardSpeechGraceTimer = null; }
     if (typeTimer) { clearInterval(typeTimer); typeTimer = null; }
+  }
+
+  function canDismissOutside() {
+    return cardActive && cardSpeechDone && cardTextDone;
   }
 
   function scheduleCollapse(ms) {
@@ -46,17 +57,35 @@
     cardCollapseTimer = setTimeout(function () { if (!cardHovered) { dismissCard(); } }, ms);
   }
 
+  function maybeScheduleCollapse(ms) {
+    if (canDismissOutside() && !cardHovered) { scheduleCollapse(ms); }
+  }
+
+  function stepStream(step) {
+    streamIdx = Math.min(streamFull.length, streamIdx + step);
+    cardBody.textContent = streamFull.slice(0, streamIdx);
+    if (streamIdx >= streamFull.length) {
+      clearInterval(typeTimer);
+      typeTimer = null;
+      cardTextDone = true;
+      maybeScheduleCollapse(3500);
+    }
+  }
+
   function streamText(text) {
     if (typeTimer) { clearInterval(typeTimer); typeTimer = null; }
-    const full = text || '';
-    if (full.length <= 24) { cardBody.textContent = full; return; }
-    let idx = 0;
+    streamFull = text || '';
+    streamIdx = 0;
+    if (!streamFull) { cardBody.textContent = ''; cardTextDone = true; return; }
+    cardTextDone = false;
     cardBody.textContent = '';
-    typeTimer = setInterval(function () {
-      idx = Math.min(full.length, idx + 4);
-      cardBody.textContent = full.slice(0, idx);
-      if (idx >= full.length) { clearInterval(typeTimer); typeTimer = null; }
-    }, 16);
+    typeTimer = setInterval(function () { stepStream(1); }, 62);
+  }
+
+  function finishStreaming() {
+    if (cardTextDone || !typeTimer) { return; }
+    clearInterval(typeTimer);
+    typeTimer = setInterval(function () { stepStream(2); }, 16);
   }
 
   function renderTable(columns, rows) {
@@ -81,12 +110,17 @@
     clearCardTimers();
     cardActive = true;
     cardSpeaking = state === 'speaking';
+    cardSpeechDone = false;
     document.body.classList.add('has-card');
     card.hidden = false;
     streamText(event.text || '');
     renderTable(event.columns || [], event.rows || []);
-    if (!cardSpeaking && !cardHovered) {
-      scheduleCollapse(6000);
+    if (!cardSpeaking) {
+      cardSpeechGraceTimer = setTimeout(function () {
+        cardSpeechGraceTimer = null;
+        cardSpeechDone = true;
+        maybeScheduleCollapse(6000);
+      }, 400);
     }
   }
 
@@ -96,6 +130,8 @@
     cardActive = false;
     cardHovered = false;
     cardSpeaking = false;
+    cardTextDone = true;
+    cardSpeechDone = true;
     card.hidden = true;
     document.body.classList.remove('has-card');
     post('card_dismiss');
@@ -216,6 +252,10 @@
     event.preventDefault();
   });
 
+  cardClose.addEventListener('click', function (event) {
+    event.stopPropagation();
+    dismissCard();
+  });
   card.addEventListener('mouseenter', function () {
     cardHovered = true;
     if (cardCollapseTimer) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; }
@@ -224,36 +264,22 @@
   card.addEventListener('mouseleave', function () {
     cardHovered = false;
     post('card_hover_off');
-    if (cardActive && !cardSpeaking) {
-      scheduleCollapse(2000);
-    }
+    maybeScheduleCollapse(2000);
   });
   document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' && cardActive) {
-      dismissCard();
-    }
+    if (event.key === 'Escape' && cardActive) { dismissCard(); }
   });
   document.addEventListener('pointerdown', function (event) {
-    if (cardActive && !card.contains(event.target) && !pill.contains(event.target)) {
-      dismissCard();
-    }
+    if (canDismissOutside() && !card.contains(event.target) && !pill.contains(event.target)) { dismissCard(); }
   });
   window.addEventListener('blur', function () {
-    if (localPressed || state === 'held') {
-      releaseHold(true);
-    }
-    if (cardActive && !cardHovered) {
-      dismissCard();
-    }
+    if (localPressed || state === 'held') { releaseHold(true); }
+    if (canDismissOutside() && !cardHovered) { dismissCard(); }
   });
 
   window.__leko_on_event = function (raw) {
     let event;
-    try {
-      event = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    } catch (error) {
-      return;
-    }
+    try { event = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (error) { return; }
     if (event.type === 'audio_level' && typeof event.level === 'number') {
       targetLevel = Math.max(0, Math.min(1, event.level));
       lastLevelAt = performance.now();
@@ -261,34 +287,21 @@
     }
     const rawState = event.state || event.type;
     const next = rawState === 'grace' ? 'listening' : rawState;
-    if (next === 'force_release') {
-      releaseHold(true);
-      return;
-    }
+    if (next === 'force_release') { releaseHold(true); return; }
+    if (next === 'outside_click') { if (canDismissOutside()) { dismissCard(); } return; }
     if (next === 'reply_card') {
       localPressed = false;
-      if (state !== 'speaking') {
-        setState(restState());
-      }
+      if (state !== 'speaking') { setState(restState()); }
       openCard(event);
       return;
     }
-    if (next === 'card_dismiss') {
-      dismissCard();
-      return;
-    }
-    if (next === 'hover_on' || next === 'hover_off') {
-      hovered = next === 'hover_on';
-      render();
-      return;
-    }
+    if (next === 'card_dismiss') { dismissCard(); return; }
+    if (next === 'hover_on' || next === 'hover_off') { hovered = next === 'hover_on'; render(); return; }
     if (next === 'blocked' || next === 'error') {
       localPressed = false;
       dismissCard();
       setState(next);
-      localTimer = setTimeout(function () {
-        setState(restState());
-      }, 2200);
+      localTimer = setTimeout(function () { setState(restState()); }, 2200);
       return;
     }
     if (next === 'timer_start') {
@@ -298,21 +311,15 @@
       }
       return;
     }
-    if (next === 'timer_stop') {
-      timerText = '';
-      setState('idle');
-      return;
-    }
-    if (next === 'held' && !localPressed) {
-      return;
-    }
-    if (localPressed && state === 'held' && next === 'idle') {
-      return;
-    }
+    if (next === 'timer_stop') { timerText = ''; setState('idle'); return; }
+    if (next === 'held' && !localPressed) { return; }
+    if (localPressed && state === 'held' && next === 'idle') { return; }
     if (next === 'speaking') {
       localPressed = false;
+      if (cardSpeechGraceTimer) { clearTimeout(cardSpeechGraceTimer); cardSpeechGraceTimer = null; }
       if (cardActive) {
         cardSpeaking = true;
+        cardSpeechDone = false;
         if (cardCollapseTimer) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; }
       }
       setState('speaking');
@@ -320,16 +327,17 @@
     }
     if (next === 'idle') {
       localPressed = false;
+      if (cardSpeechGraceTimer) { clearTimeout(cardSpeechGraceTimer); cardSpeechGraceTimer = null; }
       if (cardActive) {
         cardSpeaking = false;
-        if (!cardHovered) { scheduleCollapse(3500); }
+        cardSpeechDone = true;
+        finishStreaming();
+        maybeScheduleCollapse(3500);
       }
       setState(restState());
       return;
     }
-    if (WIDTHS[next]) {
-      setState(next, event.timer);
-    }
+    if (WIDTHS[next]) { setState(next, event.timer); }
   };
 
   render();

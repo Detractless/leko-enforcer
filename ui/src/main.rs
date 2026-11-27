@@ -270,7 +270,9 @@ fn main() {
         *control_flow = ControlFlow::Wait;
         if let Event::UserEvent(Message::PollTick) = &event {
             let event_kind = input.poll();
-            let drag_released = input.update_drag((pressed_mouse_buttons() & 1) != 0);
+            let left_down = (pressed_mouse_buttons() & 1) != 0;
+            let drag_released = input.update_drag(left_down);
+            let outside_clicked = input.poll_outside_click(left_down);
             let pointer = native_window as *mut std::ffi::c_void;
             unsafe { set_ignores_mouse(pointer, input.ignores_mouse); }
             delay.store(input.cadence_ms(), Ordering::Relaxed);
@@ -284,6 +286,9 @@ fn main() {
             }
             if drag_released {
                 let _ = webview.evaluate_script("window.__leko_on_event({state:'force_release'});");
+            }
+            if outside_clicked {
+                let _ = webview.evaluate_script("window.__leko_on_event({state:'outside_click'});");
             }
             return;
         }

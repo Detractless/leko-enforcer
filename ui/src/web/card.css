@@ -13,12 +13,13 @@ body[data-anchor="top-right"] {
 }
 
 .reply-card {
+  position: relative;
   width: min(348px, calc(100vw - 24px));
   max-height: calc(100vh - 72px);
   overflow-y: auto;
   box-sizing: border-box;
   word-wrap: break-word;
-  padding: 12px 14px;
+  padding: 20px 34px 20px 16px;
   border-radius: 14px;
   border: 1px solid var(--pill-border);
   background: var(--pill-fill);
@@ -33,6 +34,29 @@ body[data-anchor="top-right"] {
 
 .reply-card[hidden] {
   display: none;
+}
+
+.card-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pill-muted);
+  font-size: 15px;
+  line-height: 18px;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+}
+
+.card-close:active {
+  color: var(--pill-ink);
+  border-color: var(--pill-border);
 }
 
 .card-body {

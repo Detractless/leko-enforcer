@@ -11,9 +11,10 @@
 
   const WIDTHS = {
     idle: 54, timer: 68, blocked: 92, listening: 112, held: 112,
-    thinking: 82, speaking: 112, stopped: 82, error: 92
+    thinking: 82, speaking: 112, stopped: 112, error: 92
   };
-  const BAR_COUNTS = { listening: 7, held: 7, speaking: 7 };
+  const BAR_COUNTS = { listening: 7, held: 7, speaking: 7, stopped: 7 };
+  const REACTIVE_STATES = { listening: true, held: true, speaking: true };
   const WEIGHTS_7 = [0.56, 0.81, 0.92, 1.0, 0.92, 0.81, 0.56];
 
   let state = 'idle';
@@ -188,14 +189,17 @@
   function render() {
     pill.className = 'leko-pill state-' + state + (hovered ? ' is-hovered' : '');
     const count = BAR_COUNTS[state] || 0;
-    barEls.forEach((bar, index) => { bar.style.display = index < count ? 'block' : 'none'; });
+    barEls.forEach((bar, index) => {
+      bar.style.display = index < count ? 'block' : 'none';
+      if (!REACTIVE_STATES[state]) { bar.style.height = '2.5px'; bar.style.opacity = '0.9'; }
+    });
     if (state === 'timer') { label.textContent = timerText; }
-    else if (state === 'blocked' || state === 'error' || state === 'stopped') { label.textContent = state === 'blocked' ? 'Blocked' : state === 'stopped' ? 'Stopped' : 'Error'; }
+    else if (state === 'blocked' || state === 'error') { label.textContent = state === 'blocked' ? 'Blocked' : 'Error'; }
     else { label.textContent = ''; }
   }
 
   function animateBars(now) {
-    if (BAR_COUNTS[state]) {
+    if (REACTIVE_STATES[state]) {
       if (now - lastLevelAt > 240) { targetLevel = 0; }
       const rate = targetLevel > smoothLevel ? 0.42 : 0.34;
       smoothLevel += (targetLevel - smoothLevel) * rate;

@@ -120,6 +120,11 @@ test('stop_during_thinking_stays_red_even_while_held_and_ignores_stale_idle', ()
   vm.listeners.get('pill:pointerdown')({ pointerId: 1 });
   assert.deepEqual(vm.posted, ['stop']);
   assert.equal(vm.els.pill.className.includes('state-stopped'), true);
+  assert.equal(vm.els.label.textContent, '');
+  assert.equal(vm.els.bars.children.filter((b) => b.style.display === 'block').length, 7);
+  assert.equal(vm.els.bars.children.every((b) => b.style.height === '2.5px'), true);
+  vm.ctx.window.__leko_on_event({ type: 'audio_level', level: 0.95 });
+  assert.equal(vm.els.bars.children.every((b) => b.style.height === '2.5px'), true);
   vm.ctx.window.__leko_on_event({ type: 'state', state: 'idle' });
   vm.ctx.window.__leko_on_event({ type: 'state', state: 'speaking' });
   assert.equal(vm.els.pill.className.includes('state-stopped'), true);

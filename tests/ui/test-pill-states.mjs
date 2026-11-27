@@ -194,3 +194,58 @@ test('quiet_timer_tracks_active_time_limit_and_returns_idle', () => {
   const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
   assert.match(js, /window\.__leko_config\.quietTimer/);
 });
+
+test('quiet_timer_respects_15_minute_threshold_and_returns_idle', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'leko-pill-threshold-'));
+  try {
+    writeFileSync(join(dir, 'pill-config.json'), JSON.stringify({ quietTimer: true, timerThresholdMinutes: 15 }));
+    const [above, inside, cleared] = timerProbe([
+      { dir, now_epoch: 1767268802, events: { version: 1, event: 'tick', usage_timer_seconds: 1200, at: '2026-01-01T12:00:00Z' } },
+      { dir, now_epoch: 1767268803, events: { version: 1, event: 'tick', usage_timer_seconds: 600, at: '2026-01-01T12:00:01Z' } },
+      { dir, now_epoch: 1767268804, events: { version: 1, event: 'tick', usage_timer_seconds: 1000, at: '2026-01-01T12:00:02Z' } },
+    ]);
+    assert.equal(above.update, 'none');
+    assert.equal(inside.update, 'timer_start');
+    assert.equal(inside.timer, '10:00');
+    assert.equal(cleared.update, 'timer_stop');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () => {
+  const [opened, speaking, _idle, _hover, stayed, _unhover, escaped] = headless([
+    {
+      event: 'reply_card',
+      now_ms: 0,
+      text: 'Upcoming countdowns across active rules.',
+      columns: ['Rule', 'Kind', 'Remaining'],
+      rows: [['Safari', 'Time Limit', '04:12'], ['Notes', 'Timed Pass', '08:00']],
+    },
+    { event: 'speaking', now_ms: 100 },
+    { event: 'idle', now_ms: 500 },
+    { event: 'card_hover_on', now_ms: 1000 },
+    { event: 'check', now_ms: 6000 },
+    { event: 'card_hover_off', now_ms: 6100 },
+    { event: 'escape', now_ms: 6200 },
+  ]);
+  assert.equal(opened.card_active, true);
+  assert.equal(opened.card_width, 360);
+  assert.deepEqual(opened.card_columns, ['Rule', 'Kind', 'Remaining']);
+  assert.equal(opened.card_rows.length, 2);
+  assert.equal(speaking.state, 'speaking');
+  assert.equal(stayed.card_active, true);
+  assert.equal(escaped.card_active, false);
+  const [, settled] = headless([
+    { event: 'reply_card', now_ms: 0, text: 'Brief reply' },
+    { event: 'card_hover_on', now_ms: 100 },
+    { event: 'check', now_ms: 5000 },
+    { event: 'escape', now_ms: 5100 },
+  ]).slice(2);
+  assert.equal(settled.card_active, false);
+  const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
+  assert.match(js, /streamText/);
+  assert.match(js, /renderTable/);
+  assert.match(js, /Escape/);
+  assert.match(js, /card_hover_on/);
+});

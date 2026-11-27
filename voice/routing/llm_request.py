@@ -10,10 +10,17 @@ from typing import Optional
 
 def parse_user_intent_safe(user_text: str, endpoint_url: Optional[str] = None,
                            history=None, memories=None, trace_callback=None):
-    """Call the intent router and turn model/network errors into spoken replies."""
+    """Call the deterministic router by default, or LFM3 when LEKO_ENABLE_LLM_ROUTER=1."""
     started_at = time.monotonic()
     payload = None
     try:
+        if not endpoint_url:
+            try:
+                from .deterministic_router import classify_text, llm_router_enabled
+            except ImportError:
+                from deterministic_router import classify_text, llm_router_enabled
+            if not llm_router_enabled():
+                return classify_text(user_text)
         if endpoint_url:
             payload = {"model": "lfm3", "messages": [{"role": "user", "content": user_text}]}
             req = urllib.request.Request(
@@ -55,9 +62,15 @@ def parse_user_intent_safe(user_text: str, endpoint_url: Optional[str] = None,
 
 def parse_request_update_safe(user_text: str, history=None, memories=None, active_request=None,
                               trace_callback=None):
-    """Safely request a structured field patch for the current user turn."""
+    """Safely route turn updates deterministically unless LEKO_ENABLE_LLM_ROUTER=1."""
     started_at = time.monotonic()
     try:
+        try:
+            from .deterministic_router import classify_text, llm_router_enabled
+        except ImportError:
+            from deterministic_router import classify_text, llm_router_enabled
+        if not llm_router_enabled():
+            return classify_text(user_text)
         try:
             from .llm_router import parse_request_update
         except ImportError:

@@ -66,6 +66,15 @@ class UIPipelineBridge:
             }
         })
 
+    def emit_reply_card(self, text: str, columns: Optional[list] = None,
+                        rows: Optional[list] = None) -> None:
+        payload: Dict[str, Any] = {"type": "reply_card", "text": text}
+        if columns:
+            payload["columns"] = list(columns)
+        if rows:
+            payload["rows"] = list(rows)
+        self.emit(payload)
+
     def emit_speaking(self, text: str) -> None:
         self.emit({
             "type": "state",

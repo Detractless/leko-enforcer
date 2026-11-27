@@ -64,6 +64,7 @@ TOOLS = [
     _tool("request_pass", "Request or earn a Pass without editing the stored rule.", _ID, ["id"]),
     _tool("check_status", "Check the status and enforcement of one rule by its id.", _ID, ["id"]),
     _tool("evaluate_rule", "Evaluate one rule at the given time and report enforcement and reason.", _ID, ["id"]),
+    _tool("countdowns", "Compute active and upcoming countdowns across rules.", {}, []),
 ]
 
 

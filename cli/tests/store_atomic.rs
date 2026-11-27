@@ -156,3 +156,34 @@ fn corrupt_usage_state_and_empty_ticks_are_safe() {
     }
     fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn countdowns_handles_missing_and_corrupt_state_files_safely() {
+    let dir = loop_dir("countdowns-safe");
+    let store = dir.join("store.json");
+    let usage = dir.join("store.usage-state.json");
+    let pass = dir.join("store.pass-state.json");
+    leko_core::store::save(&store, &NativeStore { version: 1, rules: vec![sample()] }).unwrap();
+
+    let (code, out, err) = call(&["countdowns", "--store", store.to_str().unwrap(), "--at", "2026-01-01T12:00:00Z", "--json"]);
+    assert_eq!(code, 0, "{}", err);
+    assert!(serde_json::from_str::<serde_json::Value>(out.trim()).is_ok());
+    assert!(!usage.exists() && !pass.exists());
+
+    fs::write(&usage, b"{corrupt").unwrap();
+    fs::write(&pass, b"{corrupt").unwrap();
+    let (code2, _, _) = call(&["countdowns", "--store", store.to_str().unwrap(), "--at", "2026-01-01T12:00:00Z", "--json"]);
+    assert_eq!(code2, 0);
+    assert_eq!(fs::read(&usage).unwrap(), b"{corrupt");
+    assert_eq!(fs::read(&pass).unwrap(), b"{corrupt");
+
+    let (code3, out3, err3) = call(&[
+        "countdowns", "--store", store.to_str().unwrap(),
+        "--usage-state", usage.to_str().unwrap(), "--at", "2026-01-01T12:00:00Z",
+    ]);
+    assert_ne!(code3, 0);
+    assert!(out3.is_empty());
+    assert!(!err3.is_empty());
+    assert_eq!(fs::read(&usage).unwrap(), b"{corrupt");
+    fs::remove_dir_all(dir).unwrap();
+}

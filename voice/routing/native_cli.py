@@ -15,6 +15,7 @@ CANONICAL_TOOLS = {
     "request_pass": "request-pass",
     "check_status": "check-status",
     "evaluate_rule": "evaluate-rule",
+    "countdowns": "countdowns",
 }
 
 PLANNED_TOOLS = {

@@ -1,0 +1,7 @@
+{
+  "status": "done",
+  "created": "2026-11-27",
+  "opened": "2026-11-27",
+  "authorizedBy": "I approve all 5 decisions. Go ahead and implement (also make sure voice startup skips launching llama-server unless LEKO_ENABLE_LLM_ROUTER=1 so we save RAM and startup time).",
+  "done": "2026-11-27"
+}

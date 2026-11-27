@@ -76,6 +76,25 @@ class VoicePlannedFeatureTests(unittest.TestCase):
     def test_engagement_pass_is_live_while_other_planned_features_refuse(self):
         self.engagement_pass_is_live_while_other_planned_features_refuse()
 
+    def test_planned_features_refuse_without_cli_or_llm(self):
+        from voice.core.ui_bridge import UIPipelineBridge
+        events = []
+        bridge = UIPipelineBridge(event_sink=events.append)
+        for name in PLANNED_NAMES:
+            with patch.object(query_flow, "_llm_intent",
+                              side_effect=AssertionError("planned request reached the model")), \
+                 patch.object(query_flow.subprocess, "run",
+                              side_effect=AssertionError("planned request reached the CLI")):
+                answer = query_flow.process_query(
+                    f"Tell me about {name}",
+                    "store.json",
+                    bridge=bridge,
+                    conversation=Conversation(),
+                    speak_fn=lambda text, cancel=None: None,
+                )
+            self.assertEqual(answer, PLANNED_REPLY)
+        self.assertEqual(sum(1 for e in events if e.get("type") == "reply_card"), len(PLANNED_NAMES))
+
 
 if __name__ == "__main__":
     unittest.main()

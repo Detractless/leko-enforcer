@@ -147,6 +147,29 @@ class EnforcementLoopTests(unittest.TestCase):
     def test_m9_release_binary_and_tracker_smoke_verified(self):
         self.m9_release_binary_and_tracker_smoke_verified()
 
+    def test_countdowns_and_voice_shape_and_protected_paths_hold(self):
+        files = (
+            "core/src/domain/schedule_eval.rs", "core/src/domain/usage_eval.rs", "core/src/lib.rs",
+            "cli/src/arguments.rs", "cli/src/commands/mod.rs", "cli/src/commands/check_status.rs",
+            "cli/src/services/enforcement_loop.rs",
+            "ui/src/main.rs", "ui/src/state.rs", "ui/src/card.rs", "ui/src/timer_poll.rs",
+            "ui/src/web/pill.html", "ui/src/web/pill.css", "ui/src/web/card.css", "ui/src/web/pill.js",
+            "voice/routing/deterministic_router.py", "voice/routing/native_cli.py",
+            "voice/routing/llm_request.py", "voice/routing/llm_router.py",
+            "voice/core/ui_bridge.py", "voice/session/query_flow.py", "voice/session/runtime.py",
+        )
+        for relative in files:
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertLess(len(text.splitlines()), 350, relative)
+            self.assertNotIn("\u2014", text, relative)
+        for folder in ("core/src", "core/src/domain", "cli/src/commands", "cli/src/services",
+                       "ui/src", "ui/src/web", "voice/routing", "voice/session"):
+            count = sum(1 for p in (ROOT / folder).iterdir() if p.name != "__pycache__")
+            self.assertLessEqual(count, 8, folder)
+        count, digest = protected_digest()
+        self.assertEqual(count, 66)
+        self.assertEqual(digest, PROTECTED_HASH)
+
 
 if __name__ == "__main__":
     unittest.main()

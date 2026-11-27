@@ -3,6 +3,11 @@
 
 pub mod clock;
 pub mod domain;
+pub mod countdowns {
+    pub use crate::domain::{
+        compute_countdowns, rule_countdowns, sort_countdowns, CountdownItem, CountdownsReport,
+    };
+}
 
 #[path = "domain/enforcement_bridge.rs"]
 pub mod enforcement;

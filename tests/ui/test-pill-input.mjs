@@ -113,3 +113,32 @@ test('release_binary_and_full_commands_are_verified_externally', () => {
   assert.equal(result.status, 0, result.stderr);
   assert.equal(JSON.parse(result.stdout.trim()).state, 'idle');
 });
+
+test('idle_hover_never_resizes_window_and_blocked_takes_priority', () => {
+  const events = [
+    { event: 'hover_on', now_ms: 0 },
+    { event: 'hover_off', now_ms: 50 },
+    { event: 'reply_card', now_ms: 100, text: 'Rules active', columns: ['Rule', 'State'], rows: [['Demo', 'Blocked']] },
+    { event: 'blocked', now_ms: 200 },
+  ];
+  const result = spawnSync(PILL, ['--headless'], {
+    input: events.map((e) => JSON.stringify(e)).join('\n') + '\n',
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const [idleHoverOn, idleHoverOff, cardOpen, blocked] = result.stdout
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+  assert.equal(idleHoverOn.card_active, false);
+  assert.equal(idleHoverOn.card_width, 160);
+  assert.equal(idleHoverOn.card_height, 56);
+  assert.equal(idleHoverOff.card_width, 160);
+  assert.equal(cardOpen.card_active, true);
+  assert.equal(blocked.state, 'blocked');
+  assert.equal(blocked.text, 'Blocked');
+  assert.equal(blocked.card_active, false);
+  assert.equal(blocked.card_width, 160);
+  assert.equal(blocked.card_height, 56);
+});

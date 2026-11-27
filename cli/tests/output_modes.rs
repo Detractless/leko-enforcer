@@ -202,3 +202,87 @@ fn time_limit_counts_visible_window_and_pauses_when_hidden_while_session_ignores
     assert_eq!(leko_core::services::load_usage_state(&s_usage).unwrap().rules["s1"].sessions, 0);
     fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn countdowns_command_sorts_by_remaining_and_urgency_in_json_and_title_case() {
+    use leko_core::models::{
+        Pass, PassCap, PassLength, PassRequirement, Penalty, Period, QueuedEdit, Schedule, Seal,
+        Target, TimeBasedSchedule, UsageLimit,
+    };
+    use leko_core::services::{save_pass_state, save_usage_state, PassStateFile, RuleUsage, StoredPass, UsageStateFile};
+    use leko_core::store::{save, NativeStore};
+    use leko_core::TechnologyManagementRule;
+
+    let dir = std::env::temp_dir().join(format!("leko-cli-cd-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let store = dir.join("store.json");
+    let usage_path = dir.join("store.usage-state.json");
+    let pass_path = dir.join("store.pass-state.json");
+    let before_rules = vec![
+        TechnologyManagementRule {
+            id: "r_seal".into(), name: "DelayedRule".into(), enabled: true,
+            target: Target::SpecificApps { apps: vec!["com.example.A".into()] },
+            schedule: Schedule::default(), penalty: Some(Penalty::ForceClosePenalty),
+            pass: Pass::NoPass,
+            seal: Seal::QueuedDelaySeal {
+                delay_seconds: 300,
+                pending_edits: vec![QueuedEdit {
+                    key: "enabled".into(), value: "false".into(),
+                    requested_at: "2026-01-01T11:57:00Z".into(), cancelled: false,
+                }],
+            },
+            created_at: "2026-01-01T00:00:00Z".into(), updated_at: "2026-01-01T00:00:00Z".into(),
+        },
+        TechnologyManagementRule {
+            id: "r_pass".into(), name: "PassRule".into(), enabled: true,
+            target: Target::SpecificApps { apps: vec!["com.example.B".into()] },
+            schedule: Schedule::default(), penalty: Some(Penalty::ForceClosePenalty),
+            pass: Pass::EarnPass {
+                requirement: PassRequirement::PhysicalPass,
+                length: PassLength::TimedPass { minutes: 5 },
+                cap: PassCap::UnlimitedPasses,
+            },
+            seal: Seal::NoSeal,
+            created_at: "2026-01-01T00:00:00Z".into(), updated_at: "2026-01-01T00:00:00Z".into(),
+        },
+        TechnologyManagementRule {
+            id: "r_limit".into(), name: "LimitRule".into(), enabled: true,
+            target: Target::SpecificApps { apps: vec!["com.example.C".into()] },
+            schedule: Schedule {
+                time_based: TimeBasedSchedule::AlwaysOnSchedule,
+                usage_based: Some(UsageLimit::TimeLimit { minutes: 5, period: Period::Daily }),
+            },
+            penalty: Some(Penalty::ForceClosePenalty), pass: Pass::NoPass, seal: Seal::NoSeal,
+            created_at: "2026-01-01T00:00:00Z".into(), updated_at: "2026-01-01T00:00:00Z".into(),
+        },
+    ];
+    save(&store, &NativeStore { version: 1, rules: before_rules }).unwrap();
+    let store_bytes = fs::read(&store).unwrap();
+    let mut u = UsageStateFile::default();
+    u.rules.insert("r_limit".into(), RuleUsage {
+        rule_id: "r_limit".into(), period_key: "2026-01-01".into(), active_seconds: 180, ..Default::default()
+    });
+    save_usage_state(&usage_path, &u).unwrap();
+    let mut p = PassStateFile::default();
+    p.passes.insert("r_pass".into(), StoredPass {
+        rule_id: "r_pass".into(), requirement: "PhysicalPass".into(),
+        earned_at: "2026-01-01T11:57:00Z".into(), window_key: "2026-01-01".into(), used_in_window: 1,
+    });
+    save_pass_state(&pass_path, &p).unwrap();
+
+    let (code, out, err) = call(&["countdowns", "--store", store.to_str().unwrap(), "--at", "2026-01-01T12:00:00Z", "--json"]);
+    assert_eq!(code, 0, "{}", err);
+    let val: serde_json::Value = serde_json::from_str(out.trim()).unwrap();
+    let kinds: Vec<&str> = val["countdowns"].as_array().unwrap().iter().map(|i| i["kind"].as_str().unwrap()).collect();
+    assert_eq!(kinds, vec!["Time Limit", "Timed Pass", "Queued Delay Seal"]);
+    assert_eq!(val["soonest"]["remaining_seconds"], 120);
+
+    let (hcode, hout, herr) = call(&["countdowns", "--store", store.to_str().unwrap(), "--at", "2026-01-01T12:00:00Z"]);
+    assert_eq!(hcode, 0, "{}", herr);
+    assert!(hout.contains("Countdowns: 3"));
+    assert!(hout.contains("Type: Time Limit"));
+    assert!(hout.contains("Remaining Seconds: 120"));
+    assert_eq!(fs::read(&store).unwrap(), store_bytes);
+    fs::remove_dir_all(dir).unwrap();
+}

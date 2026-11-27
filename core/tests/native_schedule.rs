@@ -113,3 +113,74 @@ fn usage_budgets_roll_over_and_debounce_flickers() {
     assert_eq!(seconds, 0);
     assert!(open);
 }
+
+#[test]
+fn unified_countdowns_cover_all_five_types_at_injected_clock() {
+    use leko_core::countdowns::compute_countdowns;
+    use leko_core::models::{
+        Pass, PassCap, PassLength, PassRequirement, Penalty, QueuedEdit, Schedule, Seal, Target,
+        TechnologyManagementRule,
+    };
+    use leko_core::services::{PassStateFile, RuleUsage, StoredPass, UsageStateFile};
+    let moment = Moment::parse("2026-01-05T12:00:00Z", UTC).unwrap();
+    let mk = |id: &str, name: &str, schedule: Schedule, pass: Pass, seal: Seal| TechnologyManagementRule {
+        id: id.into(), name: name.into(), enabled: true,
+        target: Target::SpecificApps { apps: vec!["com.example.App".into()] },
+        schedule, penalty: Some(Penalty::ForceClosePenalty), pass, seal,
+        created_at: "2026-01-01T00:00:00Z".into(), updated_at: "2026-01-01T00:00:00Z".into(),
+    };
+    let rules = vec![
+        mk("tl", "TimeLimitRule", Schedule {
+            time_based: TimeBasedSchedule::AlwaysOnSchedule,
+            usage_based: Some(UsageLimit::TimeLimit { minutes: 10, period: Period::Daily }),
+        }, Pass::NoPass, Seal::NoSeal),
+        mk("tp", "TimedPassRule", Schedule::default(), Pass::EarnPass {
+            requirement: PassRequirement::PhysicalPass,
+            length: PassLength::TimedPass { minutes: 5 },
+            cap: PassCap::UnlimitedPasses,
+        }, Seal::NoSeal),
+        mk("ep", "EngagementRule", Schedule::default(), Pass::EarnPass {
+            requirement: PassRequirement::EngagementPass { targets: vec!["com.apple.Notes".into()], required_seconds: 120 },
+            length: PassLength::TimedPass { minutes: 10 },
+            cap: PassCap::UnlimitedPasses,
+        }, Seal::NoSeal),
+        mk("rs", "RoutineRule", Schedule {
+            time_based: TimeBasedSchedule::RoutineSchedule {
+                days: vec![1],
+                windows: vec![Window { start_minute: 12 * 60 + 8, end_minute: 13 * 60 }],
+            },
+            usage_based: None,
+        }, Pass::NoPass, Seal::NoSeal),
+        mk("qs", "QueuedRule", Schedule::default(), Pass::NoPass, Seal::QueuedDelaySeal {
+            delay_seconds: 600,
+            pending_edits: vec![QueuedEdit {
+                key: "enabled".into(), value: "false".into(),
+                requested_at: "2026-01-05T11:58:00Z".into(), cancelled: false,
+            }],
+        }),
+    ];
+    let mut usage = UsageStateFile::default();
+    usage.rules.insert("tl".into(), RuleUsage {
+        rule_id: "tl".into(), period_key: "2026-01-05".into(), active_seconds: 500, ..Default::default()
+    });
+    usage.rules.insert("ep".into(), RuleUsage {
+        rule_id: "ep".into(), period_key: "2026-01-05".into(), engagement_seconds: 30,
+        engagement_window_key: "2026-01-05".into(), ..Default::default()
+    });
+    let mut passes = PassStateFile::default();
+    passes.passes.insert("tp".into(), StoredPass {
+        rule_id: "tp".into(), requirement: "PhysicalPass".into(),
+        earned_at: "2026-01-05T11:57:00Z".into(), window_key: "2026-01-05".into(), used_in_window: 1,
+    });
+    let report = compute_countdowns(&rules, &usage, &passes, &moment);
+    let summary: Vec<(&str, &str, u64)> = report.countdowns.iter()
+        .map(|c| (c.rule_id.as_str(), c.kind.as_str(), c.remaining_seconds))
+        .collect();
+    assert_eq!(summary, vec![
+        ("ep", "Engagement Pass", 90),
+        ("tl", "Time Limit", 100),
+        ("tp", "Timed Pass", 120),
+        ("rs", "Routine Schedule", 480),
+        ("qs", "Queued Delay Seal", 480),
+    ]);
+}

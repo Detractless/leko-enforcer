@@ -1,7 +1,9 @@
+mod card;
 mod native_input;
 mod state;
 mod timer_poll;
 
+use card::{merge_html, resize_panel, CardState};
 use native_input::{
     set_ignores_mouse, CursorPoint, InputEvent, NativeInput, SystemCursor, TestCursor,
 };
@@ -30,6 +32,7 @@ use tao::platform::macos::{ActivationPolicy, EventLoopExtMacOS};
 
 const HTML: &str = include_str!("web/pill.html");
 const CSS: &str = include_str!("web/pill.css");
+const CARD_CSS: &str = include_str!("web/card.css");
 const JS: &str = include_str!("web/pill.js");
 const TOKENS: &str = include_str!("web/tokens.css");
 
@@ -63,14 +66,18 @@ fn headless() {
     for line in io::stdin().lock().lines() {
         let Ok(line) = line else { continue };
         let value: serde_json::Value = serde_json::from_str(&line).unwrap_or_default();
-        let Some(event) = value.get("event").and_then(|v| v.as_str()) else { continue };
+        if value.get("event").and_then(|v| v.as_str()).is_none() {
+            continue;
+        }
         let now = value.get("now_ms").and_then(|v| v.as_f64()).unwrap_or(0.0) / 1000.0;
         let duration = value.get("duration_ms").and_then(|v| v.as_f64()).unwrap_or(0.0) / 1000.0;
-        let snap = machine.apply(event, now, duration);
+        let snap = machine.apply_value(&value, now, duration);
         let out = serde_json::json!({
             "state": snap.state, "text": snap.text, "width": snap.width,
             "height": snap.height, "timer": snap.timer, "bars": snap.bars,
-            "dash": snap.dash,
+            "dash": snap.dash, "card_active": snap.card_active, "card_text": snap.card_text,
+            "card_columns": snap.card_columns, "card_rows": snap.card_rows,
+            "card_width": snap.card_width, "card_height": snap.card_height,
         });
         println!("{}", out);
     }
@@ -171,10 +178,7 @@ fn main() {
         .map(|item| item.size().height as f64 / item.scale_factor())
         .unwrap_or(900.0);
 
-    let html = HTML
-        .replace("<title>Leko Pill</title>",
-            &format!("<title>Leko Pill</title><style>{}</style><style>{}</style>", TOKENS, CSS))
-        .replace("</body>", &format!("<script>{}</script></body>", JS));
+    let html = merge_html(HTML, TOKENS, CSS, CARD_CSS, JS);
     let handler_proxy = proxy.clone();
     let wv_builder = WebViewBuilder::new()
         .with_transparent(true)
@@ -190,8 +194,10 @@ fn main() {
                 .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok())
                 .unwrap_or(first);
             if let Some(action) = value.get("action").and_then(|v| v.as_str()) {
-                write_action(action);
-                let _ = handler_proxy.send_event(Message::Event(action.to_string()));
+                if !action.starts_with("card_") {
+                    write_action(action);
+                }
+                let _ = handler_proxy.send_event(Message::Event(value.to_string()));
             }
         });
 
@@ -234,6 +240,8 @@ fn main() {
     #[cfg(not(target_os = "macos"))]
     let _window_keep = native_window;
 
+    let base_rect = rect;
+    let mut card_state = CardState::default();
     let mut input = NativeInput::new(rect, SystemCursor::new(screen_height));
     let delay = Arc::new(AtomicU64::new(input.cadence_ms()));
     let cursor_proxy = proxy.clone();
@@ -300,7 +308,16 @@ fn main() {
         }
         match event {
             Event::UserEvent(Message::Event(raw)) => {
-                let _ = webview.evaluate_script(&format!("window.__leko_on_event({});", raw));
+                let value: serde_json::Value = serde_json::from_str(&raw).unwrap_or_default();
+                if let Some(new_rect) = card_state.handle_event(&value, base_rect) {
+                    let ptr = native_window as *mut std::ffi::c_void;
+                    unsafe { resize_panel(ptr, base_rect, new_rect.2, new_rect.3, screen_height); }
+                    input.rect = new_rect;
+                    delay.store(input.cadence_ms(), Ordering::Relaxed);
+                }
+                if value.get("action").is_none() {
+                    let _ = webview.evaluate_script(&format!("window.__leko_on_event({});", raw));
+                }
             }
             Event::UserEvent(Message::Timer(text)) => {
                 let _ = webview.evaluate_script(&format!(

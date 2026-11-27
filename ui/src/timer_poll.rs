@@ -15,6 +15,16 @@ pub fn now_epoch_seconds() -> f64 {
         .as_secs_f64()
 }
 
+pub fn read_timer_threshold(app_support: &Path) -> u64 {
+    let path = app_support.join("pill-config.json");
+    let text = fs::read_to_string(path).unwrap_or_default();
+    let value: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
+    value
+        .get("timerThresholdMinutes")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(15)
+}
+
 pub fn read_config(app_support: &Path) -> (String, String, bool) {
     let path = app_support.join("pill-config.json");
     let text = fs::read_to_string(path).unwrap_or_default();
@@ -64,19 +74,19 @@ pub fn pass_seconds(app_support: &Path, now_epoch: f64) -> Option<u64> {
     let text = fs::read_to_string(path).unwrap_or_default();
     let value: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
     let passes = value.get("passes")?.as_object()?;
-    let mut best: f64 = 0.0;
+    let mut best: Option<u64> = None;
     for pass in passes.values() {
         if let Some(earned) = pass.get("earned_at").and_then(|v| v.as_str()) {
             if let Some(started) = epoch_from_rfc3339(earned) {
-                best = best.max(60.0 - (now_epoch - started));
+                let rem = 60.0 - (now_epoch - started);
+                if rem > 0.0 {
+                    let secs = rem as u64;
+                    best = Some(best.map(|b| b.min(secs)).unwrap_or(secs));
+                }
             }
         }
     }
-    if best > 0.0 {
-        Some(best as u64)
-    } else {
-        None
-    }
+    best.filter(|s| *s > 0)
 }
 
 pub fn usage_seconds(app_support: &Path, now_epoch: f64) -> Option<u64> {
@@ -109,8 +119,9 @@ pub fn format_mm_ss(seconds: u64) -> String {
     format!("{:02}:{:02}", seconds / 60, seconds % 60)
 }
 
-pub fn poll_step(
+pub fn poll_step_with_threshold(
     quiet_timer: bool,
+    threshold_minutes: u64,
     was_active: &mut bool,
     app_support: &Path,
     now_epoch: f64,
@@ -122,7 +133,9 @@ pub fn poll_step(
         }
         return None;
     }
-    match poll_active_seconds(app_support, now_epoch) {
+    let max_secs = threshold_minutes.saturating_mul(60);
+    let within = poll_active_seconds(app_support, now_epoch).filter(|secs| *secs > 0 && *secs <= max_secs);
+    match within {
         Some(secs) => {
             *was_active = true;
             Some(TimerUpdate::Start(format_mm_ss(secs)))
@@ -133,6 +146,16 @@ pub fn poll_step(
         }
         None => None,
     }
+}
+
+pub fn poll_step(
+    quiet_timer: bool,
+    was_active: &mut bool,
+    app_support: &Path,
+    now_epoch: f64,
+) -> Option<TimerUpdate> {
+    let threshold = read_timer_threshold(app_support);
+    poll_step_with_threshold(quiet_timer, threshold, was_active, app_support, now_epoch)
 }
 
 #[cfg(test)]
@@ -147,34 +170,32 @@ mod tests {
 
         let (_, _, default_quiet) = read_config(&dir);
         assert!(!default_quiet);
+        assert_eq!(read_timer_threshold(&dir), 15);
 
-        fs::write(dir.join("pill-config.json"), r#"{"quietTimer":true}"#).unwrap();
+        fs::write(dir.join("pill-config.json"), r#"{"quietTimer":true,"timerThresholdMinutes":15}"#).unwrap();
         let (_, _, quiet) = read_config(&dir);
         assert!(quiet);
 
         let now = epoch_from_rfc3339("2026-01-01T12:00:05Z").unwrap();
         fs::write(
             dir.join("pill-events.json"),
-            r#"{"version":1,"event":"tick","usage_timer_seconds":252,"at":"2026-01-01T12:00:00Z"}"#,
-        )
-        .unwrap();
-
+            r#"{"version":1,"event":"tick","usage_timer_seconds":1200,"at":"2026-01-01T12:00:00Z"}"#,
+        ).unwrap();
         let mut active = false;
-        assert_eq!(
-            poll_step(quiet, &mut active, &dir, now),
-            Some(TimerUpdate::Start("04:12".to_string()))
-        );
+        assert_eq!(poll_step(quiet, &mut active, &dir, now), None);
+
+        fs::write(
+            dir.join("pill-events.json"),
+            r#"{"version":1,"event":"tick","usage_timer_seconds":252,"at":"2026-01-01T12:00:00Z"}"#,
+        ).unwrap();
+        assert_eq!(poll_step(quiet, &mut active, &dir, now), Some(TimerUpdate::Start("04:12".to_string())));
         assert!(active);
 
         fs::write(
             dir.join("pill-events.json"),
             r#"{"version":1,"event":"tick","usage_timer_seconds":null,"at":"2026-01-01T12:00:06Z"}"#,
-        )
-        .unwrap();
-        assert_eq!(
-            poll_step(quiet, &mut active, &dir, now + 1.0),
-            Some(TimerUpdate::Stop)
-        );
+        ).unwrap();
+        assert_eq!(poll_step(quiet, &mut active, &dir, now + 1.0), Some(TimerUpdate::Stop));
         assert!(!active);
         assert_eq!(poll_step(quiet, &mut active, &dir, now + 2.0), None);
 

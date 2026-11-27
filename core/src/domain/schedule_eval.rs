@@ -67,3 +67,49 @@ pub fn is_time_active(schedule: &TimeBasedSchedule, moment: &Moment) -> bool {
         }
     }
 }
+
+pub fn schedule_transition(
+    schedule: &TimeBasedSchedule,
+    moment: &Moment,
+) -> Option<(&'static str, &'static str, DateTime<Utc>)> {
+    match schedule {
+        TimeBasedSchedule::AlwaysOnSchedule => None,
+        TimeBasedSchedule::OneTimeSchedule { start_at, end_at } => {
+            let start = Moment::parse(start_at, moment.zone).ok()?.utc;
+            let end = Moment::parse(end_at, moment.zone).ok()?.utc;
+            if moment.utc < start {
+                Some(("One Time Schedule", "Starts", start))
+            } else if moment.utc < end {
+                Some(("One Time Schedule", "Ends", end))
+            } else {
+                None
+            }
+        }
+        TimeBasedSchedule::RoutineSchedule { days, windows } => {
+            let today = moment.utc.with_timezone(&moment.zone).date_naive();
+            let mut best: Option<(&'static str, DateTime<Utc>)> = None;
+            for offset in -1i64..=7 {
+                let date = today + Duration::days(offset);
+                let weekday = date.weekday().num_days_from_monday() + 1;
+                if !days.contains(&weekday) {
+                    continue;
+                }
+                for window in windows {
+                    let Some((start, end)) = window_instants(date, window, moment.zone) else {
+                        continue;
+                    };
+                    if moment.utc < start {
+                        if best.map(|(_, b)| start < b).unwrap_or(true) {
+                            best = Some(("Starts", start));
+                        }
+                    } else if moment.utc < end {
+                        if best.map(|(_, b)| end < b).unwrap_or(true) {
+                            best = Some(("Ends", end));
+                        }
+                    }
+                }
+            }
+            best.map(|(tr, at)| ("Routine Schedule", tr, at))
+        }
+    }
+}

@@ -64,6 +64,7 @@ pub fn dispatch(args: &CliArgs, out: &mut dyn Write, err: &mut dyn Write) -> Com
         "edit-rule" | "delete-rule" | "queue-edit" | "cancel-edit" => edit_rule::run(args, out),
         "request-pass" => request_pass::run(args, out),
         "check-status" => check_status::run(args, out),
+        "countdowns" => check_status::countdowns(args, out),
         "evaluate-rule" => evaluate_rule::run(args, out),
         "settings" | "agent" | "enforce" => infrastructure::run(args, out, err),
         "pin-addon" | "list-addons" | "verify-addon" => crate::services::addon::run(args, out),

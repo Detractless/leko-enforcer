@@ -9,7 +9,7 @@ from typing import Callable, Optional
 
 
 _BUILTIN_MIC_HINTS = ("built-in", "macbook", "imac", "mac mini", "mac studio", "mac pro")
-BLUETOOTH_PREROLL_S = 0.7
+BLUETOOTH_PREROLL_S = 0.65
 
 
 class _AudioObjectPropertyAddress(ctypes.Structure):
@@ -100,32 +100,54 @@ def is_bluetooth_output(get_transport: Optional[Callable[[], Optional[int]]] = N
 def pad_bluetooth_preroll(
     pcm,
     sample_rate: int,
-    preroll_s: float = BLUETOOTH_PREROLL_S,
+    preroll_s: Optional[float] = None,
     is_bluetooth_fn: Optional[Callable[[], bool]] = None,
+    warm_duration_fn: Optional[Callable[[], float]] = None,
+    sd_module=None,
+    keep_warm: Optional[bool] = None,
 ):
-    """Prepend silent pre-roll samples on Bluetooth output so A2DP wake-up does not clip word 1."""
-    if pcm is None or not sample_rate or sample_rate <= 0 or preroll_s <= 0:
+    """Prepend an inaudible non-zero pilot only for any remaining Bluetooth warm-up needed."""
+    target_s = BLUETOOTH_PREROLL_S if preroll_s is None else preroll_s
+    if pcm is None or not sample_rate or sample_rate <= 0 or target_s <= 0:
         return pcm
     try:
-        if len(pcm) == 0:
+        n_samples = len(pcm)
+        if n_samples == 0:
             return pcm
     except TypeError:
         return pcm
     if not (is_bluetooth_fn or is_bluetooth_output)():
         return pcm
+
+    from .bluetooth_keepalive import bluetooth_warm_duration_s, make_bluetooth_pilot, warm_bluetooth_output
+
+    use_keepalive = (is_bluetooth_fn is None and warm_duration_fn is None) if keep_warm is None else keep_warm
+    warm_s = warm_duration_fn() if warm_duration_fn is not None else (bluetooth_warm_duration_s() if is_bluetooth_fn is None else 0.0)
+    needed_s = max(0.0, float(target_s) - max(0.0, float(warm_s)))
+    if use_keepalive:
+        hold_s = (n_samples / float(sample_rate)) + needed_s + 20.0
+        warm_bluetooth_output(sd_module=sd_module, hold_s=hold_s)
+    if needed_s <= 0.0:
+        return pcm
+
     import numpy as np
 
     arr = np.asarray(pcm, dtype=np.float32)
-    pad_len = int(round(sample_rate * preroll_s))
-    if pad_len <= 0:
+    channels = arr.shape[1] if arr.ndim == 2 else 1
+    pilot = make_bluetooth_pilot(sample_rate, needed_s, channels=channels)
+    if len(pilot) == 0:
         return pcm
     if arr.ndim == 2:
-        zeros = np.zeros((pad_len, arr.shape[1]), dtype=arr.dtype)
-        return np.concatenate([zeros, arr], axis=0)
-    return np.concatenate([np.zeros(pad_len, dtype=arr.dtype), arr.reshape(-1)])
+        return np.concatenate([pilot, arr], axis=0)
+    return np.concatenate([pilot, arr.reshape(-1)])
 
 
 def _refresh_portaudio(sd_module) -> None:
+    try:
+        from .bluetooth_keepalive import stop_bluetooth_keepalive
+        stop_bluetooth_keepalive()
+    except Exception:
+        pass
     terminate = getattr(sd_module, "_terminate", None)
     initialize = getattr(sd_module, "_initialize", None)
     if callable(terminate) and callable(initialize):

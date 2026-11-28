@@ -96,7 +96,8 @@ test('semantic_state_colors_and_thinking_dots_are_configured', () => {
   const tokens = readFileSync(resolve(ROOT, 'ui/src/web/tokens.css'), 'utf8');
   for (const color of ['#181818', '#222222', '#585858', '#F2F2F2', '#8E8E8E',
                        '#3ECF8E', '#F5B747', '#3B82F6',
-                       '#FAFAFA', '#FFFFFF', '#CCCCCC', '#141414', '#6E6E6E']) {
+                       '#ECEEF2', '#FFFFFF', '#9CA3AF', '#141414', '#6E6E6E',
+                       '#059669', '#B45309', '#1D4ED8']) {
     assert.ok(tokens.includes(color), color);
   }
   const css = readFileSync(resolve(ROOT, 'ui/src/web/pill.css'), 'utf8');
@@ -273,6 +274,7 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
   assert.match(cardCss, /width: min\(348px, calc\(100vw - 24px\)\)/);
   assert.match(cardCss, /max-height: calc\(100vh - 72px\)/);
   assert.match(cardCss, /word-wrap: break-word/);
+  assert.match(cardCss, /border: 1px solid var\(--pill-speak-border\)/);
   assert.match(cardCss, /padding: 28px 38px 25px 16px/);
   assert.match(cardCss, /\.card-close[\s\S]*top: 6px;[\s\S]*right: 6px;/);
   assert.match(cardCss, /\.card-close/);
@@ -314,7 +316,7 @@ test('stop_during_thinking_or_speaking_shows_red_stopped_state', () => {
 
   const tokens = readFileSync(resolve(ROOT, 'ui/src/web/tokens.css'), 'utf8');
   assert.ok(tokens.includes('#EF4444'));
-  assert.ok(tokens.includes('#DC2626'));
+  assert.ok(tokens.includes('#B91C1C'));
   const css = readFileSync(resolve(ROOT, 'ui/src/web/pill.css'), 'utf8');
   assert.match(css, /\.state-stopped[\s\S]*--pill-stop-border/);
   assert.match(css, /\.state-stopped \.bar[\s\S]*--pill-stop/);

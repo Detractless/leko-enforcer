@@ -21,7 +21,7 @@ body[data-anchor="top-right"] {
   word-wrap: break-word;
   padding: 28px 38px 25px 16px;
   border-radius: 14px;
-  border: 1px solid var(--pill-border);
+  border: 1px solid var(--pill-speak-border);
   background: var(--pill-fill);
   box-shadow: var(--pill-shadow);
   color: var(--pill-ink);

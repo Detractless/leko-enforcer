@@ -1,8 +1,11 @@
 """Tests for rolling 20-turn voiceprint learning, intruder immunity, and locking."""
 import json
+import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 
@@ -91,6 +94,69 @@ class RollingVoiceprintTests(unittest.TestCase):
             self.assertEqual(payload["source"], "manual")
             isolator = AlkoveIsolator(voiceprint_path=vp_path, settings_path=root / "missing.json")
             out, used = isolator.isolate(_tone(180.0, seconds=1.0))
+            self.assertTrue(used)
+            self.assertEqual(len(out), 16000)
+
+    def test_default_alkove_path_does_not_deadlock_when_promoting(self):
+        class _FakeVP:
+            def __init__(self, data):
+                self._data = data
+
+            def to_json(self):
+                return dict(self._data)
+
+            @staticmethod
+            def from_json(data):
+                return _FakeVP(data)
+
+        class _FakeTimbre:
+            def __init__(self, _models):
+                pass
+
+            def embed(self, audio):
+                return _FakeVP(_fake_embed(audio))
+
+            @staticmethod
+            def verify(a, b, level="balanced"):
+                return _fake_verify(a._data, b._data)
+
+        fake_alkove = types.SimpleNamespace(
+            Models=types.SimpleNamespace(load=lambda _names: object()),
+            Timbre=_FakeTimbre,
+            Voiceprint=_FakeVP,
+        )
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(sys.modules, {"alkove": fake_alkove}):
+            root = Path(tmp)
+            hist = root / "voiceprint-history.json"
+            vp = root / "voiceprint.json"
+            store = RollingVoiceprintStore(history_path=hist, voiceprint_path=vp)
+            clip_a = _tone(160.0)
+            for _ in range(3):
+                self.assertFalse(store.record_turn(clip_a, "turn"))
+            self.assertTrue(store.record_turn(clip_a, "promote"))
+            saved = json.loads(vp.read_text(encoding="utf-8"))
+            self.assertEqual(saved["source"], "auto")
+            self.assertEqual(saved["count"], 4)
+
+    def test_real_alkove_promotes_voiceprint_without_mocks(self):
+        try:
+            import alkove  # noqa: F401
+        except ImportError:
+            self.skipTest("alkove not installed")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            hist = root / "voiceprint-history.json"
+            vp = root / "voiceprint.json"
+            store = RollingVoiceprintStore(history_path=hist, voiceprint_path=vp)
+            clip = _tone(175.0, seconds=2.0)
+            for _ in range(3):
+                self.assertFalse(store.record_turn(clip, "warm up"))
+            self.assertTrue(store.record_turn(clip, "promote real"))
+            saved = json.loads(vp.read_text(encoding="utf-8"))
+            self.assertEqual(saved["source"], "auto")
+            self.assertGreaterEqual(saved["count"], 4)
+            isolator = AlkoveIsolator(voiceprint_path=vp, settings_path=root / "missing.json")
+            out, used = isolator.isolate(_tone(175.0, seconds=1.0))
             self.assertTrue(used)
             self.assertEqual(len(out), 16000)
 

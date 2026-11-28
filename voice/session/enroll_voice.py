@@ -11,6 +11,7 @@ from typing import Optional
 import numpy as np
 
 from ..core.alkove_isolator import LEKO_SUPPORT_DIR, VOICEPRINT_PATH, max_chunk_rms
+from .rolling_voiceprint import HISTORY_PATH
 
 
 def enroll_from_pcm(audio_f32: np.ndarray, out_path: Path = VOICEPRINT_PATH) -> Path:
@@ -28,7 +29,8 @@ def enroll_from_pcm(audio_f32: np.ndarray, out_path: Path = VOICEPRINT_PATH) -> 
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     data = vp.to_json()
-    out_path.write_text(data if isinstance(data, str) else json.dumps(data), encoding="utf-8")
+    vp_dict = json.loads(data) if isinstance(data, str) else data
+    out_path.write_text(json.dumps({"source": "manual", "voiceprint": vp_dict}), encoding="utf-8")
     return out_path
 
 
@@ -67,11 +69,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     if args.clear:
-        if args.out.exists():
-            args.out.unlink()
-            print(f"Cleared voiceprint at {args.out}")
-        else:
-            print("No saved voiceprint found.")
+        removed = False
+        for target in (args.out, HISTORY_PATH):
+            if target.exists():
+                target.unlink()
+                removed = True
+        print(f"Cleared voiceprint data at {args.out}" if removed else "No saved voiceprint found.")
         return 0
 
     LEKO_SUPPORT_DIR.mkdir(parents=True, exist_ok=True)

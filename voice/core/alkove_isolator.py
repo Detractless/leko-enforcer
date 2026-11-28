@@ -104,6 +104,8 @@ class AlkoveIsolator:
                 return self._voiceprint
             raw = self.voiceprint_path.read_text(encoding="utf-8")
             data = json.loads(raw) if raw.lstrip().startswith("{") else raw
+            if isinstance(data, dict) and isinstance(data.get("voiceprint"), dict):
+                data = data["voiceprint"]
             self._voiceprint = self._alkove.Voiceprint.from_json(data)
             self._vp_mtime = mtime
             return self._voiceprint

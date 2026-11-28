@@ -270,11 +270,15 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
   assert.match(js, /canDismissOutside\(\)/);
   const html = readFileSync(resolve(ROOT, 'ui/src/web/pill.html'), 'utf8');
   assert.match(html, /id="card-close"/);
+  assert.match(html, /id="card-user"/);
+  assert.match(html, /id="card-query"/);
   const cardCss = readFileSync(resolve(ROOT, 'ui/src/web/card.css'), 'utf8');
   assert.match(cardCss, /width: min\(348px, calc\(100vw - 24px\)\)/);
   assert.match(cardCss, /max-height: calc\(100vh - 72px\)/);
   assert.match(cardCss, /word-wrap: break-word/);
   assert.match(cardCss, /border: 1px solid var\(--pill-speak-border\)/);
+  assert.match(cardCss, /\.reply-card\.is-thinking[\s\S]*--pill-think-border/);
+  assert.match(cardCss, /\.reply-card\.has-query \.card-body/);
   assert.match(cardCss, /padding: 28px 38px 25px 16px/);
   assert.match(cardCss, /\.card-close[\s\S]*top: 6px;[\s\S]*right: 6px;/);
   assert.match(cardCss, /\.card-close/);

@@ -36,6 +36,10 @@ body[data-anchor="top-right"] {
   display: none;
 }
 
+.reply-card.is-thinking {
+  border-color: var(--pill-think-border);
+}
+
 .card-close {
   position: absolute;
   top: 6px;
@@ -74,10 +78,53 @@ body[data-anchor="top-right"] {
   transform: scale(0.95);
 }
 
+.card-user {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.card-user[hidden] {
+  display: none;
+}
+
+.card-query {
+  max-width: 90%;
+  padding: 6px 10px;
+  border-radius: 11px 11px 3px 11px;
+  background: var(--pill-user-bubble);
+  border: 1px solid var(--pill-user-border);
+  color: var(--pill-ink);
+  font-size: 12px;
+  line-height: 1.38;
+  word-wrap: break-word;
+}
+
 .card-body {
   color: var(--pill-ink);
   word-wrap: break-word;
   white-space: pre-wrap;
+}
+
+.reply-card.has-query .card-body {
+  display: inline-block;
+  max-width: 88%;
+  padding: 6px 10px;
+  border-radius: 11px 11px 11px 3px;
+  background: var(--pill-bot-bubble);
+  border: 1px solid var(--pill-bot-border);
+  font-size: 12px;
+  line-height: 1.38;
+}
+
+.reply-card.is-thinking .card-body {
+  color: var(--pill-muted);
+  animation: card-think-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes card-think-pulse {
+  0%, 100% { opacity: 0.48; }
+  50% { opacity: 0.95; }
 }
 
 .card-table {

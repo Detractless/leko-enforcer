@@ -51,6 +51,7 @@ __all__ = [
     'acquire_single_instance_lock', 'is_audio_muted_for_echo', 'set_playback_state',
     'HandsfreeTurnManager', 'PushToTalkTurnManager', 'TurnDetector', 'verbalize_for_speech',
 ]
+from .alkove_isolator import IdleSafeEchoAudio, prepare_audio_for_stt
 from ..audio_io.echo_canceller import EchoAudioProcessor, VoiceOutputPlayer
 
 LEKO_BIN = Path(os.environ.get("LEKO_CLI_BIN", str(REPO_ROOT / "target/release/leko")))
@@ -65,7 +66,7 @@ def _load_stt_model(path):
 _stt_lifecycle = SttLifecycle(PHONON_25_MODEL, _load_stt_model, idle_timeout_s=300.0)
 _is_speaking = _is_muted = _playback_active = False
 _playback_decay_until = _playback_start_time = 0.0
-_echo_audio = EchoAudioProcessor()
+_echo_audio = IdleSafeEchoAudio(EchoAudioProcessor())
 _output_player = VoiceOutputPlayer(_echo_audio)
 _active_turn_detector = None
 _active_input_stream = None
@@ -256,20 +257,12 @@ def get_stt():
     return _stt_lifecycle.get_model()
 
 def transcribe_audio(audio_f32: np.ndarray) -> str:
-    """Transcribes audio samples using local Phonon MLX model."""
-    if len(audio_f32) < 3200:  # < 0.2s
+    """Transcribes isolated, normalized audio samples using local Phonon MLX model."""
+    prepared = prepare_audio_for_stt(audio_f32)
+    if prepared is None:
         return ""
-    chunk_size = 1600  # 100ms at 16kHz
-    num_chunks = len(audio_f32) // chunk_size
-    if num_chunks > 0:
-        max_chunk_rms = max(
-            float(np.sqrt(np.mean(audio_f32[i * chunk_size:(i + 1) * chunk_size] ** 2)))
-            for i in range(num_chunks)
-        )
-        if max_chunk_rms < 0.008:
-            return ""
     stt = get_stt()
-    res = stt.generate(mx.array(audio_f32))
+    res = stt.generate(mx.array(prepared))
     return getattr(res, "text", str(res)).strip()
 
 def format_status_summary(raw_stdout: str, target_type: str = "", name: str = "") -> str:

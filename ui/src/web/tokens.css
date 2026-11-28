@@ -47,6 +47,10 @@
   --pill-close-hover-bg: rgba(255, 0, 0, 0.24);
   --pill-close-hover-border: rgba(255, 92, 92, 0.48);
   --pill-close-hover-ink: #dfc6c6;
+  --pill-user-bubble: rgba(255, 255, 255, 0.08);
+  --pill-user-border: rgba(255, 255, 255, 0.10);
+  --pill-bot-bubble: rgba(255, 255, 255, 0.04);
+  --pill-bot-border: rgba(255, 255, 255, 0.09);
 }
 
 body[data-theme="light"] {
@@ -69,4 +73,8 @@ body[data-theme="light"] {
   --pill-close-hover-bg: rgba(255, 0, 0, 0.43);
   --pill-close-hover-border: rgba(153, 27, 27, 0.48);
   --pill-close-hover-ink: #7f1d1d;
+  --pill-user-bubble: rgba(0, 0, 0, 0.06);
+  --pill-user-border: rgba(0, 0, 0, 0.09);
+  --pill-bot-bubble: rgba(0, 0, 0, 0.035);
+  --pill-bot-border: rgba(0, 0, 0, 0.08);
 }

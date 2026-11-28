@@ -73,7 +73,7 @@ class RuntimeController:
         if args.ui:
             self.turn_manager = voice.PushToTalkTurnManager(
                 on_turn_complete=self.on_handsfree_speech, on_capture_error=self.on_capture_error,
-                grace_s=0.0, on_audio_level=self.bridge.emit_rms_level)
+                grace_s=0.15, on_audio_level=self.bridge.emit_rms_level)
             selected = "push-to-talk"
         else:
             self.turn_manager = voice.HandsfreeTurnManager(
@@ -127,10 +127,9 @@ class RuntimeController:
             self.turn_manager.finish_response(token)
             if self.args.ui: self.bridge.emit_state("idle")
             return
-        if self.args.ui: self.bridge.emit_state("thinking")
-
         def execute_turn(seq):
-            self.bridge.emit_state("thinking", "Transcribing...")
+            if not self.args.ui:
+                self.bridge.emit_state("thinking", "Transcribing...")
             try:
                 diagnostics = self.turn_manager.take_turn_diagnostics(audio_f32)
                 print("[Audio turn] " + json.dumps(diagnostics, default=str, sort_keys=True), flush=True)
@@ -163,6 +162,8 @@ class RuntimeController:
                 self.session_log.append("turn_outcome", turn_id, outcome="filtered_filler")
                 if self.args.ui: self.bridge.emit_state("idle")
                 return
+            if self.args.ui:
+                self.bridge.emit_thinking(text)
             voice.process_query(text, self.args.settings, bridge=self.bridge, conversation=self.conversation,
                                 is_cancelled=lambda: self.worker.is_superseded(seq),
                                 preserve_pending_on_cancel=self.args.ui, session_log=self.session_log,

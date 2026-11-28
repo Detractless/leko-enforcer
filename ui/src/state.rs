@@ -71,7 +71,14 @@ impl Machine {
                     self.card.collapse_at = None;
                 }
             }
-            "thinking" => self.state = PillState::Thinking,
+            "thinking" => {
+                self.state = PillState::Thinking;
+                if let Some(q) = value.get("query").and_then(|v| v.as_str()) {
+                    if !q.is_empty() {
+                        self.card.open(q.to_string(), vec![], vec![]);
+                    }
+                }
+            }
             "stop" | "stopped" => {
                 self.state = PillState::Stopped;
                 self.stopped_until = now + 1.2;

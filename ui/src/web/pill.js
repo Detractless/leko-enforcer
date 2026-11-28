@@ -4,6 +4,8 @@
   const label = document.getElementById('label');
   const card = document.getElementById('card');
   const cardClose = document.getElementById('card-close');
+  const cardUser = document.getElementById('card-user');
+  const cardQuery = document.getElementById('card-query');
   const cardBody = document.getElementById('card-body');
   const cardTable = document.getElementById('card-table');
   const cardHead = document.getElementById('card-head');
@@ -17,26 +19,11 @@
   const REACTIVE_STATES = { listening: true, held: true, speaking: true };
   const WEIGHTS_7 = [0.56, 0.81, 0.92, 1.0, 0.92, 0.81, 0.56];
 
-  let state = 'idle';
-  let timerText = '';
-  let localTimer = null;
-  let hovered = false;
-  let targetLevel = 0;
-  let smoothLevel = 0;
-  let lastLevelAt = 0;
-  let cardActive = false;
-  let cardHovered = false;
-  let cardSpeaking = false;
-  let cardTextDone = true;
-  let cardSpeechDone = true;
-  let cardCollapseTimer = null;
-  let cardSpeechGraceTimer = null;
-  let streamTokens = [];
-  let streamRawText = '';
-  let streamMode = 'word';
-  let streamIdx = 0;
-  let streamTimer = null;
-  let streamStartTimer = null;
+  let state = 'idle', timerText = '', localTimer = null, hovered = false;
+  let targetLevel = 0, smoothLevel = 0, lastLevelAt = 0;
+  let cardActive = false, cardHovered = false, cardSpeaking = false, cardTextDone = true, cardSpeechDone = true;
+  let cardCollapseTimer = null, cardSpeechGraceTimer = null;
+  let streamTokens = [], streamRawText = '', streamMode = 'word', streamIdx = 0, streamTimer = null, streamStartTimer = null;
 
   for (let i = 0; i < 7; i += 1) {
     const bar = document.createElement('span');
@@ -53,18 +40,9 @@
     clearTimeout(streamStartTimer); streamStartTimer = null;
   }
 
-  function canDismissOutside() {
-    return cardActive && cardSpeechDone && cardTextDone;
-  }
-
-  function scheduleCollapse(ms) {
-    clearTimeout(cardCollapseTimer);
-    cardCollapseTimer = setTimeout(function () { if (!cardHovered) { dismissCard(); } }, ms);
-  }
-
-  function maybeScheduleCollapse(ms) {
-    if (canDismissOutside() && !cardHovered) { scheduleCollapse(ms); }
-  }
+  function canDismissOutside() { return cardActive && cardSpeechDone && cardTextDone; }
+  function scheduleCollapse(ms) { clearTimeout(cardCollapseTimer); cardCollapseTimer = setTimeout(function () { if (!cardHovered) { dismissCard(); } }, ms); }
+  function maybeScheduleCollapse(ms) { if (canDismissOutside() && !cardHovered) { scheduleCollapse(ms); } }
 
   function tokenWeight(token) {
     const t = token.trim();
@@ -166,8 +144,19 @@
     cardTable.hidden = false;
   }
 
+  function openQueryCard(query) {
+    clearCardTimers(); cardActive = true; cardSpeaking = false; cardSpeechDone = false;
+    card.classList.add('is-thinking', 'has-query'); cardQuery.textContent = query; cardUser.hidden = false;
+    cardBody.textContent = 'Thinking...'; cardTable.hidden = true;
+    document.body.classList.add('has-card'); card.hidden = false;
+  }
+
   function openCard(event) {
     clearCardTimers(); cardActive = true; cardSpeaking = state === 'speaking'; cardSpeechDone = false;
+    card.classList.remove('is-thinking');
+    const q = event.query || cardQuery.textContent;
+    if (q) { card.classList.add('has-query'); cardQuery.textContent = q; cardUser.hidden = false; }
+    else { card.classList.remove('has-query'); cardUser.hidden = true; }
     document.body.classList.add('has-card'); card.hidden = false;
     streamText(event.text || '', event.duration_ms || 0, event.word_timings_ms, event.reveal_mode);
     renderTable(event.columns || [], event.rows || []);
@@ -180,7 +169,8 @@
     if (!cardActive) { return; }
     clearCardTimers();
     cardActive = cardHovered = cardSpeaking = false; cardTextDone = cardSpeechDone = true;
-    card.hidden = true; cardClose.classList.remove('is-hovered'); document.body.classList.remove('has-card'); post('card_dismiss');
+    card.hidden = true; card.classList.remove('is-thinking', 'has-query'); cardQuery.textContent = ''; cardUser.hidden = true;
+    cardClose.classList.remove('is-hovered'); document.body.classList.remove('has-card'); post('card_dismiss');
   }
 
   function render() {
@@ -229,8 +219,9 @@
   }
 
   function localFeedback(heldFor) {
-    if (heldFor > 200) { setState('thinking'); return; }
-    setState(restState());
+    if (heldFor <= 200) { setState(restState()); return; }
+    setState('listening');
+    localTimer = setTimeout(function () { localTimer = null; if (state === 'listening') { setState('thinking'); } }, 250);
   }
 
   let pressedAt = 0, localPressed = false, stopPress = false;
@@ -294,6 +285,7 @@
       return;
     }
     if (next === 'card_dismiss') { dismissCard(); return; }
+    if (next === 'thinking') { localPressed = false; setState('thinking'); if (event.query) { openQueryCard(event.query); } return; }
     if (next === 'hover_on' || next === 'hover_off') { hovered = next === 'hover_on'; render(); return; }
     if (next === 'card_cursor') {
       const active = cardActive && !card.hidden;

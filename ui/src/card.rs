@@ -60,6 +60,16 @@ impl CardState {
             .and_then(|v| v.as_str())
             .unwrap_or("");
         match kind {
+            "thinking" => {
+                let query = value.get("query").and_then(|v| v.as_str()).unwrap_or("");
+                if query.is_empty() {
+                    None
+                } else {
+                    self.open(query.to_string(), vec![], vec![]);
+                    let (w, h) = self.desired_size();
+                    Some(window_frame(anchor, monitor_rect, w as f64, h as f64))
+                }
+            }
             "reply_card" => {
                 self.apply_reply(value);
                 let (w, h) = self.desired_size();

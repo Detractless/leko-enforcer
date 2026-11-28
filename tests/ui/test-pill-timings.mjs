@@ -30,7 +30,7 @@ function mountPillVm() {
     };
   };
   const els = Object.fromEntries(
-    ['pill', 'bars', 'label', 'card', 'card-close', 'card-body', 'card-table', 'card-head', 'card-rows']
+    ['pill', 'bars', 'label', 'card', 'card-close', 'card-user', 'card-query', 'card-body', 'card-table', 'card-head', 'card-rows']
       .map((k) => [k, makeEl(k)]),
   );
   let now = 1000;
@@ -181,5 +181,27 @@ test('card_close_click_stops_active_speaking_but_only_dismisses_when_idle', () =
   assert.equal(vm.els.card.hidden, true);
   assert.deepEqual(vm.posted, ['card_dismiss']);
   assert.equal(vm.els.pill.className.includes('state-idle'), true);
+});
+
+test('yellow_transcript_preview_and_simultaneous_reveal_flow', () => {
+  const vm = mountPillVm();
+  vm.els.card.hidden = true;
+  vm.listeners.get('pill:pointerdown')({ pointerId: 1 });
+  vm.ctx.performance.now = () => 1350;
+  vm.listeners.get('pill:pointerup')({ pointerId: 1 });
+  assert.equal(vm.els.pill.className.includes('state-listening'), true);
+  assert.equal(vm.els.card.hidden, true);
+  vm.ctx.window.__leko_on_event({ type: 'state', state: 'thinking', query: 'Pause youtube' });
+  assert.equal(vm.els.pill.className.includes('state-thinking'), true);
+  assert.equal(vm.els.card.hidden, false);
+  assert.equal(vm.els.card.classList.contains('is-thinking'), true);
+  assert.equal(vm.els['card-query'].textContent, 'Pause youtube');
+  assert.equal(vm.els['card-body'].textContent, 'Thinking...');
+
+  // Clicking X during Yellow thinking cancels speaking before TTS starts
+  vm.listeners.get('card-close:click')({ stopPropagation() {} });
+  assert.equal(vm.els.card.hidden, true);
+  assert.deepEqual(vm.posted.slice(-2), ['card_dismiss', 'stop']);
+  assert.equal(vm.els.pill.className.includes('state-stopped'), true);
 });
 

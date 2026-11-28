@@ -1,18 +1,13 @@
 """Runs the hands-free assistant, UI bridge, and serialized query worker."""
 
-import argparse
-import json
-import os
-import re
-import time
-import threading
-import queue
+import argparse, json, os, queue, re, threading, time
 from typing import Any, Dict
 
 import numpy as np
 import voice.core.assistant as voice
 from ..core.ui_bridge import UIPipelineBridge
 from .conversation import Conversation, confirmation
+from .rolling_voiceprint import record_auto_voiceprint
 from .session_log import SessionLog
 from .query_flow import clear_pending
 from ..core.settings_setup import SettingsSetupError, prepare_settings
@@ -162,6 +157,7 @@ class RuntimeController:
                 self.session_log.append("turn_outcome", turn_id, outcome="filtered_filler")
                 if self.args.ui: self.bridge.emit_state("idle")
                 return
+            record_auto_voiceprint(audio_f32, text)
             if self.args.ui:
                 self.bridge.emit_thinking(text); self.conversation.mark_thinking(3.0)
             voice.process_query(text, self.args.settings, bridge=self.bridge, conversation=self.conversation,

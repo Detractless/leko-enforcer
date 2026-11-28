@@ -31,6 +31,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(HERE))
 sys.modules.setdefault("assistant", sys.modules[__name__])
 
+from ..normalization.spoken_to_written import normalize_written_text
 from ..normalization.verbalizer import verbalize_for_speech
 from .turn_detector import TurnDetector
 from .stream_recovery import open_input_stream, pad_bluetooth_preroll, sync_output_device
@@ -263,7 +264,7 @@ def transcribe_audio(audio_f32: np.ndarray) -> str:
         return ""
     stt = get_stt()
     res = stt.generate(mx.array(prepared))
-    return getattr(res, "text", str(res)).strip()
+    return normalize_written_text(getattr(res, "text", str(res)).strip())
 
 def format_status_summary(raw_stdout: str, target_type: str = "", name: str = "") -> str:
     """Format native CLI JSON into one exact Title Case spoken status sentence."""

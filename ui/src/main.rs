@@ -233,10 +233,10 @@ fn main() {
             #[cfg(target_os = "macos")]
             if shortcut.as_ref().is_some_and(|key| key.pressed()) { let _ = webview.evaluate_script("window.__leko_keyboard_move();"); }
             let screens: Vec<_> = target.available_monitors().map(|m| monitor_rect_logical(Some(&m))).collect();
-            if move_origin.is_none() { let slot = move_mode::clamp_displays(input.pill_rect, &screens); let next = (input.rect.0 + slot.0 - input.pill_rect.0, input.rect.1 + slot.1 - input.pill_rect.1, input.rect.2, input.rect.3); if next != input.rect { unsafe { resize_panel(native_window as *mut std::ffi::c_void, next, screen_height); } input.rect = next; input.pill_rect = pill_slot_rect(&anchor, next); } }
+            if move_origin.is_none() { let slot = move_mode::clamp_pill_slot(input.pill_rect, &screens); let next = (input.rect.0 + slot.0 - input.pill_rect.0, input.rect.1 + slot.1 - input.pill_rect.1, input.rect.2, input.rect.3); if next != input.rect { unsafe { resize_panel(native_window as *mut std::ffi::c_void, next, screen_height); } input.rect = next; input.pill_rect = pill_slot_rect(&anchor, next); } }
             if let Some((start, rect)) = move_origin {
                 if let Some(cursor) = input.provider.position() {
-                    let next = move_mode::clamp_displays((rect.0 + cursor.x - start.x, rect.1 + cursor.y - start.y, rect.2, rect.3), &screens);
+                    let next = move_mode::clamp_pill_window((rect.0 + cursor.x - start.x, rect.1 + cursor.y - start.y, rect.2, rect.3), &anchor, &screens);
                     unsafe { resize_panel(native_window as *mut std::ffi::c_void, next, screen_height); }
                     input.rect = next;
                     input.pill_rect = pill_slot_rect(&anchor, next);
@@ -287,7 +287,7 @@ fn main() {
                         if let Some((start, pid)) = keyboard_start {
                             let (dx, dy) = match key { "left" => (-10.0, 0.0), "right" => (10.0, 0.0), "up" => (0.0, -10.0), "down" => (0.0, 10.0), _ => (0.0, 0.0) };
                             let rect = if key == "cancel" || key == "interrupt" { start } else { (input.rect.0 + dx, input.rect.1 + dy, input.rect.2, input.rect.3) };
-                            let screens: Vec<_> = target.available_monitors().map(|m| monitor_rect_logical(Some(&m))).collect(); let rect = move_mode::clamp_displays(rect, &screens);
+                            let screens: Vec<_> = target.available_monitors().map(|m| monitor_rect_logical(Some(&m))).collect(); let rect = move_mode::clamp_pill_window(rect, &anchor, &screens);
                             unsafe { resize_panel(native_window as *mut std::ffi::c_void, rect, screen_height); }
                             input.rect = rect; input.pill_rect = pill_slot_rect(&anchor, rect);
                             if key == "cancel" || key == "commit" || key == "interrupt" {

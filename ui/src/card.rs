@@ -126,11 +126,11 @@ pub fn pill_slot_rect(anchor: &str, win_rect: (f64, f64, f64, f64)) -> (f64, f64
     let (wx, wy, ww, wh) = win_rect;
     let sx = match anchor {
         "bottom-right" | "top-right" => wx + ww - COMPACT_W,
-        "bottom-left" => wx,
+        "bottom-left" | "top-left" => wx,
         _ => wx + (ww - COMPACT_W) / 2.0,
     };
     let sy = match anchor {
-        "top-right" => wy + CAPSULE_INSET,
+        "top-right" | "top-left" => wy + CAPSULE_INSET,
         _ => wy + wh - CAPSULE_INSET - SLOT_H,
     };
     (sx, sy, COMPACT_W, SLOT_H)

@@ -7,7 +7,7 @@ import { runInNewContext } from 'node:vm';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
-function mountPillVm() {
+export function mountPillVm() {
   const js = readFileSync(resolve(ROOT, 'ui/src/web/pill.js'), 'utf8');
   const listeners = new Map();
   const makeEl = (id) => {
@@ -18,6 +18,7 @@ function mountPillVm() {
         add(c) { classes.add(c); },
         remove(c) { classes.delete(c); },
         contains(c) { return classes.has(c); },
+        toggle(c, on) { if (on) classes.add(c); else classes.delete(c); },
       },
       children: [],
       appendChild(c) { this.children.push(c); },
@@ -40,7 +41,7 @@ function mountPillVm() {
     document: {
       getElementById: (id) => els[id] || makeEl(id),
       createElement: () => makeEl('el'),
-      addEventListener() {},
+      addEventListener(type, fn) { const key = `document:${type}`, prev = listeners.get(key); listeners.set(key, prev ? (event) => { prev(event); fn(event); } : fn); },
       body: { classList: { add() {}, remove() {} } },
     },
     window: {
@@ -205,3 +206,45 @@ test('yellow_transcript_preview_and_simultaneous_reveal_flow', () => {
   assert.equal(vm.els.pill.className.includes('state-stopped'), true);
 });
 
+
+test('right_click_does_not_start_or_interrupt_voice', () => {
+  const vm = mountPillVm();
+  vm.listeners.get('pill:pointerdown')({ pointerId: 1, button: 2 });
+  assert.deepEqual(vm.posted, []);
+  vm.ctx.window.__leko_on_event({ state: 'speaking' });
+  vm.listeners.get('pill:pointerdown')({ pointerId: 2, button: 2 });
+  assert.deepEqual(vm.posted, []);
+  assert.equal(vm.els.pill.className.includes('state-speaking'), true);
+});
+
+test('move_mode_drag_does_not_trigger_voice', () => {
+  const vm = mountPillVm();
+  vm.listeners.get('pill:contextmenu')({ preventDefault() {} });
+  vm.listeners.get('pill:pointerdown')({ pointerId: 1, button: 0 });
+  vm.listeners.get('pill:pointerup')({ pointerId: 1 });
+  vm.listeners.get('pill:contextmenu')({ preventDefault() {} });
+  assert.deepEqual(vm.posted, ['move_toggle', 'move_start', 'move_end', 'move_toggle']);
+});
+
+test('right_release_preserves_held_voice', () => {
+  const vm = mountPillVm();
+  vm.listeners.get('pill:pointerdown')({ pointerId: 1, button: 0 });
+  vm.listeners.get('pill:pointerup')({ pointerId: 2, button: 2 });
+  assert.deepEqual(vm.posted, ['ptt_start']);
+  assert.equal(vm.els.pill.className.includes('state-held'), true);
+});
+
+test('move_mode_opens_during_quiet_timer', () => {
+  const vm = mountPillVm();
+  vm.ctx.window.__leko_config.quietTimer = true;
+  vm.ctx.window.__leko_on_event({ state: 'timer_start', timer: '01:00' });
+  vm.listeners.get('pill:contextmenu')({ preventDefault() {} });
+  assert.deepEqual(vm.posted, ['move_toggle']);
+});
+
+test('keyboard_move_routes_arrows_and_cancel_without_voice', () => {
+  const vm = mountPillVm();
+  vm.ctx.window.__leko_keyboard_move();
+  for (const key of ['ArrowLeft', 'Escape']) vm.listeners.get('document:keydown')({ key, preventDefault() {} });
+  assert.deepEqual(vm.posted, ['move_keyboard_start', 'move_key_left', 'move_key_cancel']);
+});

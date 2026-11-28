@@ -118,11 +118,12 @@ fn panel_class() -> &'static objc2::runtime::AnyClass {
     static PANEL_CLASS: OnceLock<&'static AnyClass> = OnceLock::new();
     PANEL_CLASS.get_or_init(|| {
         unsafe extern "C" fn ret_no(_this: *mut AnyObject, _cmd: Sel) -> Bool { Bool::NO }
+        unsafe extern "C" fn ret_yes(_this: *mut AnyObject, _cmd: Sel) -> Bool { if crate::move_mode::key_focus_allowed() { Bool::YES } else { Bool::NO } }
         let superclass = AnyClass::get("NSPanel").expect("NSPanel class");
         let mut builder = ClassBuilder::new("LekoNonActivatingPanel", superclass)
             .expect("register LekoNonActivatingPanel");
         unsafe {
-            builder.add_method(sel!(canBecomeKeyWindow), ret_no as unsafe extern "C" fn(*mut AnyObject, Sel) -> Bool);
+            builder.add_method(sel!(canBecomeKeyWindow), ret_yes as unsafe extern "C" fn(*mut AnyObject, Sel) -> Bool);
             builder.add_method(sel!(canBecomeMainWindow), ret_no as unsafe extern "C" fn(*mut AnyObject, Sel) -> Bool);
         }
         builder.register()

@@ -20,8 +20,8 @@
   let moveMode = false, keyboardMove = false;
   let state = 'idle', timerText = '', localTimer = null, hovered = false;
   let targetLevel = 0, smoothLevel = 0, lastLevelAt = 0;
-  let cardActive = false, cardHovered = false, cardSpeaking = false, cardTextDone = true, cardSpeechDone = true;
-  let cardCollapseTimer = null, cardSpeechGraceTimer = null;
+  let cardActive = false, cardHovered = false, cardSpeaking = false, cardTextDone = true, cardSpeechDone = true, holdSpokenPill = false;
+  let cardCollapseTimer = null, cardSpeechGraceTimer = null, cardDismissTimer = null;
   let streamTokens = [], streamRawText = '', streamMode = 'word', streamIdx = 0, streamTimer = null, streamStartTimer = null;
   for (let i = 0; i < 7; i += 1) {
     const bar = document.createElement('span');
@@ -132,13 +132,15 @@
     cardTable.hidden = false;
   }
   function openQueryCard(query) {
+    clearTimeout(cardDismissTimer); cardDismissTimer = null; card.style.opacity = ''; card.style.transform = ''; card.style.pointerEvents = '';
     clearCardTimers(); cardActive = true; cardSpeaking = false; cardSpeechDone = false;
     card.classList.add('is-thinking', 'has-query'); cardQuery.textContent = query; cardUser.hidden = false;
     cardBody.textContent = 'Thinking...'; cardTable.hidden = true;
     document.body.classList.add('has-card'); card.hidden = false;
   }
   function openCard(event) {
-    clearCardTimers(); cardActive = true; cardSpeaking = state === 'speaking'; cardSpeechDone = false;
+    clearTimeout(cardDismissTimer); cardDismissTimer = null; card.style.opacity = ''; card.style.transform = ''; card.style.pointerEvents = '';
+    clearCardTimers(); cardActive = true; cardSpeaking = state === 'speaking'; cardSpeechDone = false; holdSpokenPill = cardSpeaking;
     card.classList.remove('is-thinking');
     const q = event.query || cardQuery.textContent;
     if (q) { card.classList.add('has-query'); cardQuery.textContent = q; cardUser.hidden = false; }
@@ -152,14 +154,19 @@
   }
   function dismissCard() {
     if (!cardActive) { return; }
+    const animateClose = holdSpokenPill && cardSpeechDone;
     clearCardTimers();
-    cardActive = cardHovered = cardSpeaking = false; cardTextDone = cardSpeechDone = true;
-    card.hidden = true; card.classList.remove('is-thinking', 'has-query'); cardQuery.textContent = ''; cardUser.hidden = true;
-    cardClose.classList.remove('is-hovered'); document.body.classList.remove('has-card'); post('card_dismiss');
+    cardActive = cardHovered = cardSpeaking = holdSpokenPill = false; cardTextDone = cardSpeechDone = true;
+    card.classList.remove('is-thinking', 'has-query'); cardQuery.textContent = ''; cardUser.hidden = true;
+    cardClose.classList.remove('is-hovered'); document.body.classList.remove('has-card'); render();
+    if (!animateClose) { card.hidden = true; post('card_dismiss'); return; }
+    card.style.opacity = '0'; card.style.transform = 'translateY(5px)'; card.style.pointerEvents = 'none';
+    cardDismissTimer = setTimeout(function () { cardDismissTimer = null; card.hidden = true; post('card_dismiss'); }, 300);
   }
   function render() {
-    pill.className = 'leko-pill state-' + state + (hovered ? ' is-hovered' : '') + (moveMode ? ' move-mode' : '');
-    const count = BAR_COUNTS[state] || 0;
+    const visualState = holdSpokenPill && cardActive && cardSpeechDone && (state === 'idle' || state === 'timer') ? 'speaking' : state;
+    pill.className = 'leko-pill state-' + visualState + (hovered ? ' is-hovered' : '') + (moveMode ? ' move-mode' : '');
+    const count = BAR_COUNTS[visualState] || 0;
     barEls.forEach((bar, index) => {
       bar.style.display = index < count ? 'block' : 'none';
       if (!REACTIVE_STATES[state]) { bar.style.height = '2.5px'; bar.style.opacity = '0.9'; }
@@ -292,7 +299,7 @@
       localPressed = false;
       clearTimeout(cardSpeechGraceTimer); cardSpeechGraceTimer = null;
       if (cardActive) {
-        cardSpeaking = true; cardSpeechDone = false;
+        cardSpeaking = true; cardSpeechDone = false; holdSpokenPill = true;
         clearTimeout(cardCollapseTimer); cardCollapseTimer = null;
         if (event.reveal_mode) { streamMode = event.reveal_mode; }
         if (streamIdx === 0 && streamRawText) { streamTokens = tokenizeStream(streamRawText); }

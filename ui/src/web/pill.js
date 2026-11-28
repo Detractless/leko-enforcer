@@ -267,7 +267,7 @@
 
   function hitRect(el, x, y) { const r = el && el.getBoundingClientRect && el.getBoundingClientRect(); return Boolean(r && r.width > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom); }
   function setCardHover(on) { if (cardHovered === on) { return; } cardHovered = on; if (on) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; post('card_hover_on'); } else { post('card_hover_off'); maybeScheduleCollapse(2000); } }
-  cardClose.addEventListener('click', function (event) { event.stopPropagation(); dismissCard(); });
+  cardClose.addEventListener('click', function (event) { event.stopPropagation(); const stop = state === 'speaking' || state === 'thinking' || cardSpeaking; dismissCard(); if (stop) { stopPress = localPressed = false; flashStopped(); post('stop'); } });
   card.addEventListener('mouseenter', function () { setCardHover(true); });
   card.addEventListener('mouseleave', function () { setCardHover(false); });
   document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && cardActive) { dismissCard(); } });

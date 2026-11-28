@@ -273,7 +273,8 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
   assert.match(cardCss, /width: min\(348px, calc\(100vw - 24px\)\)/);
   assert.match(cardCss, /max-height: calc\(100vh - 72px\)/);
   assert.match(cardCss, /word-wrap: break-word/);
-  assert.match(cardCss, /padding: 32px 38px 20px 16px/);
+  assert.match(cardCss, /padding: 28px 38px 25px 16px/);
+  assert.match(cardCss, /\.card-close[\s\S]*top: 6px;[\s\S]*right: 6px;/);
   assert.match(cardCss, /\.card-close/);
   assert.match(cardCss, /\.card-close:hover/);
   assert.match(cardCss, /\.card-close\.is-hovered/);
@@ -284,7 +285,7 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
   const tokensCss = readFileSync(resolve(ROOT, 'ui/src/web/tokens.css'), 'utf8');
   assert.match(tokensCss, /--pill-close-hover-bg: rgba\(255, 0, 0, 0\.24\)/);
   assert.match(tokensCss, /--pill-close-hover-ink: #dfc6c6/);
-  assert.match(tokensCss, /--pill-close-hover-bg: rgba\(255, 0, 0, 0\.51\)/);
+  assert.match(tokensCss, /--pill-close-hover-bg: rgba\(255, 0, 0, 0\.43\)/);
   assert.match(tokensCss, /--pill-close-hover-ink: #7f1d1d/);
   const mainRs = readFileSync(resolve(ROOT, 'ui/src/main.rs'), 'utf8');
   assert.match(mainRs, /webview\.set_bounds/);

@@ -66,7 +66,7 @@ body[data-theme="light"] {
   --pill-stop-border: var(--color-light-stop-border);
   --pill-close-bg: rgba(0, 0, 0, 0.05);
   --pill-close-border: rgba(0, 0, 0, 0.15);
-  --pill-close-hover-bg: rgba(255, 0, 0, 0.51);
+  --pill-close-hover-bg: rgba(255, 0, 0, 0.43);
   --pill-close-hover-border: rgba(153, 27, 27, 0.48);
   --pill-close-hover-ink: #7f1d1d;
 }

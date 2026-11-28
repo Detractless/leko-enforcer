@@ -159,3 +159,27 @@ test('card_cursor_updates_close_button_and_card_hover_without_window_focus', () 
   assert.deepEqual(vm.posted, ['card_hover_on', 'card_hover_off']);
 });
 
+test('card_close_click_stops_active_speaking_but_only_dismisses_when_idle', () => {
+  const vm = mountPillVm();
+  vm.ctx.window.__leko_on_event({ type: 'reply_card', text: 'Alpha beta.' });
+  vm.ctx.window.__leko_on_event({
+    type: 'state', state: 'speaking', text: 'Alpha beta.', duration_ms: 1500, word_timings_ms: [100, 600],
+  });
+  vm.listeners.get('card-close:click')({ stopPropagation() {} });
+  assert.equal(vm.els.card.hidden, true);
+  assert.deepEqual(vm.posted, ['card_dismiss', 'stop']);
+  assert.equal(vm.els.pill.className.includes('state-stopped'), true);
+  const stopTimers = vm.timers.filter((t) => !t.cleared && !t.fired);
+  assert.equal(stopTimers.length, 1);
+  assert.equal(stopTimers[0].ms, 1200);
+  vm.advance(stopTimers[0]);
+  assert.equal(vm.els.pill.className.includes('state-idle'), true);
+
+  vm.posted.length = 0;
+  vm.ctx.window.__leko_on_event({ type: 'reply_card', text: 'Quiet note.' });
+  vm.listeners.get('card-close:click')({ stopPropagation() {} });
+  assert.equal(vm.els.card.hidden, true);
+  assert.deepEqual(vm.posted, ['card_dismiss']);
+  assert.equal(vm.els.pill.className.includes('state-idle'), true);
+});
+

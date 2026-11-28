@@ -1,4 +1,6 @@
 """Tests for quiet-speech normalization, idle AEC bypass, and Alkove isolation."""
+import contextlib
+import io
 import tempfile
 import unittest
 from pathlib import Path
@@ -63,6 +65,28 @@ class AlkoveAndPickupTests(unittest.TestCase):
             out, used = isolator.isolate(speech)
             self.assertTrue(used)
             self.assertEqual(len(out), len(speech))
+
+    def test_prepare_audio_logs_pre_and_post_rms_for_kept_and_stripped_turns(self):
+        class _StubIsolator:
+            def __init__(self, out_amp: float, using_voiceprint: bool):
+                self._out_amp = out_amp
+                self.using_voiceprint = using_voiceprint
+
+            def isolate(self, audio_f32, sample_rate=16000):
+                return np.full_like(audio_f32, self._out_amp), True
+
+        speech = np.sin(np.linspace(0, 60 * np.pi, 6400, dtype=np.float32)) * 0.01
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            kept = prepare_audio_for_stt(speech, isolator=_StubIsolator(0.04, True))
+            stripped = prepare_audio_for_stt(speech, isolator=_StubIsolator(0.0001, True))
+        logs = buf.getvalue()
+        self.assertIsNotNone(kept)
+        self.assertIsNone(stripped)
+        self.assertIn("[Alkove Filter] kept speech (mode=voiceprint", logs)
+        self.assertIn("[Alkove Filter] stripped non-matching audio (mode=voiceprint", logs)
+        self.assertIn("pre_rms=", logs)
+        self.assertIn("post_rms=", logs)
 
 
 if __name__ == "__main__":

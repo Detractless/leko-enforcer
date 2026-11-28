@@ -137,6 +137,10 @@ class AlkoveIsolator:
         except Exception:
             return audio, False
 
+    @property
+    def using_voiceprint(self) -> bool:
+        return self._voiceprint is not None
+
 
 class IdleSafeEchoAudio:
     """Wrap EchoAudioProcessor so idle turns bypass AEC without over-suppressing speech."""
@@ -180,13 +184,27 @@ def prepare_audio_for_stt(
     isolator: Optional[AlkoveIsolator] = None,
 ) -> Optional[np.ndarray]:
     """Validate speech energy, run Alkove isolation when available, and normalize volume."""
-    normalized = normalize_quiet_speech(audio_f32)
+    raw = np.asarray(audio_f32, dtype=np.float32).reshape(-1)
+    pre_rms = max_chunk_rms(raw)
+    normalized = normalize_quiet_speech(raw)
     if normalized is None:
+        print(f"[Alkove Filter] dropped sub-floor audio (pre_rms={pre_rms:.6f})", flush=True)
         return None
     target = isolator or _DEFAULT_ISOLATOR
-    isolated, used = target.isolate(np.asarray(audio_f32, dtype=np.float32).reshape(-1))
+    isolated, used = target.isolate(raw)
     if not used:
+        print(f"[Alkove Filter] passthrough normalized (pre_rms={pre_rms:.6f})", flush=True)
         return normalized
-    if max_chunk_rms(isolated) < MIN_SPEECH_RMS * 0.5:
+    post_rms = max_chunk_rms(isolated)
+    mode = "voiceprint" if getattr(target, "using_voiceprint", False) else "fallback"
+    if post_rms < MIN_SPEECH_RMS * 0.5:
+        print(
+            f"[Alkove Filter] stripped non-matching audio (mode={mode} pre_rms={pre_rms:.6f} -> post_rms={post_rms:.6f})",
+            flush=True,
+        )
         return None
+    print(
+        f"[Alkove Filter] kept speech (mode={mode} pre_rms={pre_rms:.6f} -> post_rms={post_rms:.6f})",
+        flush=True,
+    )
     return np.ascontiguousarray(np.clip(isolated, -1.0, 1.0), dtype=np.float32)

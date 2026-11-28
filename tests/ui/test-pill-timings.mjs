@@ -248,3 +248,46 @@ test('keyboard_move_routes_arrows_and_cancel_without_voice', () => {
   for (const key of ['ArrowLeft', 'Escape']) vm.listeners.get('document:keydown')({ key, preventDefault() {} });
   assert.deepEqual(vm.posted, ['move_keyboard_start', 'move_key_left', 'move_key_cancel']);
 });
+
+
+test('spoken_pill_stays_still_until_reply_card_closes', () => {
+  const vm = mountPillVm();
+  vm.ctx.window.__leko_on_event({ state: 'reply_card', text: '' });
+  vm.ctx.window.__leko_on_event({ state: 'speaking' });
+  vm.ctx.window.__leko_on_event({ state: 'idle' });
+  assert.equal(vm.els.pill.className.includes('state-speaking'), true);
+  assert.equal(vm.els.card.hidden, false);
+  assert.ok(vm.els.bars.children.every((bar) => bar.style.height === '2.5px'));
+  const collapse = vm.timers.find((t) => t.ms === 3500 && !t.cleared);
+  assert.ok(collapse);
+  vm.advance(collapse);
+  assert.equal(vm.els.card.style.opacity, '0');
+  assert.equal(vm.els.pill.className.includes('state-idle'), true);
+  vm.advance(vm.timers.find((t) => t.ms === 300 && !t.cleared && !t.fired));
+  assert.equal(vm.els.card.hidden, true);
+});
+
+test('spoken_pill_shrinks_when_reply_card_is_closed_manually', () => {
+  const vm = mountPillVm();
+  vm.ctx.window.__leko_on_event({ state: 'reply_card', text: '' });
+  vm.ctx.window.__leko_on_event({ state: 'speaking' });
+  vm.ctx.window.__leko_on_event({ state: 'idle' });
+  vm.listeners.get('card-close:click')({ stopPropagation() {} });
+  assert.equal(vm.els.card.style.opacity, '0');
+  assert.equal(vm.els.pill.className.includes('state-idle'), true);
+  vm.advance(vm.timers.find((t) => t.ms === 300 && !t.cleared && !t.fired));
+  assert.equal(vm.els.card.hidden, true);
+});
+
+test('new_reply_cancels_pending_card_close', () => {
+  const vm = mountPillVm();
+  vm.ctx.window.__leko_on_event({ state: 'reply_card', text: '' });
+  vm.ctx.window.__leko_on_event({ state: 'speaking' });
+  vm.ctx.window.__leko_on_event({ state: 'idle' });
+  vm.listeners.get('card-close:click')({ stopPropagation() {} });
+  const close = vm.timers.find((t) => t.ms === 300 && !t.cleared && !t.fired);
+  vm.ctx.window.__leko_on_event({ state: 'reply_card', text: 'Next reply' });
+  assert.equal(close.cleared, true);
+  assert.equal(vm.els.card.hidden, false);
+  assert.equal(vm.els.card.style.opacity, '');
+});

@@ -17,7 +17,7 @@
   const BAR_COUNTS = { listening: 7, held: 7, speaking: 7, stopped: 7 };
   const REACTIVE_STATES = { listening: true, held: true, speaking: true };
   const WEIGHTS_7 = [0.56, 0.81, 0.92, 1.0, 0.92, 0.81, 0.56];
-  let moveMode = false, pendingMove = false, pendingKeyboard = false, keyboardMove = false;
+  let moveMode = false, keyboardMove = false;
   let state = 'idle', timerText = '', localTimer = null, hovered = false;
   let targetLevel = 0, smoothLevel = 0, lastLevelAt = 0;
   let cardActive = false, cardHovered = false, cardSpeaking = false, cardTextDone = true, cardSpeechDone = true;
@@ -189,14 +189,15 @@
     if (localTimer) { clearTimeout(localTimer); localTimer = null; }
     state = next;
     if (text !== undefined && next === 'timer') { timerText = text; }
-    if ((next === 'idle' || next === 'timer') && pendingMove) { pendingMove = false; toggleMove(pendingKeyboard); pendingKeyboard = false; }
+    if (moveMode && ['held', 'listening', 'thinking', 'speaking'].includes(next)) { post(keyboardMove ? 'move_key_interrupt' : 'move_toggle'); moveMode = keyboardMove = false; }
     render();
   }
   function post(action) {
     if (window.ipc && window.ipc.postMessage) { window.ipc.postMessage(JSON.stringify({ action: action })); }
   }
+  function voiceBusy() { return (state !== 'idle' && state !== 'timer') || (cardActive && !cardSpeechDone); }
   function toggleMove(keyboard) { moveMode = !moveMode; keyboardMove = !!keyboard && moveMode; pill.classList.toggle('move-mode', moveMode); post(keyboardMove ? 'move_keyboard_start' : 'move_toggle'); }
-  window.__leko_keyboard_move = function () { if (moveMode) return; if (state !== 'idle' && state !== 'timer') { pendingMove = pendingKeyboard = true; return; } toggleMove(true); };
+  window.__leko_keyboard_move = function () { if (moveMode) return; if (voiceBusy()) return; toggleMove(true); };
   function restState() {
     return (window.__leko_config && window.__leko_config.quietTimer && timerText) ? 'timer' : 'idle';
   }
@@ -236,7 +237,7 @@
   pill.addEventListener('pointercancel', function () { if (moveMode) { post('move_end'); return; } releaseHold(false); });
   window.addEventListener('pointerup', function (event) { if (event.button !== undefined && event.button !== 0) { return; } if (stopPress || localPressed || state === 'held') { releaseHold(false); } });
   window.addEventListener('pointercancel', function () { if (stopPress || localPressed || state === 'held') { releaseHold(false); } });
-  pill.addEventListener('contextmenu', function (event) { event.preventDefault(); if (keyboardMove) return; if (state !== 'idle' && state !== 'timer' && !moveMode) { pendingMove = true; return; } toggleMove(); });
+  pill.addEventListener('contextmenu', function (event) { event.preventDefault(); if (keyboardMove) return; if (voiceBusy() && !moveMode) return; toggleMove(); });
   document.addEventListener('keydown', function (event) { if (!keyboardMove) return; const keys = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', Enter: 'commit', Escape: 'cancel' }; const key = keys[event.key]; if (!key) return; event.preventDefault(); post('move_key_' + key); if (key === 'commit' || key === 'cancel') { keyboardMove = moveMode = false; render(); } });
   function hitRect(el, x, y) { const r = el && el.getBoundingClientRect && el.getBoundingClientRect(); return Boolean(r && r.width > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom); }
   function setCardHover(on) { if (cardHovered === on) { return; } cardHovered = on; if (on) { clearTimeout(cardCollapseTimer); cardCollapseTimer = null; post('card_hover_on'); } else { post('card_hover_off'); maybeScheduleCollapse(2000); } }

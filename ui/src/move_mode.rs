@@ -17,22 +17,33 @@ pub fn clamp_displays(rect: Rect, screens: &[Rect]) -> Rect {
 
 pub fn restore_displays(path: &Path, fallback: Rect, screens: &[Rect]) -> Rect {
     let position = std::fs::read_to_string(path).ok()
-        .and_then(|s| serde_json::from_str::<(f64, f64)>(&s).ok())
-        .filter(|(x, y)| x.is_finite() && y.is_finite());
-    clamp_displays(position.map_or(fallback, |(x, y)| (x, y, fallback.2, fallback.3)), screens)
+        .and_then(|s| serde_json::from_str::<Vec<f64>>(&s).ok())
+        .filter(|v| (v.len() == 2 || v.len() == 3) && v.iter().all(|n| n.is_finite()))
+        .map(|v| (v[0], v[1] + v.get(2).copied().unwrap_or(0.0) - crate::card::CAPSULE_INSET));
+    let rect = position.map_or(fallback, |(x, y)| (x, y, fallback.2, fallback.3));
+    let slot = (rect.0, rect.1 + crate::card::CAPSULE_INSET, rect.2, crate::card::SLOT_H);
+    let visible = clamp_displays(slot, screens);
+    (rect.0 + visible.0 - slot.0, rect.1 + visible.1 - slot.1, rect.2, rect.3)
 }
 
 pub fn card_frame(slot: Rect, size: Rect, screen: Rect) -> (Rect, &'static str) {
+    let center_x = slot.0 + slot.2 / 2.0 - size.2 / 2.0;
+    let centered = center_x >= screen.0 && center_x + size.2 <= screen.0 + screen.2;
     let right = slot.0 + slot.2 / 2.0 >= screen.0 + screen.2 / 2.0;
     let top = slot.1 + slot.3 / 2.0 < screen.1 + screen.3 / 2.0;
-    let anchor = match (top, right) { (true, true) => "top-right", (true, false) => "top-left", (false, true) => "bottom-right", (false, false) => "bottom-left" };
-    let x = if right { slot.0 + slot.2 - size.2 } else { slot.0 };
-    let y = if top { slot.1 - 12.0 } else { slot.1 + slot.3 + 12.0 - size.3 };
+    let anchor = match (top, centered, right) {
+        (true, true, _) => "top-center", (false, true, _) => "bottom-center",
+        (true, false, true) => "top-right", (true, false, false) => "top-left",
+        (false, false, true) => "bottom-right", (false, false, false) => "bottom-left",
+    };
+    let x = if centered { center_x } else if right { slot.0 + slot.2 - size.2 } else { slot.0 };
+    let inset = crate::card::CAPSULE_INSET;
+    let y = if top { slot.1 - inset } else { slot.1 + slot.3 + inset - size.3 };
     ((x, y, size.2, size.3), anchor)
 }
 
 pub fn save(path: &Path, rect: Rect) -> std::io::Result<()> {
-    let body = serde_json::to_vec(&(rect.0, rect.1))?;
+    let body = serde_json::to_vec(&(rect.0, rect.1, crate::card::CAPSULE_INSET))?;
     let parent = path.parent().ok_or_else(|| std::io::Error::other("missing parent"))?;
     std::fs::create_dir_all(parent)?;
     let temporary = path.with_extension("tmp");
@@ -45,12 +56,30 @@ mod tests {
     use super::*;
     #[test]
     fn movement_clamps_and_anchors_card() {
-        let compact = clamp((-100.0, 850.0, 160.0, 56.0), (0.0, 0.0, 1000.0, 900.0));
-        assert_eq!(compact, (0.0, 844.0, 160.0, 56.0));
-        let slot = (compact.0, compact.1 + 12.0, 160.0, 32.0);
+        let compact = clamp((-100.0, 850.0, 160.0, 120.0), (0.0, 0.0, 1000.0, 900.0));
+        assert_eq!(compact, (0.0, 780.0, 160.0, 120.0));
+        let slot = (compact.0, compact.1 + 44.0, 160.0, 32.0);
         let (card, _) = card_frame(slot, (0.0, 0.0, 380.0, 260.0), (0.0, 0.0, 1000.0, 900.0));
         assert_eq!(slot.0, card.0);
         assert_eq!(compact.1 + compact.3, card.1 + card.3);
+    }
+    #[test]
+    fn card_centers_when_space_permits() {
+        let screen = (0.0, 0.0, 1000.0, 900.0);
+        for (y, expected) in [(700.0, "bottom-center"), (44.0, "top-center")] {
+            let slot = (420.0, y, 160.0, 32.0);
+            let (card, anchor) = card_frame(slot, (0.0, 0.0, 380.0, 292.0), screen);
+            assert_eq!(anchor, expected);
+            assert_eq!(card.0 + card.2 / 2.0, slot.0 + slot.2 / 2.0);
+        }
+    }
+    #[test]
+    fn legacy_position_preserves_pill_location() {
+        let path = std::env::temp_dir().join(format!("leko-legacy-position-{}.json", std::process::id()));
+        std::fs::write(&path, "[200,300]").unwrap();
+        let rect = restore_displays(&path, (0.0, 0.0, 160.0, 120.0), &[(0.0, 0.0, 1000.0, 900.0)]);
+        assert_eq!(rect.1 + crate::card::CAPSULE_INSET, 300.0);
+        std::fs::remove_file(path).unwrap();
     }
     #[test]
     fn interrupted_drag_recovers_input() {
@@ -73,7 +102,7 @@ mod tests {
     #[test]
     fn card_opens_toward_available_screen_space() {
         let screen = (0.0, 0.0, 1000.0, 900.0);
-        let slot = (0.0, 12.0, 160.0, 32.0);
+        let slot = (0.0, 44.0, 160.0, 32.0);
         let (frame, anchor) = card_frame(slot, (0.0, 0.0, 380.0, 260.0), screen);
         assert_eq!(anchor, "top-left");
         assert_eq!(frame, (0.0, 0.0, 380.0, 260.0));

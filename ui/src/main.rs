@@ -291,14 +291,14 @@ fn main() {
                             unsafe { resize_panel(native_window as *mut std::ffi::c_void, rect, screen_height); }
                             input.rect = rect; input.pill_rect = pill_slot_rect(&anchor, rect);
                             if key == "cancel" || key == "commit" || key == "interrupt" {
-                                if key == "commit" { let _ = move_mode::save(&position_path, (input.pill_rect.0, input.pill_rect.1 - 12.0, COMPACT_W, COMPACT_H)); }
+                                if key == "commit" { let _ = move_mode::save(&position_path, (input.pill_rect.0, input.pill_rect.1 - card::CAPSULE_INSET, COMPACT_W, COMPACT_H)); }
                                 keyboard_start = None; moving = false; move_mode::allow_key_focus(false); if key != "interrupt" { unsafe { restore_previous_app(pid); } }
                             }
                         }
                     }
                     if action == "move_toggle" {
                         moving = !moving;
-                        if !moving { move_origin = None; let _ = move_mode::save(&position_path, (input.pill_rect.0, input.pill_rect.1 - 12.0, COMPACT_W, COMPACT_H)); }
+                        if !moving { move_origin = None; let _ = move_mode::save(&position_path, (input.pill_rect.0, input.pill_rect.1 - card::CAPSULE_INSET, COMPACT_W, COMPACT_H)); }
                     } else if action == "move_start" && moving {
                         move_origin = input.provider.position().map(|point| (point, input.rect));
                     } else if action == "move_end" { move_origin = None; }

@@ -103,6 +103,7 @@ class RollingVoiceprintStore:
         self._embed_fn = embed_fn
         self._verify_fn = verify_fn
         self._lock = threading.Lock()
+        self._model_lock = threading.Lock()
         self._alkove = None
         self._timbre = None
         self._failed = False
@@ -113,7 +114,7 @@ class RollingVoiceprintStore:
             return True
         if self._failed:
             return False
-        with self._lock:
+        with self._model_lock:
             if self._timbre is not None:
                 return True
             try:
@@ -204,6 +205,7 @@ class RollingVoiceprintStore:
                 "window": len(entries),
                 "voiceprint": winner_vp,
             })
+            print(f"[Voiceprint] Saved auto voiceprint ({count}/{len(entries)} turns).", flush=True)
             return True
 
 
@@ -222,8 +224,8 @@ def _run_worker(q: queue.Queue) -> None:
             if _DEFAULT_STORE is None:
                 _DEFAULT_STORE = RollingVoiceprintStore()
             _DEFAULT_STORE.record_turn(audio, text)
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"[Voiceprint] Auto-learn error: {exc}", flush=True)
         finally:
             q.task_done()
 

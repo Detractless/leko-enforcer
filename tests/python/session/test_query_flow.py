@@ -154,6 +154,24 @@ class QueryFlowTests(unittest.TestCase):
         spk_idx = next(i for i, e in enumerate(self.events) if e.get("state") == "speaking")
         self.assertLess(card_idx, spk_idx)
 
+    def test_minimum_thinking_floor_holds_before_speaking_and_aborts_on_cancel(self):
+        import time
+
+        self.intent = {"action": "reply", "content": "Quick reply."}
+        self.state.mark_thinking(0.08)
+        started = time.monotonic()
+        self.query("hello")
+        self.assertGreaterEqual(time.monotonic() - started, 0.06)
+
+        spoken = []
+        cancel_flag = [False]
+        self.state.mark_thinking(0.5)
+        with patch("time.sleep", side_effect=lambda _s: cancel_flag.__setitem__(0, True)):
+            reply = self.query("cancel me", speak_fn=lambda t, *a, **kw: spoken.append(t),
+                               is_cancelled=lambda: cancel_flag[0])
+        self.assertEqual(reply, "")
+        self.assertEqual(spoken, [])
+
 
 if __name__ == "__main__":
     unittest.main()

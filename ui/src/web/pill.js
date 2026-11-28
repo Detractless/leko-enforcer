@@ -221,7 +221,7 @@
   function localFeedback(heldFor) {
     if (heldFor <= 200) { setState(restState()); return; }
     setState('listening');
-    localTimer = setTimeout(function () { localTimer = null; if (state === 'listening') { setState('thinking'); } }, 250);
+    localTimer = setTimeout(function () { localTimer = null; if (state === 'listening') { setState('thinking'); } }, 500);
   }
 
   let pressedAt = 0, localPressed = false, stopPress = false;

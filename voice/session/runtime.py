@@ -163,7 +163,7 @@ class RuntimeController:
                 if self.args.ui: self.bridge.emit_state("idle")
                 return
             if self.args.ui:
-                self.bridge.emit_thinking(text)
+                self.bridge.emit_thinking(text); self.conversation.mark_thinking(3.0)
             voice.process_query(text, self.args.settings, bridge=self.bridge, conversation=self.conversation,
                                 is_cancelled=lambda: self.worker.is_superseded(seq),
                                 preserve_pending_on_cancel=self.args.ui, session_log=self.session_log,

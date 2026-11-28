@@ -31,14 +31,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(HERE))
 sys.modules.setdefault("assistant", sys.modules[__name__])
 
-from ..normalization.spoken_to_written import normalize_written_text
 from ..normalization.verbalizer import verbalize_for_speech
 from .turn_detector import TurnDetector
 from .stream_recovery import open_input_stream, pad_bluetooth_preroll, sync_output_device
 from .ui_bridge import compute_word_timings_ms, load_card_timing, start_playback_sampler
 try:
+    from ..stt.spoken_to_written import normalize_written_text
     from ..stt.stt_lifecycle import SttLifecycle
 except ImportError:
+    from stt.spoken_to_written import normalize_written_text
     from stt.stt_lifecycle import SttLifecycle
 from ..routing.intent_validation import tool_to_cli_args
 from ..routing.canonical_speech import format_status_summary as _canonical_status

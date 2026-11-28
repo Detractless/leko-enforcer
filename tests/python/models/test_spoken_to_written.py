@@ -2,7 +2,7 @@
 import unittest
 
 from voice.normalization.speech_text import normalize_spoken_text
-from voice.normalization.spoken_to_written import normalize_written_text
+from voice.stt.spoken_to_written import normalize_written_text
 from voice.routing.deterministic_router import classify_text
 
 

@@ -274,7 +274,7 @@ test('reply_card_streams_text_renders_table_and_handles_hover_and_escape', () =>
   assert.match(html, /id="card-query"/);
   const cardCss = readFileSync(resolve(ROOT, 'ui/src/web/card.css'), 'utf8');
   assert.match(cardCss, /width: min\(348px, calc\(100vw - 24px\)\)/);
-  assert.match(cardCss, /max-height: calc\(100vh - 72px\)/);
+  assert.match(cardCss, /max-height: calc\(100vh - 104px\)/);
   assert.match(cardCss, /word-wrap: break-word/);
   assert.match(cardCss, /border: 1px solid var\(--pill-speak-border\)/);
   assert.match(cardCss, /\.reply-card\.is-thinking[\s\S]*--pill-think-border/);

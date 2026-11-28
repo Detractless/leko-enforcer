@@ -1,13 +1,13 @@
 pub const COMPACT_W: f64 = 160.0;
-pub const COMPACT_H: f64 = 56.0;
+pub const COMPACT_H: f64 = 120.0;
 pub const EXPANDED_W: f64 = 380.0;
-pub const EXPANDED_MIN_H: f64 = 260.0;
+pub const EXPANDED_MIN_H: f64 = 292.0;
 #[cfg(test)]
 pub const CARD_MAX_W: f64 = 348.0;
 #[cfg(test)]
 pub const CARD_H_PAD: f64 = 12.0;
 pub const EDGE_PAD: f64 = 16.0;
-pub const CAPSULE_INSET: f64 = 12.0;
+pub const CAPSULE_INSET: f64 = 44.0;
 pub const SLOT_H: f64 = 32.0;
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -98,8 +98,8 @@ impl CardState {
         } else {
             32 + (self.rows.len().min(6) as u32) * 24
         };
-        let total = 64 + body_h + table_h;
-        (EXPANDED_W as u32, total.clamp(EXPANDED_MIN_H as u32, 396))
+        let total = 96 + body_h + table_h;
+        (EXPANDED_W as u32, total.clamp(EXPANDED_MIN_H as u32, 428))
     }
 }
 
@@ -116,8 +116,8 @@ pub fn window_frame(
         _ => mon_x + (mon_w - width) / 2.0,
     };
     let y = match anchor {
-        "top-right" => mon_y + EDGE_PAD,
-        _ => mon_y + mon_h - EDGE_PAD - height,
+        "top-right" => mon_y + EDGE_PAD - (CAPSULE_INSET - 12.0),
+        _ => mon_y + mon_h - EDGE_PAD - height + (CAPSULE_INSET - 24.0),
     };
     (x, y, width, height)
 }
@@ -130,7 +130,7 @@ pub fn pill_slot_rect(anchor: &str, win_rect: (f64, f64, f64, f64)) -> (f64, f64
         _ => wx + (ww - COMPACT_W) / 2.0,
     };
     let sy = match anchor {
-        "top-right" | "top-left" => wy + CAPSULE_INSET,
+        "top-right" | "top-left" | "top-center" => wy + CAPSULE_INSET,
         _ => wy + wh - CAPSULE_INSET - SLOT_H,
     };
     (sx, sy, COMPACT_W, SLOT_H)
@@ -221,6 +221,13 @@ pub unsafe fn resize_panel(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn compact_panel_has_room_for_move_glow() {
+        let slot = pill_slot_rect("bottom-center", (0.0, 0.0, COMPACT_W, COMPACT_H));
+        assert_eq!(slot.1, 44.0);
+        assert_eq!(COMPACT_H - (slot.1 + slot.3), 44.0);
+    }
 
     #[test]
     fn compact_and_expanded_keep_exact_pill_anchor_across_all_corners() {

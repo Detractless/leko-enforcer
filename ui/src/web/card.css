@@ -9,15 +9,16 @@ body[data-anchor="top-left"] .pill-slot {
 }
 
 body[data-anchor="top-right"],
-body[data-anchor="top-left"] {
+body[data-anchor="top-left"],
+body[data-anchor="top-center"] {
   flex-direction: column-reverse;
-  padding: 12px 0 0 0;
+  padding: 44px 0 0 0;
 }
 
 .reply-card {
   position: relative;
   width: min(348px, calc(100vw - 24px));
-  max-height: calc(100vh - 72px);
+  max-height: calc(100vh - 104px);
   overflow-y: auto;
   box-sizing: border-box;
   word-wrap: break-word;

@@ -133,12 +133,13 @@ test('idle_hover_never_resizes_window_and_blocked_takes_priority', () => {
     .map((line) => JSON.parse(line));
   assert.equal(idleHoverOn.card_active, false);
   assert.equal(idleHoverOn.card_width, 160);
-  assert.equal(idleHoverOn.card_height, 56);
+  assert.equal(idleHoverOn.card_height, 120);
+  assert.equal(idleHoverOff.card_height, idleHoverOn.card_height);
   assert.equal(idleHoverOff.card_width, 160);
   assert.equal(cardOpen.card_active, true);
   assert.equal(blocked.state, 'blocked');
   assert.equal(blocked.text, 'Blocked');
   assert.equal(blocked.card_active, false);
   assert.equal(blocked.card_width, 160);
-  assert.equal(blocked.card_height, 56);
+  assert.equal(blocked.card_height, 120);
 });

@@ -25,9 +25,31 @@ test("keyboard moves and drops pill", () => {
   for (const key of ["ArrowRight", "Enter"]) vm.listeners.get("document:keydown")({ key, preventDefault() {} });
   assert.deepEqual(vm.posted, ["move_keyboard_start", "move_key_right", "move_key_commit"]);
 });
-test("active voice defers move mode", () => {
-  const vm = mountPillVm(); vm.ctx.window.__leko_on_event({ state: "speaking" });
-  context(vm); assert.deepEqual(vm.posted, []);
-  vm.ctx.window.__leko_on_event({ state: "idle" });
-  assert.deepEqual(vm.posted, ["move_toggle"]);
+test("move requests during active voice are ignored", () => {
+  for (const state of ["thinking", "speaking"]) {
+    const vm = mountPillVm(); vm.ctx.window.__leko_on_event({ state });
+    context(vm); vm.ctx.window.__leko_keyboard_move();
+    vm.ctx.window.__leko_on_event({ state: "reply_card", text: "hello" });
+    context(vm); vm.ctx.window.__leko_keyboard_move();
+    vm.ctx.window.__leko_on_event({ state: "speaking" });
+    vm.ctx.window.__leko_on_event({ state: "idle" });
+    assert.deepEqual(vm.posted, []);
+    assert.equal(vm.els.pill.className.includes("move-mode"), false);
+  }
+});
+test("voice starting during movement ends move mode", () => {
+  for (const keyboard of [false, true]) {
+    const vm = mountPillVm();
+    if (keyboard) vm.ctx.window.__leko_keyboard_move(); else context(vm);
+    vm.ctx.window.__leko_on_event({ state: "speaking" });
+    assert.equal(vm.els.pill.className.includes("move-mode"), false);
+    assert.equal(vm.els.pill.className.includes("state-speaking"), true);
+    assert.deepEqual(vm.posted, keyboard ? ["move_keyboard_start", "move_key_interrupt"] : ["move_toggle", "move_toggle"]);
+  }
+});
+
+test("move glow has window space above and below", () => {
+  const css = readFileSync(new URL("../../ui/src/web/pill.css", import.meta.url), "utf8");
+  assert.match(css, /html, body \{[^}]*padding: 0;/);
+  assert.match(css, /body \{ padding: 0 0 44px 0; \}/);
 });

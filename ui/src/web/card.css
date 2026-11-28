@@ -3,11 +3,13 @@ body[data-anchor="top-right"] .pill-slot {
   align-self: flex-end;
 }
 
-body[data-anchor="bottom-left"] .pill-slot {
+body[data-anchor="bottom-left"] .pill-slot,
+body[data-anchor="top-left"] .pill-slot {
   align-self: flex-start;
 }
 
-body[data-anchor="top-right"] {
+body[data-anchor="top-right"],
+body[data-anchor="top-left"] {
   flex-direction: column-reverse;
   padding: 12px 0 0 0;
 }

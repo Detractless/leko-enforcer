@@ -36,8 +36,10 @@ from .turn_detector import TurnDetector
 from .stream_recovery import open_input_stream, pad_bluetooth_preroll, sync_output_device
 from .ui_bridge import compute_word_timings_ms, load_card_timing, start_playback_sampler
 try:
+    from ..stt.spoken_to_written import normalize_written_text
     from ..stt.stt_lifecycle import SttLifecycle
 except ImportError:
+    from stt.spoken_to_written import normalize_written_text
     from stt.stt_lifecycle import SttLifecycle
 from ..routing.intent_validation import tool_to_cli_args
 from ..routing.canonical_speech import format_status_summary as _canonical_status
@@ -263,7 +265,7 @@ def transcribe_audio(audio_f32: np.ndarray) -> str:
         return ""
     stt = get_stt()
     res = stt.generate(mx.array(prepared))
-    return getattr(res, "text", str(res)).strip()
+    return normalize_written_text(getattr(res, "text", str(res)).strip())
 
 def format_status_summary(raw_stdout: str, target_type: str = "", name: str = "") -> str:
     """Format native CLI JSON into one exact Title Case spoken status sentence."""

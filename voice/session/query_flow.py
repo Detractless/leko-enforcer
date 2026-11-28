@@ -151,7 +151,7 @@ def _supports_param(speak, name):
         return False
 
 def _respond(query, state, bridge, speak, cancelled, text, confirmed=False, card=None):
-    if cancelled():
+    if cancelled() or (bridge and getattr(state, "thinking_until", 0.0) and state.wait_for_thinking_floor(cancelled)):
         return ""
     state.record(query, text)
     _log(state, "assistant_reply", text=text, confirmed=confirmed)

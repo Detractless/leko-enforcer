@@ -34,12 +34,26 @@ class Conversation:
         self.pending = None
         self.active_request = RequestState()
         self.epoch = 0
+        self.thinking_until = 0.0
         self.lock = threading.RLock()
         self.turn_lock = threading.RLock()
+
+    def mark_thinking(self, seconds=3.0):
+        self.thinking_until = time.monotonic() + max(0.0, float(seconds))
+
+    def wait_for_thinking_floor(self, cancelled):
+        deadline = self.thinking_until
+        self.thinking_until = 0.0
+        while time.monotonic() < deadline:
+            if cancelled():
+                return True
+            time.sleep(min(0.02, max(0.0, deadline - time.monotonic())))
+        return bool(cancelled())
 
     def cancel(self):
         with self.lock:
             self.epoch += 1
+            self.thinking_until = 0.0
             self.pending = None
             self.active_request.clear()
 

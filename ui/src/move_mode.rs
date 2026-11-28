@@ -15,6 +15,32 @@ pub fn clamp_displays(rect: Rect, screens: &[Rect]) -> Rect {
     }).unwrap_or(rect)
 }
 
+const PILL_WIDTH: f64 = 112.0;
+const PILL_HEIGHT: f64 = 30.0;
+const EDGE_GAP: f64 = 6.0;
+const TOP_GAP: f64 = 45.0;
+
+pub fn clamp_pill_slot(slot: Rect, screens: &[Rect]) -> Rect {
+    let offset_x = (slot.2 - PILL_WIDTH) / 2.0;
+    let offset_y = (slot.3 - PILL_HEIGHT) / 2.0;
+    let pill = (slot.0 + offset_x, slot.1 + offset_y, PILL_WIDTH, PILL_HEIGHT);
+    let clipped = screens.iter().map(|s| {
+        let area = (s.0 + EDGE_GAP, s.1 + TOP_GAP,
+            (s.2 - 2.0 * EDGE_GAP).max(0.0), (s.3 - TOP_GAP - EDGE_GAP).max(0.0));
+        clamp(pill, area)
+    }).min_by(|a, b| {
+        let dist = |r: &Rect| (r.0 - pill.0).powi(2) + (r.1 - pill.1).powi(2);
+        dist(a).total_cmp(&dist(b))
+    }).unwrap_or(pill);
+    (clipped.0 - offset_x, clipped.1 - offset_y, slot.2, slot.3)
+}
+
+pub fn clamp_pill_window(rect: Rect, anchor: &str, screens: &[Rect]) -> Rect {
+    let slot = crate::card::pill_slot_rect(anchor, rect);
+    let bounded = clamp_pill_slot(slot, screens);
+    (rect.0 + bounded.0 - slot.0, rect.1 + bounded.1 - slot.1, rect.2, rect.3)
+}
+
 pub fn restore_displays(path: &Path, fallback: Rect, screens: &[Rect]) -> Rect {
     let position = std::fs::read_to_string(path).ok()
         .and_then(|s| serde_json::from_str::<Vec<f64>>(&s).ok())
@@ -22,7 +48,7 @@ pub fn restore_displays(path: &Path, fallback: Rect, screens: &[Rect]) -> Rect {
         .map(|v| (v[0], v[1] + v.get(2).copied().unwrap_or(0.0) - crate::card::CAPSULE_INSET));
     let rect = position.map_or(fallback, |(x, y)| (x, y, fallback.2, fallback.3));
     let slot = (rect.0, rect.1 + crate::card::CAPSULE_INSET, rect.2, crate::card::SLOT_H);
-    let visible = clamp_displays(slot, screens);
+    let visible = clamp_pill_slot(slot, screens);
     (rect.0 + visible.0 - slot.0, rect.1 + visible.1 - slot.1, rect.2, rect.3)
 }
 
@@ -63,6 +89,32 @@ mod tests {
         assert_eq!(slot.0, card.0);
         assert_eq!(compact.1 + compact.3, card.1 + card.3);
     }
+    #[test]
+    fn visible_pill_has_equal_side_and_bottom_gaps_without_moving_top() {
+        let screen = [(0.0, 0.0, 1710.0, 1107.0)];
+        let rect = (0.0, 0.0, 160.0, 120.0);
+        let left = clamp_pill_window((-100.0, 300.0, rect.2, rect.3), "bottom-center", &screen);
+        let right = clamp_pill_window((1800.0, 300.0, rect.2, rect.3), "bottom-center", &screen);
+        let top = clamp_pill_window((500.0, -100.0, rect.2, rect.3), "bottom-center", &screen);
+        let bottom = clamp_pill_window((500.0, 1200.0, rect.2, rect.3), "bottom-center", &screen);
+        assert_eq!(left.0 + 24.0, 6.0);
+        assert_eq!(1710.0 - (right.0 + 24.0 + 112.0), 6.0);
+        assert_eq!(top.1 + 45.0, 45.0);
+        assert_eq!(1107.0 - (bottom.1 + 45.0 + 30.0), 6.0);
+    }
+
+    #[test]
+    fn edge_clamp_tracks_pill_in_expanded_card_and_restores_position() {
+        let screen = [(0.0, 0.0, 1710.0, 1107.0)];
+        for anchor in ["top-left", "bottom-right", "bottom-center"] {
+            let moved = clamp_pill_window((1800.0, 1200.0, 380.0, 292.0), anchor, &screen);
+            let slot = crate::card::pill_slot_rect(anchor, moved);
+            assert_eq!(1710.0 - (slot.0 + 24.0 + 112.0), 6.0);
+            assert_eq!(1107.0 - (slot.1 + 1.0 + 30.0), 6.0);
+            assert_eq!(clamp_pill_slot(slot, &screen), slot);
+        }
+    }
+
     #[test]
     fn card_centers_when_space_permits() {
         let screen = (0.0, 0.0, 1000.0, 900.0);
@@ -111,7 +163,7 @@ mod tests {
     fn saved_position_restores_on_available_display() {
         let path = std::env::temp_dir().join(format!("leko-move-test-{}.json", std::process::id()));
         save(&path, (3000.0, 500.0, 160.0, 56.0)).unwrap();
-        assert_eq!(restore_displays(&path, (0.0, 0.0, 160.0, 56.0), &[(0.0, 0.0, 1000.0, 900.0)]), (840.0, 500.0, 160.0, 56.0));
+        assert_eq!(restore_displays(&path, (0.0, 0.0, 160.0, 56.0), &[(0.0, 0.0, 1000.0, 900.0)]), (858.0, 500.0, 160.0, 56.0));
         std::fs::remove_file(path).unwrap();
     }
 }
